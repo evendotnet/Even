@@ -60,4 +60,9 @@ namespace Even.Messages
         public IActorRef ReplyTo { get; set; }
         public InitializeEventStoreReader ReaderInitializer { get; set; }
     }
+
+    public class InitializeProjection
+    {
+        public IActorRef Supervisor;
+    }
 }

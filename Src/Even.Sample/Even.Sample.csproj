@@ -53,7 +53,7 @@
   <ItemGroup>
     <Compile Include="Aggregates\Product.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Projections\ProductList.cs" />
+    <Compile Include="Projections\ActiveProducts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

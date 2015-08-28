@@ -58,12 +58,11 @@
   <ItemGroup>
     <Compile Include="Messages\PersistenceMessages.cs" />
     <Compile Include="Messages\Subscriptions.cs" />
-    <Compile Include="_Akka.ActorOfExtensions.cs" />
     <Compile Include="Aggregate.cs" />
     <Compile Include="AggregateSupervisor.cs" />
-    <Compile Include="_Akka.AsyncHelper.cs" />
+    <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="Persistence\InMemoryStorage.cs" />
-    <Compile Include="EventProcessor.cs" />
+    <Compile Include="Projection.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
     <Compile Include="EventStoreConfig.cs" />
@@ -90,8 +89,9 @@
     <Compile Include="IStreamPredicate.cs" />
     <Compile Include="IStreamSnapshot.cs" />
     <Compile Include="PersistedStreamEvent.cs" />
-    <Compile Include="ProjectionSupervisor.cs" />
     <Compile Include="ProjectionState.cs" />
+    <Compile Include="ProjectionSupervisor.cs" />
+    <Compile Include="ProjectionStreamState.cs" />
     <Compile Include="ProjectionStream.cs" />
     <Compile Include="ProjectionStreamEvent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

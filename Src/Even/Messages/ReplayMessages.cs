@@ -99,14 +99,24 @@ namespace Even.Messages
     public class ReplayProjectionRequest : ReplayMessage
     {
         public EventStoreQuery Query { get; set; }
-        public int Checkpoint{ get; set; }
         public int Sequence { get; set; }
-        public int SequenceHash { get; set; }
+        public int? SequenceHash { get; set; }
+        public int? Checkpoint { get; set; }
         public int MaxEvents { get; set; }
     }
 
     public class ReplayProjectionEvent : ReplayMessage
     {
-        public IProjectionStreamEvent Event { get; set; }
+        public IProjectionStreamEvent ProjectionEvent { get; set; }
+    }
+
+    /// <summary>
+    /// Signals the projection that the requested state is inconsistent and can't replay from that point.
+    /// This may happen because the sequence doesn't exist or the hash of the stream changed.
+    /// When the projection receives this message, it should rebuild.
+    /// </summary>
+    public class InconsistentProjection : ReplayMessage
+    {
+
     }
 }

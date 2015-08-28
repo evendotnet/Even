@@ -23,7 +23,7 @@ namespace Even
         IStreamPredicate[] _predicates;
         IActorRef _reader;
         List<IActorRef> _subscribers = new List<IActorRef>();
-        ProjectionState _state = new ProjectionState();
+        ProjectionStreamState _state = new ProjectionStreamState();
         Guid _replayId;
 
         TimeSpan ReplayTimeout = TimeSpan.FromSeconds(15);
