@@ -51,8 +51,10 @@ namespace Even.Messages
     public class AggregateCommandTimedout : AggregateCommandResponse
     { }
 
-    public class AggregateCommandUnknown : AggregateCommandResponse
+    public class AggregateCommandRefused : AggregateCommandResponse
     {
         public AggregateCommandRequest CommandRequest { get; set; }
+        public string Reason { get; set; }
     }
+
 }

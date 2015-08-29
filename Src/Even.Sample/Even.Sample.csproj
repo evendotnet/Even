@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Aggregates\Product.cs" />
+    <Compile Include="Aggregates\SystemLog.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Projections\ActiveProducts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Even.Messages;
+using System.Diagnostics.Contracts;
 
 namespace Even
 {
@@ -14,13 +15,34 @@ namespace Even
         public ICanTell Aggregates { get; set; }
         public ICanTell Projections { get; set; }
 
-        public Task<AggregateCommandResponse> SendCommandAsync<T>(string streamId, object command)
+        /// <summary>
+        /// Sends a command to an aggregate using the aggregate's category and the aggregate id to compose the stream id.
+        /// </summary>
+        public Task SendCommandAsync<T>(object aggregateId, object command, TimeSpan? timeout = null)
             where T : Aggregate
         {
-            return this.SendCommandAsync<T>(streamId, command, null);
+            Contract.Requires(aggregateId != null);
+
+            var category = ESCategoryAttribute.GetCategory(typeof(T));
+            var streamId = aggregateId != null ? category + "-" + aggregateId.ToString() : category;
+
+            return SendCommandAsync<T>(streamId, command, timeout);
         }
 
-        public async Task<AggregateCommandResponse> SendCommandAsync<T>(string streamId, object command, TimeSpan? timeout)
+        /// <summary>
+        /// Sends a command to an aggregate using the aggregate's category as the stream id.
+        /// </summary>
+        public Task SendCommandAsync<T>(object command, TimeSpan? timeout = null)
+            where T : Aggregate
+        {
+            var streamId = ESCategoryAttribute.GetCategory(typeof(T));
+            return SendCommandAsync<T>(streamId, command, timeout);
+        }
+
+        /// <summary>
+        /// Sends a command to an aggregate using the specified stream id.
+        /// </summary>
+        public async Task SendCommandAsync<T>(string streamId, object command, TimeSpan? timeout)
             where T : Aggregate
         {
             var request = new TypedAggregateCommandRequest
@@ -31,19 +53,43 @@ namespace Even
                 Command = command
             };
 
+            // the command gateway translates error messages into exceptions, so the user
+            // don't have to deal with messaging to talk interoperate with the event store
+
+            AggregateCommandResponse response;
+
             try
             {
-                var response = await Aggregates.Ask(request, timeout) as AggregateCommandResponse;
-
-                if (response != null)
-                    return response;
+                response = await Aggregates.Ask(request, timeout) as AggregateCommandResponse;
             }
             catch (TaskCanceledException ex)
             {
-                return new AggregateCommandTimedout { CommandID = request.CommandID };
+                throw new CommandTimeoutException();
             }
 
-            throw new Exception("Should not get here...");
+            if (response is AggregateCommandSuccessful)
+                return;
+
+            if (response is AggregateCommandRefused)
+                throw new CommandRefusedException();
+
+            if (response is AggregateCommandFailed)
+                throw new CommandFailedException();
+
+            if (response == null)
+                throw new Exception("Should not get here...");
         }
     }
+
+    public abstract class EvenCommandException : Exception
+    { }
+
+    public class CommandFailedException : EvenCommandException
+    { }
+
+    public class CommandRefusedException : EvenCommandException
+    { }
+
+    public class CommandTimeoutException : EvenCommandException
+    { }
 }

@@ -24,11 +24,11 @@ namespace Even.Sample
 
             Task.Run(async () =>
             {
-                await gateway.SendCommandAsync<Product>("p1", new CreateProduct { Name = "Product 1" });
-                await gateway.SendCommandAsync<Product>("p1", new RenameProduct { NewName = "Product 1 - Renamed" });
-                await gateway.SendCommandAsync<Product>("p2", new CreateProduct { Name = "Product 2" });
-                await gateway.SendCommandAsync<Product>("p3", new CreateProduct { Name = "Product 2" });
-                await gateway.SendCommandAsync<Product>("p2", new DeleteProduct());
+                await gateway.SendCommandAsync<Product>(1, new CreateProduct { Name = "Product 1" });
+                await gateway.SendCommandAsync<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" });
+                await gateway.SendCommandAsync<Product>(2, new CreateProduct { Name = "Product 2" });
+                await gateway.SendCommandAsync<Product>(3, new CreateProduct { Name = "Product 2" });
+                await gateway.SendCommandAsync<Product>(2, new DeleteProduct());
 
                 await Task.Delay(1000);
             }).Wait();

@@ -38,6 +38,9 @@ namespace Even.Messages
         public string StreamID { get; set; }
         public IActorRef Reader { get; set; }
         public IActorRef Writer { get; set; }
+
+        public IActorRef CommandSender { get; set; }
+        public AggregateCommandRequest Command { get; set; }
     }
 
     public class InitializeProjectionStream

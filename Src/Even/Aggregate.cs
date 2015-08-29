@@ -25,9 +25,14 @@ namespace Even
 
         public IStash Stash { get; set; }
         protected ILoggingAdapter Log { get; } = Context.GetLogger();
-        protected string StreamID { get; private set; }
+        protected virtual string StreamID => _streamId;
         protected int Sequence { get; private set; }
         protected bool IsNew => Sequence == 0;
+        protected string Category => _category;
+
+        string _streamId;
+        string _category;
+
         List<PersistenceRequest> _pendingEvents = new List<PersistenceRequest>();
         List<Guid> _optimisticPersistRequests = new List<Guid>();
         int _persistSequence;
@@ -39,9 +44,18 @@ namespace Even
 
         private void Uninitialized()
         {
+            _category = ESCategoryAttribute.GetCategory(this.GetType());
+
             Receive<InitializeAggregate>(i =>
             {
-                StreamID = i.StreamID;
+                // ensure the stream is valid before initializing the aggregate
+                if (!CanAcceptStream(i.StreamID))
+                {
+                    RefuseInvalidStream(i.Command, i.CommandSender);
+                    Context.Stop(Self);
+                }
+
+                _streamId = i.StreamID;
                 _reader = i.Reader;
                 _writer = i.Writer;
 
@@ -132,6 +146,13 @@ namespace Even
 
             Receive<AggregateCommandRequest>(cmd =>
             {
+                // ensure the stream is valid before accepting
+                if (!CanAcceptStream(cmd.StreamID))
+                {
+                    RefuseInvalidStream(cmd, Sender);
+                    return;
+                }
+
                 Log.Debug("Command {0} Received: {1}", cmd.CommandID, cmd.Command.GetType().Name);
 
                 var commandType = cmd.Command.GetType();
@@ -148,7 +169,7 @@ namespace Even
 
                 if (processor == null)
                 {
-                    Sender.Tell(new AggregateCommandUnknown
+                    Sender.Tell(new AggregateCommandRefused
                     {
                         CommandID = cmd.CommandID,
                         CommandRequest = cmd
@@ -182,7 +203,7 @@ namespace Even
                     }
                 });
 
-            }, cmd => String.Equals(cmd.StreamID, StreamID, StringComparison.OrdinalIgnoreCase));
+            });
 
             // if any persistence fails for optimistic persistences,
             // restart the actor so it can replay whatever is in the store
@@ -344,6 +365,23 @@ namespace Even
         {
             public IActorRef Sender { get; set; }
             public Guid CommandID { get; set; }
+        }
+
+        protected virtual bool CanAcceptStream(string streamId)
+        {
+            if (String.IsNullOrEmpty(streamId))
+                return false;
+
+            return streamId.StartsWith(_category + "-", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void RefuseInvalidStream(AggregateCommandRequest cmd, IActorRef aref)
+        {
+            aref.Tell(new AggregateCommandRefused {
+                CommandID = cmd.CommandID,
+                CommandRequest = cmd,
+                Reason = "Invalid stream"
+            });
         }
     }
 

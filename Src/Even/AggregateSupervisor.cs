@@ -35,7 +35,15 @@ namespace Even
                 {
                     var props = PropsFactory.Create(req.AggregateType);
                     aRef = Context.ActorOf(props, req.StreamID);
-                    aRef.Tell(new InitializeAggregate { StreamID = req.StreamID, Reader = _reader, Writer = _writer });
+                    aRef.Tell(new InitializeAggregate
+                    {
+                        StreamID = req.StreamID,
+                        Reader = _reader,
+                        Writer = _writer,
+
+                        Command = req,
+                        CommandSender = Sender
+                    });
                 }
 
                 aRef.Forward(req);
