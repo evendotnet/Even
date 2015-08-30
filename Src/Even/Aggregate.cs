@@ -61,7 +61,7 @@ namespace Even
 
                 _replayId = Guid.NewGuid();
 
-                _reader.Tell(new ReplayAggregateRequest
+                _reader.Tell(new ReplayStreamRequest
                 {
                     ReplayID = _replayId,
                     StreamID = i.StreamID

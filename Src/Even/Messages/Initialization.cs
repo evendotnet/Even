@@ -28,6 +28,11 @@ namespace Even.Messages
         public IActorRef Reader { get; set; }
     }
 
+    public class InitializeProjectionIndexWriter
+    {
+        public Func<IStorageWriter> WriterFactory { get; set; }
+    }
+
     public class InitializeProjectionSupervisor
     {
         public IActorRef Reader { get; set; }
@@ -45,21 +50,22 @@ namespace Even.Messages
 
     public class InitializeProjectionStream
     {
-        public EventStoreQuery Query { get; set; }
-        public IActorRef Reader { get; set; }
+        public ProjectionQuery Query { get; set; }
+        public IActorRef EventReader { get; set; }
+        public IActorRef IndexWriter { get; set; }
     }
 
     public class InitializeProjectionStreamReplayWorker
     {
-        public ReplayQueryRequest Request { get; set; }
+        public ReplayEventsRequest Request { get; set; }
         public IActorRef ReplyTo { get; set; }
-        public Func<IRawStorageEvent, IStreamEvent> Deserializer { get; set; }
+        public Func<IRawStorageEvent, IEvent> Deserializer { get; set; }
         public IStorageReader StorageReader { get; set; }
     }
 
     public class InitializeAggregateReplayWorker
     {
-        public ReplayAggregateRequest Request { get; set; }
+        public ReplayStreamRequest Request { get; set; }
         public IActorRef ReplyTo { get; set; }
         public InitializeEventStoreReader ReaderInitializer { get; set; }
     }

@@ -23,4 +23,11 @@ namespace Even.Messages
 
     public class PersistenceFailed : PersistenceMessage
     { }
+
+    public class PersistProjectionIndexRequest : IProjectionStreamIndex
+    {
+        public string ProjectionID { get; set; }
+        public long Checkpoint { get; set; }
+        public int ProjectionSequence { get; set; }
+    }
 }

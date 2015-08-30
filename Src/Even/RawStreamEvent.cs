@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class RawStreamEvent : IStreamEvent
+    public class RawStreamEvent : IEvent
     {
         public RawStreamEvent(long checkpoint, IRawEvent rawEvent)
         {

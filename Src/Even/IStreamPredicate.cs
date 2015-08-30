@@ -4,7 +4,7 @@ namespace Even
 {
     public interface IStreamPredicate
     {
-        bool EventMatches(IStreamEvent persistedEvent);
+        bool EventMatches(IEvent persistedEvent);
         object GetDeterministicHashSource();
     }
 
@@ -12,9 +12,9 @@ namespace Even
     {
         public string StreamID { get; set; }
 
-        public bool EventMatches(IStreamEvent persistedEvent)
+        public bool EventMatches(IEvent @event)
         {
-            return String.Equals(persistedEvent.StreamID, StreamID, StringComparison.OrdinalIgnoreCase);
+            return String.Equals(@event.StreamID, StreamID, StringComparison.OrdinalIgnoreCase);
         }
 
         public object GetDeterministicHashSource()

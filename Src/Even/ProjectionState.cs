@@ -8,8 +8,7 @@ namespace Even
 {
     public class ProjectionState
     {
+        public string StreamID { get; set; }
         public int Sequence { get; set; }
-        public int Checkpoint { get; set; }
-        public int Hash { get; set; }
     }
 }

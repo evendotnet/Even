@@ -28,18 +28,27 @@ namespace Even
 
         public void ReceiveRequests()
         {
-            Receive<ReplayAggregateRequest>(request =>
+            Receive<ReplayStreamRequest>(request =>
             {
                 Log.Debug("Received ReplayAggregateRequest");
-                var props = PropsFactory.Create<AggregateReplayWorker>(_readerFactory(), _serializer, _cryptoService);
+                var props = PropsFactory.Create<StreamReplayWorker>(_readerFactory(), _serializer, _cryptoService);
                 var actor = Context.ActorOf(props);
                 actor.Forward(request);
             });
 
-            Receive<ReplayQueryRequest>(request =>
+            Receive<ReplayEventsRequest>(request =>
             {
                 Log.Debug("Received ReplayQueryRequest");
-                var props = PropsFactory.Create<QueryReplayWorker>(_readerFactory(), _serializer, _cryptoService);
+                var props = PropsFactory.Create<EventReplayWorker>(_readerFactory(), _serializer, _cryptoService);
+                var actor = Context.ActorOf(props);
+                actor.Forward(request);
+            });
+
+            Receive<ProjectionStreamReplayRequest>(request =>
+            {
+                Log.Debug("Received ReplayProjectionStreamRequest");
+
+                var props = PropsFactory.Create<ProjectionStreamReplayWorker>(_readerFactory(), _serializer, _cryptoService);
                 var actor = Context.ActorOf(props);
                 actor.Forward(request);
             });
@@ -73,10 +82,10 @@ namespace Even
             protected void StartReplay(Guid replayId)
             {
                 ReplayID = replayId;
-                Become(OnStartReplay);
+                Become(ReplayStarted);
             }
 
-            protected virtual void OnStartReplay()
+            protected void ReplayStarted()
             {
                 Receive<ReplayCancelRequest>(request =>
                 {
@@ -85,7 +94,7 @@ namespace Even
                 }, request => request.ReplayID == ReplayID);
             }
 
-            protected IStreamEvent DeserializeEvent(IRawStorageEvent rawEvent)
+            protected IEvent DeserializeEvent(IRawStorageEvent rawEvent)
             {
                 var headerBytes = rawEvent.Headers;
                 var headers = Serializer.Deserialize(headerBytes);
@@ -117,20 +126,20 @@ namespace Even
                 return new PersistedStreamEvent(rawEvent.Checkpoint, rawEvent.EventID, rawEvent.StreamID, rawEvent.StreamSequence, rawEvent.EventName, headers, domainEvent);
             }
 
-            protected IAggregateSnapshot DeserializeSnapshot(IRawAggregateSnapshot rawSnapshot)
+            protected IStreamSnapshot DeserializeSnapshot(IRawAggregateSnapshot rawSnapshot)
             {
                 throw new NotImplementedException();
             }
         }
 
-        class AggregateReplayWorker : WorkerBase
+        class StreamReplayWorker : WorkerBase
         {
             CancellationTokenSource _cts = new CancellationTokenSource();
 
-            public AggregateReplayWorker(IStorageReader reader, IDataSerializer serializer, ICryptoService cryptoService)
+            public StreamReplayWorker(IStorageReader reader, IDataSerializer serializer, ICryptoService cryptoService)
                 : base(reader, serializer, cryptoService)
             {
-                Receive<ReplayAggregateRequest>(request =>
+                Receive<ReplayStreamRequest>(request =>
                 {
                     StartReplay(request.ReplayID);
 
@@ -142,13 +151,13 @@ namespace Even
                         if (IsReplayCancelled)
                             return;
 
-                        var rawSnapshot = await reader.ReadAggregateSnapshotAsync(request.StreamID, ReplayCancelToken);
+                        var rawSnapshot = await reader.ReadStreamSnapshotAsync(request.StreamID, ReplayCancelToken);
 
                         if (rawSnapshot != null)
                         {
                             var snapshot = DeserializeSnapshot(rawSnapshot);
 
-                            sender.Tell(new AggregateReplaySnapshot
+                            sender.Tell(new ReplayStreamSnapshot
                             {
                                 ReplayID = request.ReplayID,
                                 Snapshot = snapshot
@@ -160,7 +169,7 @@ namespace Even
 
                         var initialSequence = rawSnapshot?.StreamSequence ?? 1;
 
-                        await reader.ReadAggregateStreamAsync(request.StreamID, initialSequence, Int32.MaxValue, e =>
+                        await reader.ReadStreamAsync(request.StreamID, initialSequence, Int32.MaxValue, e =>
                         {
                             if (IsReplayCancelled)
                                 return;
@@ -178,57 +187,8 @@ namespace Even
                         if (!IsReplayCancelled)
                             sender.Tell(new ReplayCompleted { ReplayID = request.ReplayID });
 
-                    }).ContinueWith(t => {
-
-                        sender.Tell(new ReplayAborted {
-                            ReplayID = ReplayID,
-                            Exception = t.Exception.InnerException
-                        });
-
-                    }, TaskContinuationOptions.OnlyOnFaulted);
-                });
-            }
-        }
-
-        class QueryReplayWorker : WorkerBase
-        {
-            bool _stopRequested;
-
-            public QueryReplayWorker(IStorageReader reader, IDataSerializer serializer, ICryptoService cryptoService)
-                : base(reader, serializer, cryptoService)
-            {
-                Receive<ReplayQueryRequest>(request =>
-                {
-                    StartReplay(request.ReplayID);
-
-                    var sender = Sender;
-                    var self = Self;
-
-                    Task.Run(async () =>
+                    }).ContinueWith(t =>
                     {
-                        // then start recovering the events
-                        await reader.QueryEventsAsync(request.Query, request.InitialCheckpoint, request.MaxEvents, e => {
-
-                            if (_stopRequested)
-                                return false;
-
-                            var streamEvent = DeserializeEvent(e);
-
-                            sender.Tell(new ReplayEvent
-                            {
-                                ReplayID = request.ReplayID,
-                                Event = streamEvent
-                            });
-
-                            if (_stopRequested)
-                                return false;
-
-                            return true;
-                        }, ReplayCancelToken);
-
-                        // notify the recovery was completed
-                        sender.Tell(new ReplayCompleted { ReplayID = request.ReplayID }, self);
-                    }).ContinueWith(t => {
 
                         sender.Tell(new ReplayAborted
                         {
@@ -239,15 +199,143 @@ namespace Even
                     }, TaskContinuationOptions.OnlyOnFaulted);
                 });
             }
+        }
 
-            protected override void OnStartReplay()
+        class EventReplayWorker : WorkerBase
+        {
+            public EventReplayWorker(IStorageReader reader, IDataSerializer serializer, ICryptoService cryptoService)
+                : base(reader, serializer, cryptoService)
             {
-                base.OnStartReplay();
-
-                Receive<ReplayStopRequest>(r =>
+                Receive<ReplayEventsRequest>(request =>
                 {
-                    _stopRequested = true;
-                }, r => r.ReplayID == ReplayID);
+                    StartReplay(request.ReplayID);
+
+                    var sender = Sender;
+                    var self = Self;
+
+                    Task.Run(async () =>
+                    {
+                        long checkpoint = 0;
+
+                        await reader.ReadAsync(request.InitialCheckpoint, request.MaxEvents, e =>
+                        {
+                            var streamEvent = DeserializeEvent(e);
+
+                            sender.Tell(new ReplayEvent
+                            {
+                                ReplayID = request.ReplayID,
+                                Event = streamEvent
+                            });
+
+                            checkpoint = e.Checkpoint;
+
+                        }, ReplayCancelToken);
+
+                        // notify the recovery was completed
+                        sender.Tell(new ReplayCompleted { ReplayID = request.ReplayID }, self);
+                    }).ContinueWith(t =>
+                    {
+
+                        sender.Tell(new ReplayAborted
+                        {
+                            ReplayID = ReplayID,
+                            Exception = t.Exception.InnerException
+                        });
+
+                    }, TaskContinuationOptions.OnlyOnFaulted);
+                });
+            }
+        }
+
+        class ProjectionStreamReplayWorker : WorkerBase
+        {
+            public ProjectionStreamReplayWorker(IStorageReader reader, IDataSerializer serializer, ICryptoService cryptoService)
+                : base(reader, serializer, cryptoService)
+            {
+                Receive<ProjectionStreamReplayRequest>(request =>
+                {
+                    StartReplay(request.ReplayID);
+
+                    var sender = Sender;
+                    var self = Self;
+
+                    Task.Run(async () =>
+                    {
+                        var sequence = 0;
+                        var checkpoint = 0l;
+
+                        if (IsReplayCancelled)
+                            return;
+
+                        // if we need to send indexed events, read the events
+                        if (request.SendIndexedEvents)
+                        {
+                            await reader.ReadProjectionEventStreamAsync(request.ProjectionID, request.InitialSequence, request.MaxEvents, e =>
+                            {
+                                checkpoint = e.Checkpoint;
+                                sequence = e.ProjectionSequence;
+
+                                var streamEvent = DeserializeEvent(e);
+
+                                var replayEvent = new ProjectionReplayEvent
+                                {
+                                    ReplayID = request.ReplayID,
+                                    Event = new ProjectionEvent(e.ProjectionID, e.ProjectionSequence, streamEvent)
+                                };
+
+                                sender.Tell(replayEvent);
+
+                            }, ReplayCancelToken);
+                        }
+                        // otherwise we need to find out at least the highest sequence
+                        else
+                        {
+                            sequence = await reader.GetHighestProjectionStreamSequenceAsync(request.ProjectionID);
+                        }
+
+                        var storedCheckpoint = await reader.GetHighestProjectionCheckpoint(request.ProjectionID);
+
+                        // ensure we know the last checkpoing if the index is far from the actually checked checkpoint
+                        checkpoint = Math.Max(storedCheckpoint, checkpoint);
+
+                        // sinals the end of the index and the start of the non-indexed event stream
+                        sender.Tell(new ProjectionStreamIndexReplayCompleted
+                        {
+                            ReplayID = request.ReplayID,
+                            LastSeenCheckpoint = checkpoint,
+                            LastSeenSequence = sequence
+                        }, self);
+
+                        if (IsReplayCancelled)
+                            return;
+
+                        // try reading additional events from the global event stream that weren't emitted yet 
+                        var maxEvents = request.MaxEvents - sequence;
+
+                        if (maxEvents > 0)
+                        {
+                            await reader.ReadAsync(checkpoint, maxEvents,  e =>
+                            {
+                                var streamEvent = DeserializeEvent(e);
+
+                                sender.Tell(new ReplayEvent
+                                {
+                                    ReplayID = request.ReplayID,
+                                    Event = streamEvent
+                                }, self);
+
+                                checkpoint = e.Checkpoint;
+
+                            }, ReplayCancelToken);
+                        }
+
+                        sender.Tell(new ReplayCompleted { ReplayID = request.ReplayID, LastCheckpoint = checkpoint }, self);
+                    }).ContinueWith(t =>
+                    {
+                        sender.Tell(new ReplayAborted { ReplayID = request.ReplayID, Exception = t.Exception });
+
+                    }, TaskContinuationOptions.NotOnRanToCompletion);
+                });
             }
         }
     }

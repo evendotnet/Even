@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Even
 {
-    public interface IStreamEvent
+    public interface IEvent
     {
         long Checkpoint { get; }
         Guid EventID { get; }

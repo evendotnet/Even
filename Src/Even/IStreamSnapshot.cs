@@ -8,8 +8,15 @@ namespace Even
 {
     public interface IStreamSnapshot
     {
-        long Checkpoint { get; }
         string StreamID { get; }
-        object GetSnapshot();
+        int StreamSequence { get; }
+        object State { get; }
+    }
+
+    public interface IRawAggregateSnapshot
+    {
+        string StreamID { get; }
+        int StreamSequence { get; }
+        byte[] Payload { get; }
     }
 }

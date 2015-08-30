@@ -30,22 +30,22 @@ namespace Even.Sample.Projections
 
         #region Event Processors
 
-        private void Add(IStreamEvent se, ProductCreated e)
+        private void Add(IEvent e, ProductCreated pe)
         {
-            _list.Add(new ProductInfo { ID = se.StreamID, Name = e.Name });
+            _list.Add(new ProductInfo { ID = e.StreamID, Name = pe.Name });
         }
 
-        private void Rename(IStreamEvent se, ProductRenamed e)
+        private void Rename(IEvent e, ProductRenamed pe)
         {
-            var pi = _list.FirstOrDefault(i => i.ID == se.StreamID);
+            var pi = _list.FirstOrDefault(i => i.ID == e.StreamID);
             
             if (pi != null)
-                pi.Name = e.NewName;
+                pi.Name = pe.NewName;
         }
 
-        private void Delete(IStreamEvent se)
+        private void Delete(IEvent e)
         {
-            _list.RemoveAll(i => i.ID == se.StreamID);
+            _list.RemoveAll(i => i.ID == e.StreamID);
         }
 
         #endregion

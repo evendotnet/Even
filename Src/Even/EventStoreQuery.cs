@@ -8,19 +8,23 @@ using System.Text;
 
 namespace Even
 {
-    public class EventStoreQuery
+    /// <summary>
+    /// Represents a query to the event store.
+    /// </summary>
+    public class ProjectionQuery
     {
-        public EventStoreQuery(IReadOnlyCollection<IStreamPredicate> predicates)
+        public ProjectionQuery(IReadOnlyCollection<IStreamPredicate> predicates)
         {
-            Contract.Requires(predicates != null && predicates.Any(), "Can't accept a null or empty predicate list.");
-            this.Predicates = predicates;
+            this.Predicates = predicates ?? new IStreamPredicate[0];
         }
 
         private string _id;
-        public string ID => _id ?? (_id = GenerateDeterministicID());
-        public IReadOnlyCollection<IStreamPredicate> Predicates { get; }
 
-        public bool IsStreamQuery => Predicates.Count == 1 && Predicates.First() is StreamQuery;
+        /// <summary>
+        /// A deterministic ID that will always be the same for the same query.
+        /// </summary>
+        public string StreamID => _id ?? (_id = GenerateDeterministicID());
+        public IReadOnlyCollection<IStreamPredicate> Predicates { get; }
 
         protected string GenerateDeterministicID()
         {
@@ -35,6 +39,11 @@ namespace Even
             var hash = ha.ComputeHash(bytes, 0, bytes.Length);
 
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+        }
+
+        public QueryHint CreateHint()
+        {
+            return null;
         }
     }
 }

@@ -6,9 +6,10 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public interface IProjectionEvent : IEvent
+    public interface IProjectionStreamIndex
     {
         string ProjectionID { get; }
         int ProjectionSequence { get; }
+        long Checkpoint { get; }
     }
 }

@@ -36,7 +36,7 @@ namespace Even.Sample
 
             Console.WriteLine("Persisted Events: ");
 
-            foreach (var e in store.GetEvents())
+            foreach (var e in store._store._events)
             {
                 Console.WriteLine($"{e.StreamID,-20} {e.EventName,-30}");
             }

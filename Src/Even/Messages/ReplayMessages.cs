@@ -8,51 +8,78 @@ using System.Threading.Tasks;
 
 namespace Even.Messages
 {
-    // base classes
+    #region Base Classes
 
     public abstract class ReplayMessage
     {
         public Guid ReplayID { get; set; }
     }
 
-    // generic messages
+    public abstract class ReplayRequest : ReplayMessage
+    { }
+
+    public abstract class ReplayResponse : ReplayMessage
+    { }
+
+    #endregion
+
+    #region Generic Messages
+
+    /// <summary>
+    /// Request replay for all events.
+    /// </summary>
+    public class ReplayEventsRequest : ReplayMessage
+    {
+        public int InitialCheckpoint { get; set; }
+        public int MaxEvents { get; set; }
+
+        /// <summary>
+        /// The query hint may be used or not. If used, ReplayEventGap messages
+        /// should be sent to signal the receiver that no events were missed.
+        /// </summary>
+        public QueryHint QueryHint { get; set; }
+    }
 
     /// <summary>
     /// Represents an event being replayed.
     /// </summary>
-    public class ReplayEvent : ReplayMessage
+    public class ReplayEvent : ReplayResponse
     {
-        public IStreamEvent Event { get; set; }
+        public IEvent Event { get; set; }
     }
 
     /// <summary>
     /// Requests the replay to be cancelled.
     /// Cancellation happens is asynchronously, and the actor may receive messages even after the cancellation has been requested.
     /// </summary>
-    public class ReplayCancelRequest
-    {
-        public Guid ReplayID { get; set; }
-    }
+    public class ReplayCancelRequest : ReplayRequest
+    { }
 
     /// <summary>
     /// Signals that the replay request was completed with success.
     /// </summary>
-    public class ReplayCompleted : ReplayMessage
-    { }
+    public class ReplayCompleted : ReplayResponse
+    {
+        /// <summary>
+        /// The last checkpoint the reader saw before completing.
+        /// </summary>
+        public long LastCheckpoint { get; set; }
+    }
 
     /// <summary>
     /// Signals that the replay was cancelled has happened and no more messages should be sent for the replay.
     /// Further messages for this replay after this message was received should be discarded.
     /// </summary>
-    public class ReplayCancelled : ReplayMessage
+    public class ReplayCancelled : ReplayResponse
     { }
 
     /// <summary>
     /// Signals the replay was aborted for some reason. Compensatory actions will be required.
     /// Further messages for this replay after this message was received should be discarded.
     /// </summary>
-    public class ReplayAborted : ReplayMessage
+    public class ReplayAborted : ReplayResponse
     {
+        public string Message { get; set; }
         public Exception Exception { get; set; }
     }
 
@@ -61,15 +88,17 @@ namespace Even.Messages
     /// Once received, the event reader should stop sending messages and notify the replay has completed.
     /// Further messages from this replay after this message was sent should be ignored by the sender.
     /// </summary>
-    public class ReplayStopRequest : ReplayMessage
+    public class ReplayStopRequest : ReplayRequest
     { }
 
-    // aggregate messages
+    #endregion
+
+    #region Stream Specific Messages
 
     /// <summary>
     /// Requests a replay for a specific stream.
     /// </summary>
-    public class ReplayAggregateRequest : ReplayMessage
+    public class ReplayStreamRequest : ReplayRequest
     {
         public string StreamID { get; set; }
     }
@@ -77,46 +106,46 @@ namespace Even.Messages
     /// <summary>
     /// A snapshot offer from the event reader.
     /// </summary>
-    public class AggregateReplaySnapshot : ReplayMessage
+    public class ReplayStreamSnapshot : ReplayResponse
     {
-        public IAggregateSnapshot Snapshot { get; set; }
+        public IStreamSnapshot Snapshot { get; set; }
     }
 
-    // query messages
+    #endregion
 
-    /// <summary>
-    /// Requests a replay for a specific query.
-    /// </summary>
-    public class ReplayQueryRequest : ReplayMessage
+    #region Projection Stream
+
+    public class ProjectionStreamReplayRequest : ReplayRequest
     {
-        public EventStoreQuery Query { get; set; }
-        public int InitialCheckpoint { get; set; }
-        public int MaxEvents { get; set; } = Int32.MaxValue;
-    }
-
-    // projection messages
-
-    public class ReplayProjectionRequest : ReplayMessage
-    {
-        public EventStoreQuery Query { get; set; }
-        public int Sequence { get; set; }
-        public int? SequenceHash { get; set; }
-        public int? Checkpoint { get; set; }
-        public int MaxEvents { get; set; }
-    }
-
-    public class ReplayProjectionEvent : ReplayMessage
-    {
-        public IProjectionStreamEvent ProjectionEvent { get; set; }
+        public string ProjectionID { get; set; }
+        public int InitialSequence { get; set; }
+        public bool SendIndexedEvents { get; set; }
+        public long MaxCheckpoint { get; set; }
+        public int MaxEvents { get; internal set; }
     }
 
     /// <summary>
-    /// Signals the projection that the requested state is inconsistent and can't replay from that point.
-    /// This may happen because the sequence doesn't exist or the hash of the stream changed.
-    /// When the projection receives this message, it should rebuild.
+    /// Signals that no more events will be read from the index, and new messages
+    /// will require matching.
     /// </summary>
-    public class InconsistentProjection : ReplayMessage
+    public class ProjectionStreamIndexReplayCompleted : ReplayResponse
     {
-
+        public int LastSeenSequence { get; set; }
+        public long LastSeenCheckpoint { get; set; }
     }
+
+    public class ProjectionReplayEvent : ReplayResponse
+    {
+        public IProjectionEvent Event { get; set; }
+    }
+
+    public class ProjectionReplayCompleted : ReplayCompleted
+    {
+        /// <summary>
+        /// The last sequence the reader saw when replaying the projection.
+        /// </summary>
+        public int LastSequence { get; set; }
+    }
+
+    #endregion
 }

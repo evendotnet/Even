@@ -57,6 +57,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ESCategory.cs" />
+    <Compile Include="IRawStorageProjectionEvent.cs" />
+    <Compile Include="ProjectionIndexWriter.cs" />
+    <Compile Include="IProjectionStreamIndex.cs" />
     <Compile Include="Messages\PersistenceMessages.cs" />
     <Compile Include="Messages\Subscriptions.cs" />
     <Compile Include="Aggregate.cs" />
@@ -75,7 +78,7 @@
     <Compile Include="IdentityMessages.cs" />
     <Compile Include="EventStoreGateway.cs" />
     <Compile Include="ICryptoService.cs" />
-    <Compile Include="ISnapshotState.cs" />
+    <Compile Include="IStreamSnapshot.cs" />
     <Compile Include="Messages\Commands.cs" />
     <Compile Include="Messages\ReplayMessages.cs" />
     <Compile Include="Messages\Initialization.cs" />
@@ -88,7 +91,6 @@
     <Compile Include="IStorageWriter.cs" />
     <Compile Include="IStreamEvent.cs" />
     <Compile Include="IStreamPredicate.cs" />
-    <Compile Include="IStreamSnapshot.cs" />
     <Compile Include="PersistedStreamEvent.cs" />
     <Compile Include="ProjectionState.cs" />
     <Compile Include="ProjectionSupervisor.cs" />
@@ -97,6 +99,7 @@
     <Compile Include="ProjectionStreamEvent.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropsFactory.cs" />
+    <Compile Include="QueryHint.cs" />
     <Compile Include="RawEvent.cs" />
     <Compile Include="RawStreamEvent.cs" />
     <Compile Include="EventStoreSetup.cs" />

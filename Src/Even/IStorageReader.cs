@@ -7,14 +7,18 @@ namespace Even
 {
     public interface IStorageReader
     {
+        // global
         Task<long> GetHighestCheckpointAsync();
+
+        // streams
         Task<int> GetHighestStreamSequenceAsync(string streamId);
-        //Task<Dictionary<string, int>> GetHighestStreamSequence(string[] streamIds);
+        Task<IRawAggregateSnapshot> ReadStreamSnapshotAsync(string streamId, CancellationToken ct);
+        Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct);
+        Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct);
 
-        Task<IRawAggregateSnapshot> ReadAggregateSnapshotAsync(string streamId, CancellationToken ct);
-        Task ReadAggregateStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct);
-
-        Task QueryCheckpointsAsync(EventStoreQuery esQuery, long initialCheckpoint, int maxEvents, Func<long, bool> readCallback, CancellationToken ct);
-        Task QueryEventsAsync(EventStoreQuery esQuery, long initialCheckpoint, int maxEvents, Func<IRawStorageEvent, bool> readCallback, CancellationToken ct);
+        // projections
+        Task<long> GetHighestProjectionCheckpoint(string projectionStreamId);
+        Task<int> GetHighestProjectionStreamSequenceAsync(string projectionStreamId);
+        Task ReadProjectionEventStreamAsync(string projectionStreamId, int initialSequence, int maxEvents, Action<IRawStorageProjectionEvent> readCallback, CancellationToken ct);
     }
 }

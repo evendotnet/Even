@@ -9,27 +9,35 @@ using System.Threading.Tasks;
 namespace Even
 {
     /// <summary>
-    /// Ator responsável por um stream. Mantem a sequencia de eventos do stream e emite o evento para os subscribers.
+    /// Represents a stream of events for a projection.
+    /// 
+    /// There is a single ProjectionStream for each projection query in the system. This actor
+    /// forwards events in sequence for the stream and also takes care of replaying messages
+    /// to subscribers in the correct order.
     /// </summary>
     public class ProjectionStream : ReceiveActor, IWithUnboundedStash
     {
+        string _projectionId;
+        IStreamPredicate[] _predicates;
+        IActorRef _eventReader;
+        IActorRef _indexWriter;
+        LinkedList<IActorRef> _subscribers = new LinkedList<IActorRef>();
+
+        Guid _replayId;
+
+        int _sequence;
+        long _checkpoint;
+
+        // TODO: read this from settings
+        TimeSpan _replayTimeout = TimeSpan.FromSeconds(15);
+
+        public ILoggingAdapter Log = Context.GetLogger();
+        public IStash Stash { get; set; }
+
         public ProjectionStream()
         {
             Become(Uninitialized);
         }
-
-        long _lastSeenCheckpoint;
-        EventStoreQuery _query;
-        IStreamPredicate[] _predicates;
-        IActorRef _reader;
-        List<IActorRef> _subscribers = new List<IActorRef>();
-        ProjectionStreamState _state = new ProjectionStreamState();
-        Guid _replayId;
-
-        TimeSpan ReplayTimeout = TimeSpan.FromSeconds(15);
-
-        public ILoggingAdapter Log = Context.GetLogger();
-        public IStash Stash { get; set; }
 
         #region States
 
@@ -37,121 +45,393 @@ namespace Even
         {
             Receive<InitializeProjectionStream>(ini =>
             {
-                _query = ini.Query;
-                _reader = ini.Reader;
+                // store work variables
+                _projectionId = ini.Query.StreamID;
+                _predicates = ini.Query.Predicates.ToArray();
+                _eventReader = ini.EventReader;
+                _indexWriter = ini.IndexWriter;
 
                 // subscribe to events in the stream
-                Context.System.EventStream.Subscribe(Self, typeof(IStreamEvent));
+                Context.System.EventStream.Subscribe(Self, typeof(IEvent));
 
-                // start the replay
+                // request the replay
                 _replayId = Guid.NewGuid();
 
-                _reader.Tell(new ReplayQueryRequest
+                _eventReader.Tell(new ProjectionStreamReplayRequest
                 {
                     ReplayID = _replayId,
-                    Query = _query,
-                    InitialCheckpoint = 0,
-                    MaxEvents = Int32.MaxValue
+                    ProjectionID = _projectionId,
+                    MaxCheckpoint = Int64.MaxValue,
+                    SendIndexedEvents = false
                 });
 
-                Become(Replaying);
+                Become(ReplayFromIndex);
             });
         }
 
-        private void Replaying()
+        private void ReplayFromIndex()
+        {
+            SetReceiveTimeout(_replayTimeout);
+
+            // the stream only receives the last known index state from the reader
+            Receive<ProjectionStreamIndexReplayCompleted>(msg =>
+            {
+                _sequence = msg.LastSeenSequence;
+                _checkpoint = msg.LastSeenCheckpoint;
+
+                Become(ReplayFromEvents);
+
+            }, msg => msg.ReplayID == _replayId);
+
+            Receive(new Action<ReceiveTimeout>(_ =>
+            {
+                throw new Exception("Replay Timeout");
+            }));
+
+            ReceiveAny(o => Stash.Stash());
+        }
+
+        private void ReplayFromEvents()
         {
             Stash.UnstashAll();
+            SetReceiveTimeout(_replayTimeout);
 
             Receive<ReplayEvent>(e =>
             {
-                // during replay, only update the projection state
-                if (EventMatches(e.Event))
-                    _state.AppendCheckpoint(e.Event.Checkpoint);
+                ReceiveEvent(e.Event);
 
             }, e => e.ReplayID == _replayId);
 
             Receive<ReplayCompleted>(_ =>
             {
+                // clear the replay id
                 _replayId = Guid.Empty;
 
                 // remove the timeout handler
                 SetReceiveTimeout(null);
 
-                // switch to start receiving commands
+                // switch to ready state
                 Become(Ready);
 
-            }, msg => msg.ReplayID == _replayId);
+            }, e => e.ReplayID == _replayId);
 
             // on errors, let the stream restart
             Receive<ReplayCancelled>(msg =>
             {
                 throw new Exception("Replay was cancelled.");
 
-            }, msg => msg.ReplayID == _replayId);
+            }, e => e.ReplayID == _replayId);
 
             Receive<ReplayAborted>(msg =>
             {
                 throw new Exception("Replay was aborted.", msg.Exception);
 
-            }, msg => msg.ReplayID == _replayId);
-
-            // if no messages are received for some time, abort
-            SetReceiveTimeout(ReplayTimeout);
+            }, e => e.ReplayID == _replayId);
 
             Receive(new Action<ReceiveTimeout>(_ =>
             {
-                throw new Exception("Timeout during replay.");
+                throw new Exception("Replay Timeout");
             }));
-
-            // any other messages are stashed until this step is completed
-            ReceiveAny(o => Stash.Stash());
         }
 
         private void Ready()
         {
-            Receive<IStreamEvent>(e =>
-            {
-                if (EventMatches(e))
-                    Emit(e);
-            });
+            Stash.UnstashAll();
 
+            Receive(new Action<IEvent>(ReceiveEvent));
+
+            // receive subscription requests
             Receive<ProjectionSubscriptionRequest>(ps =>
             {
-                _subscribers.Add(Sender);
-            }, ps => ps.Query.ID == _query.ID);
+                _subscribers.AddLast(Sender);
+                Context.Watch(Sender);
 
-            Receive<ReplayProjectionRequest>(request =>
+                // if the subscriber is out of date, create a worker to replay
+                // all events until the moment of this subscription as the next
+                // events will be forwarded automatically
+                if (ps.LastKnownSequence < _sequence)
+                {
+                    var actor = Context.ActorOf<ProjectionReplayProxy>();
+
+                    actor.Tell(new ProjectionReplayProxy.Initializer
+                    {
+                        EventReader = _eventReader,
+                        ProjectionID = _projectionId,
+                        InitialSequence = ps.LastKnownSequence + 1,
+                        Subscriber = Sender,
+                        Checkpoint = _checkpoint,
+                        Predicates = _predicates.ToArray()
+                    });
+                }
+
+            }, ps => ps.Query.StreamID == _projectionId);
+
+            // unsubscribe terminated projections
+            Receive<Terminated>(t =>
             {
-                var props = Props.Create<ReplayWorker>(_reader);
-                var worker = Context.ActorOf(props);
-                worker.Forward(request);
+                var node = _subscribers.First;
+
+                while (node != null)
+                {
+                    if (node.Value.Equals(t.ActorRef))
+                    {
+                        _subscribers.Remove(node);
+                        break;
+                    }
+
+                    node = node.Next;
+                }
             });
         }
 
         #endregion
 
-        private bool EventMatches(IStreamEvent streamEvent)
+        private void ReceiveEvent(IEvent e)
+        {
+            var expected = _checkpoint + 1;
+            var received = e.Checkpoint;
+
+            // if the checkpoint order matches
+            if (received == expected)
+            {
+                // and the event matches que query, emit it
+                if (EventMatches(e))
+                    Emit(e);
+
+                // if we received events out of order before, unstash
+                Stash.UnstashAll();
+
+                return;
+            }
+
+            // if it's a future checkpoint, stash until we get the right one
+            if (received > expected)
+                Stash.Stash();
+        }
+
+        private bool EventMatches(IEvent streamEvent)
         {
             return true;
         }
 
-        protected virtual void Emit(IStreamEvent streamEvent)
+        protected virtual void Emit(IEvent @event)
         {
-            _state.AppendCheckpoint(streamEvent.Checkpoint);
-            var projectionEvent = new ProjectionStreamEvent(_query.ID, _state.Sequence, _state.SequenceHash, streamEvent);
+            _sequence++;
+
+            // tell the subscribers
+            var projectionEvent = new ProjectionEvent(_projectionId, _sequence, @event);
 
             foreach (var s in _subscribers)
                 s.Tell(projectionEvent);
+
+            // index the event
+            _indexWriter.Tell(new PersistProjectionIndexRequest
+            {
+                ProjectionID = _projectionId,
+                ProjectionSequence = _sequence,
+                Checkpoint = _checkpoint
+            });
         }
 
-        class ReplayWorker : ReceiveActor
+        /// <summary>
+        /// This worker is a proxy to replay events to the projection stream subscriber.
+        /// 
+        /// When subscribers first subscribe and their state is older than the streams's state,
+        /// we ask the reader to get the events from the stored index. Since the index may
+        /// be out of date due to delayed writes, we rebuild the state from the global event
+        /// stream if needed.
+        /// </summary>
+        class ProjectionReplayProxy : ReceiveActor, IWithUnboundedStash
         {
-            public ReplayWorker(IActorRef reader)
+            public IStash Stash { get; set; }
+
+            string _projectionId;
+            IActorRef _subscriber;
+            int _sequence;
+            long _checkpoint;
+            TimeSpan _replayTimeout = TimeSpan.FromSeconds(15);
+
+            Guid _replayId;
+            Guid _subscriberReplayId;
+            IStreamPredicate[] _predicates;
+
+            public ProjectionReplayProxy()
             {
-                Receive<ReplayProjectionRequest>(request =>
+                Receive<Initializer>(ini =>
                 {
-                    //TODO
+                    // store some work variables
+                    _subscriber = ini.Subscriber;
+                    _projectionId = ini.ProjectionID;
+                    _sequence = ini.InitialSequence;
+                    _predicates = ini.Predicates;
+                    _checkpoint = 0;
+
+                    // set the new replay id and request data to the reader
+                    _replayId = Guid.NewGuid();
+
+                    ini.EventReader.Tell(new ProjectionStreamReplayRequest
+                    {
+                        ReplayID = _replayId,
+                        ProjectionID = ini.ProjectionID,
+                        InitialSequence = ini.InitialSequence,
+                        MaxCheckpoint = ini.Checkpoint,
+                        SendIndexedEvents = true
+                    });
+
+                    // switch to another state waiting for indexed events
+                    Become(ReplayFromIndex);
                 });
+            }
+
+            /// <summary>
+            /// Receives events from the index until all the index is read.
+            /// </summary>
+            void ReplayFromIndex()
+            {
+                SetReceiveTimeout(_replayTimeout);
+
+                // matches events read from stream
+                Receive<ProjectionReplayEvent>(e =>
+                {
+                    // ensure we're emitting events in the right order
+                    var received = e.Event.ProjectionSequence;
+                    var expected = _sequence + 1;
+
+                    // if the order matches, forward the event to the subscriber
+                    if (received == expected)
+                    {
+                        // update the virtual stream state
+                        _sequence = expected;
+                        _checkpoint = e.Event.Checkpoint;
+
+                        _subscriber.Tell(new ProjectionReplayEvent
+                        {
+                            ReplayID = _subscriberReplayId,
+                            Event = e.Event
+                        });
+
+                        Stash.UnstashAll();
+
+                        return;
+                    }
+
+                    // if it's newer, stash until the correct one is received
+                    if (received > expected)
+                        Stash.Stash();
+
+                }, e => e.ReplayID == _replayId);
+
+                // when the replay is completed
+                Receive<ProjectionStreamIndexReplayCompleted>(e =>
+                {
+                    // ensure we're switching to rebuild in the right order
+                    var received = e.LastSeenSequence;
+                    var expected = _sequence;
+
+                    if (received == expected)
+                    {
+                        // update the last known checkpoint
+                        _checkpoint = e.LastSeenCheckpoint;
+                        Become(ReplayFromEvents);
+                        return;
+                    }
+
+                    if (received > expected)
+                        Stash.Stash();
+
+                }, e => e.ReplayID == _replayId);
+
+                Receive<ReceiveTimeout>(_ => HandleReplayTimeout());
+            }
+
+            /// <summary>
+            /// Recreates events from the global stream until the replay is completed.
+            /// </summary>
+            void ReplayFromEvents()
+            {
+                SetReceiveTimeout(_replayTimeout);
+                Stash.UnstashAll();
+
+                Receive<ReplayEvent>(e =>
+                {
+                    // ensure the events are checked in the right order
+                    var received = e.Event.Checkpoint;
+                    var expected = _checkpoint + 1;
+
+                    if (received == expected)
+                    {
+                        // forward the event only if it matches the stream query
+                        if (EventMatches(e.Event))
+                        {
+                            _sequence++;
+
+                            var replayEvent = new ProjectionReplayEvent
+                            {
+                                ReplayID = _subscriberReplayId,
+                                Event = new ProjectionEvent(_projectionId, _sequence, e.Event)
+                            };
+                            
+                            _subscriber.Tell(replayEvent);
+                        }
+
+                        Stash.UnstashAll();
+
+                        return;
+                    }
+
+                    if (received > expected)
+                        Stash.Stash();
+
+                }, e => e.ReplayID == _replayId);
+
+                Receive<ReplayCompleted>(e =>
+                {
+                    // ensure the replay finished in the right order
+                    if (e.LastCheckpoint == _checkpoint)
+                    {
+                        // notify the subscriber and stop the worker
+                        _subscriber.Tell(new ProjectionReplayCompleted {
+                            ReplayID = _subscriberReplayId,
+                            LastCheckpoint = _checkpoint,
+                            LastSequence = _sequence
+                        });
+
+                        Context.Stop(Self);
+                        return;
+                    }
+
+                    if (e.LastCheckpoint > _checkpoint)
+                        Stash.Stash();
+
+                }, e => e.ReplayID == _replayId);
+
+                Receive<ReceiveTimeout>(_ => HandleReplayTimeout());
+            }
+
+            private bool EventMatches(IEvent e)
+            {
+                foreach (var p in _predicates)
+                    if (p.EventMatches(e))
+                        return true;
+
+                return false;
+            }
+
+            private void HandleReplayTimeout()
+            {
+                _subscriber.Tell(new ReplayAborted { ReplayID = _subscriberReplayId, Message = "Timeout" });
+                Context.Stop(Self);
+            }
+
+            public class Initializer
+            {
+                public string ProjectionID { get; set; }
+                public int InitialSequence { get; set; }
+                public IActorRef EventReader { get; set; }
+                public IActorRef Subscriber { get; set; }
+                public long Checkpoint { get; set; }
+                public Func<IEvent, bool> EventMatches { get; set; }
+                public IStreamPredicate[] Predicates { get; set; }
             }
         }
     }

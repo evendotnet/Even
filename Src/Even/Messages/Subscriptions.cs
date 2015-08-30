@@ -8,6 +8,8 @@ namespace Even.Messages
 {
     public class ProjectionSubscriptionRequest
     {
-        public EventStoreQuery Query { get; set; }
+        public ProjectionQuery Query { get; set; }
+        public int LastKnownSequence { get; set; }
+        public Guid ReplayID { get; set; }
     }
 }

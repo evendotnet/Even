@@ -6,19 +6,27 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class ProjectionStreamEvent : IProjectionStreamEvent
+    public class ProjectionEvent : IProjectionEvent
     {
-        public ProjectionStreamEvent(string queryID, int sequence, int sequenceHash, IStreamEvent @event)
+        public ProjectionEvent(string projectionID, int projectionSequence, IEvent @event)
         {
-            this.QueryID = queryID;
-            this.Sequence = sequence;
-            this.SequenceHash = sequenceHash;
-            this.Event = @event;
+            this.ProjectionID = projectionID;
+            this.ProjectionSequence = projectionSequence;
+            _event = @event;
         }
 
-        public string QueryID { get; }
-        public int Sequence { get; }
-        public int SequenceHash { get; }
-        public IStreamEvent Event { get; }
+        public string ProjectionID { get; }
+        public int ProjectionSequence { get; }
+
+        private IEvent _event;
+
+        public long Checkpoint => _event.Checkpoint;
+        public Guid EventID => _event.EventID;
+        public string StreamID => _event.StreamID;
+        public int StreamSequence => _event.StreamSequence;
+        public string Category => _event.Category;
+        public string EventName => _event.EventName;
+        public IReadOnlyDictionary<string, object> Headers => _event.Headers;
+        public object DomainEvent => _event.DomainEvent;
     }
 }
