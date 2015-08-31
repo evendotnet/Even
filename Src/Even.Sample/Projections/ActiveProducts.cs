@@ -1,8 +1,10 @@
 ﻿using Akka.Actor;
+using Akka.Event;
 using Even.Sample.Aggregates;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Contexts;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,9 +14,13 @@ namespace Even.Sample.Projections
     {
         public ActiveProducts()
         {
-            ProcessEvent<ProductCreated>(Add);
-            ProcessEvent<ProductRenamed>(Rename);
-            ProcessEvent<ProductDeleted>(Delete);
+            OnEvent<ProductCreated>(Add);
+            OnEvent<ProductRenamed>(Rename);
+            OnEvent<ProductDeleted>(Delete);
+        }
+
+        protected override void OnReceiveEvent(IProjectionEvent e)
+        {
         }
 
         protected override void OnReady()

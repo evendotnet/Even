@@ -72,10 +72,13 @@ namespace Even
         private void ReplayFromIndex()
         {
             SetReceiveTimeout(_replayTimeout);
+            Log.Debug("{0}: Projection Stream starting replay", _projectionId);
 
             // the stream only receives the last known index state from the reader
             Receive<ProjectionStreamIndexReplayCompleted>(msg =>
             {
+                Log.Debug("{0}: Projection Index Replay Complete", _projectionId);
+
                 _sequence = msg.LastSeenSequence;
                 _checkpoint = msg.LastSeenCheckpoint;
 
@@ -98,12 +101,14 @@ namespace Even
 
             Receive<ReplayEvent>(e =>
             {
-                ReceiveEvent(e.Event);
+                ReceiveEventInternal(e.Event);
 
             }, e => e.ReplayID == _replayId);
 
             Receive<ReplayCompleted>(_ =>
             {
+                Log.Debug("{0}: Projection Event Replay Complete", _projectionId);
+
                 // clear the replay id
                 _replayId = Guid.Empty;
 
@@ -132,13 +137,17 @@ namespace Even
             {
                 throw new Exception("Replay Timeout");
             }));
+
+            ReceiveAny(o => Stash.Stash());
         }
 
         private void Ready()
         {
+            Log.Debug("{0}: Projection Stream Ready", _projectionId);
+
             Stash.UnstashAll();
 
-            Receive(new Action<IEvent>(ReceiveEvent));
+            Receive(new Action<IEvent>(ReceiveEventInternal));
 
             // receive subscription requests
             Receive<ProjectionSubscriptionRequest>(ps =>
@@ -161,6 +170,17 @@ namespace Even
                         Subscriber = Sender,
                         Checkpoint = _checkpoint,
                         Predicates = _predicates.ToArray()
+                    });
+                }
+                // otherwise just send a completed message to the projection
+                // with the current state
+                else
+                {
+                    Sender.Tell(new ProjectionReplayCompleted
+                    {
+                        ReplayID = ps.ReplayID,
+                        LastCheckpoint = _checkpoint,
+                        LastSequence = _sequence
                     });
                 }
 
@@ -186,7 +206,7 @@ namespace Even
 
         #endregion
 
-        private void ReceiveEvent(IEvent e)
+        private void ReceiveEventInternal(IEvent e)
         {
             var expected = _checkpoint + 1;
             var received = e.Checkpoint;
@@ -194,6 +214,8 @@ namespace Even
             // if the checkpoint order matches
             if (received == expected)
             {
+                _checkpoint++;
+
                 // and the event matches que query, emit it
                 if (EventMatches(e))
                     Emit(e);
@@ -211,7 +233,11 @@ namespace Even
 
         private bool EventMatches(IEvent streamEvent)
         {
-            return true;
+            foreach (var p in _predicates)
+                if (p.EventMatches(streamEvent))
+                    return true;
+
+            return false;
         }
 
         protected virtual void Emit(IEvent @event)
@@ -254,6 +280,7 @@ namespace Even
             Guid _replayId;
             Guid _subscriberReplayId;
             IStreamPredicate[] _predicates;
+            ILoggingAdapter Log = Context.GetLogger();
 
             public ProjectionReplayProxy()
             {
@@ -265,9 +292,12 @@ namespace Even
                     _sequence = ini.InitialSequence;
                     _predicates = ini.Predicates;
                     _checkpoint = 0;
+                    _subscriberReplayId = ini.SubscriberReplayID;
 
                     // set the new replay id and request data to the reader
                     _replayId = Guid.NewGuid();
+
+                    Log.Debug("Starting projection replay for " + _subscriber);
 
                     ini.EventReader.Tell(new ProjectionStreamReplayRequest
                     {
@@ -288,6 +318,8 @@ namespace Even
             /// </summary>
             void ReplayFromIndex()
             {
+                Log.Debug("Proxy Replay from Index");
+
                 SetReceiveTimeout(_replayTimeout);
 
                 // matches events read from stream
@@ -349,6 +381,8 @@ namespace Even
             /// </summary>
             void ReplayFromEvents()
             {
+                Log.Debug("Proxy Replay from Events");
+
                 SetReceiveTimeout(_replayTimeout);
                 Stash.UnstashAll();
 
@@ -426,6 +460,7 @@ namespace Even
             public class Initializer
             {
                 public string ProjectionID { get; set; }
+                public Guid SubscriberReplayID { get; set; }
                 public int InitialSequence { get; set; }
                 public IActorRef EventReader { get; set; }
                 public IActorRef Subscriber { get; set; }

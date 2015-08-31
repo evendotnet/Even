@@ -8,6 +8,11 @@ using System.Threading.Tasks;
 
 namespace Even.Messages
 {
+    public class InitializeEventStore
+    {
+        public IReadOnlyCollection<Type> Projections { get; set; }
+    }
+
     public class InitializeEventStoreReader
     {
         public ICryptoService CryptoService { get; set; }
@@ -35,7 +40,13 @@ namespace Even.Messages
 
     public class InitializeProjectionSupervisor
     {
+        public IActorRef Streams { get; set; }
+    }
+
+    public class InitializeProjectionStreams
+    {
         public IActorRef Reader { get; set; }
+        public IActorRef IndexWriter { get; set; }
     }
 
     public class InitializeAggregate
@@ -72,6 +83,6 @@ namespace Even.Messages
 
     public class InitializeProjection
     {
-        public IActorRef Supervisor;
+        public IActorRef Streams;
     }
 }

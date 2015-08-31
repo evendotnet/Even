@@ -187,6 +187,10 @@ namespace Even.Persistence
                 lock (_projections)
                 {
                     var p = GetOrCreateIndex(projectionStreamId);
+
+                    if (p.Count == 0)
+                        return Task.FromResult(0l);
+
                     return Task.FromResult(p.Max(e => e.Checkpoint));
                 }
             }
@@ -196,6 +200,10 @@ namespace Even.Persistence
                 lock (_projections)
                 {
                     var p = GetOrCreateIndex(projectionStreamId);
+
+                    if (p.Count == 0)
+                        return Task.FromResult(0);
+
                     return Task.FromResult(p.Max(e => e.ProjectionSequence));
                 }
             }

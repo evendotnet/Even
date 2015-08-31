@@ -1,4 +1,5 @@
 ﻿using Akka.Actor;
+using Even.Messages;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -12,7 +13,7 @@ namespace Even
     {
         private ActorSystem _system;
         private Dictionary<Type, Type> _aggregates = new Dictionary<Type, Type>();
-        private Dictionary<string, Type> _projections = new Dictionary<string, Type>();
+        private List<Type> _projections = new List<Type>();
         private EventStoreSettings _settings = new EventStoreSettings();
 
         public EventStoreSetup(ActorSystem system)
@@ -43,6 +44,14 @@ namespace Even
             return this;
         }
 
+        public EventStoreSetup AddProjection<T>()
+            where T : Projection
+        {
+            _projections.Add(typeof(T));
+
+            return this;
+        }
+
         public EventStoreSetup RegisterAggregate<T, TAggregate>()
             where TAggregate : Aggregate<T>
             where T : new()
@@ -56,13 +65,20 @@ namespace Even
 
             var esRef = _system.ActorOf(props, "EventStore");
 
-            var aggregatePath = esRef.Path.ToString() + "/aggregates";
+            esRef.Tell(new InitializeEventStore
+            {
+                Projections = _projections
+            });
 
-            return new EventStoreGateway
+            var aggregatePath = esRef.Path.ToString() + "/" + EventStore.AggregateSupervisorPath;
+
+            var gateway = new EventStoreGateway
             {
                 EventStore = esRef,
                 Aggregates = _system.ActorSelection(aggregatePath)
             };
+
+            return gateway;
         }
 
         private Props CreateProps()
@@ -70,9 +86,9 @@ namespace Even
             return Props.Create<EventStore>(_settings);
         }
 
-        public EventStoreSetup RegisterProjection(string name, Type projectionType)
+        public EventStoreSetup RegisterProjection(Type projectionType)
         {
-            _projections.Add(name, projectionType);
+            _projections.Add(projectionType);
             return this;
         }
 

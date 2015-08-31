@@ -8,35 +8,31 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class ProjectionSupervisor : ReceiveActor
+    public class ProjectionSupervisor: ReceiveActor
     {
         public ProjectionSupervisor()
         {
             Receive<InitializeProjectionSupervisor>(ini =>
             {
-                _reader = ini.Reader;
+                _streams = ini.Streams;
 
-                Become(ReceivingRequests);
+                Become(AcceptingProjections);
             });
         }
 
-        IActorRef _reader;
+        IActorRef _streams;
 
-        private void ReceivingRequests()
+        void AcceptingProjections()
         {
-            Receive<ProjectionSubscriptionRequest>(ps =>
+            Receive<StartProjection>(msg =>
             {
-                var key = "projection-" + ps.Query.StreamID;
-                IActorRef pRef = Context.Child(key);
+                var props = PropsFactory.Create(msg.ProjectionType);
+                var actor = Context.ActorOf(props, msg.ProjectionID);
 
-                // if the projection stream doesn't exist, start one
-                if (pRef == null || pRef == ActorRefs.Nobody)
+                actor.Tell(new InitializeProjection
                 {
-                    pRef = Context.ActorOf<ProjectionStream>();
-                    pRef.Tell(new InitializeProjectionStream { Query = ps.Query, EventReader = _reader });
-                }
-
-                pRef.Tell(ps);
+                    Streams = _streams
+                });
             });
         }
     }

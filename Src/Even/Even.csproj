@@ -58,6 +58,7 @@
   <ItemGroup>
     <Compile Include="ESCategory.cs" />
     <Compile Include="IRawStorageProjectionEvent.cs" />
+    <Compile Include="Messages\Projections.cs" />
     <Compile Include="ProjectionIndexWriter.cs" />
     <Compile Include="IProjectionStreamIndex.cs" />
     <Compile Include="Messages\PersistenceMessages.cs" />
@@ -93,10 +94,11 @@
     <Compile Include="IStreamPredicate.cs" />
     <Compile Include="PersistedStreamEvent.cs" />
     <Compile Include="ProjectionState.cs" />
-    <Compile Include="ProjectionSupervisor.cs" />
+    <Compile Include="ProjectionStreamSupervisor.cs" />
     <Compile Include="ProjectionStreamState.cs" />
     <Compile Include="ProjectionStream.cs" />
     <Compile Include="ProjectionStreamEvent.cs" />
+    <Compile Include="ProjectionSupervisor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropsFactory.cs" />
     <Compile Include="QueryHint.cs" />

@@ -1,10 +1,12 @@
 ﻿using Akka.Actor;
 using Even.Persistence;
 using Even.Sample.Aggregates;
+using Even.Sample.Projections;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Even.Sample
@@ -20,7 +22,10 @@ namespace Even.Sample
             var gateway = actorSystem
                 .SetupEventStore()
                 .UseStorage(store)
+                .AddProjection<ActiveProducts>()
                 .Start();
+
+            Thread.Sleep(500);
 
             Task.Run(async () =>
             {
@@ -30,7 +35,7 @@ namespace Even.Sample
                 await gateway.SendCommandAsync<Product>(3, new CreateProduct { Name = "Product 2" });
                 await gateway.SendCommandAsync<Product>(2, new DeleteProduct());
 
-                await Task.Delay(1000);
+                await Task.Delay(500);
             }).Wait();
 
 

@@ -23,10 +23,19 @@ namespace Even
         }
     }
 
-    //public class TypedEventQuery : IStreamPredicate
-    //{
+    public class TypedEventQuery<T> : IStreamPredicate
+    {
+        public bool EventMatches(IEvent persistedEvent)
+        {
+            return persistedEvent.DomainEvent is T;
+        }
 
-    //}
+        public object GetDeterministicHashSource()
+        {
+            var t = typeof(T);
+            return "Type" + t.FullName + t.Assembly.GetName().FullName;
+        }
+    }
 
     //public class EventNameQuery : IStreamPredicate
     //{

@@ -13,7 +13,6 @@ namespace Even
     {
         public IActorRef EventStore { get; set; }
         public ICanTell Aggregates { get; set; }
-        public ICanTell Projections { get; set; }
 
         /// <summary>
         /// Sends a command to an aggregate using the aggregate's category and the aggregate id to compose the stream id.

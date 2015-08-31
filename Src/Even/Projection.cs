@@ -12,15 +12,17 @@ namespace Even
     public class Projection : ReceiveActor, IWithUnboundedStash
     {
         public IStash Stash { get; set; }
-        protected IEvent CurrentEvent { get; private set; }
         protected int CurrentSequence { get; private set; }
         protected string CurrentStreamID { get; private set; }
 
-        Dictionary<Type, Action<IEvent>> _eventHandlers = new Dictionary<Type, Action<IEvent>>();
+        List<IStreamPredicate> _predicates = new List<IStreamPredicate>();
+        Dictionary<Type, Action<IProjectionEvent>> _eventHandlers = new Dictionary<Type, Action<IProjectionEvent>>();
+
         ILoggingAdapter Log = Context.GetLogger();
 
-        IActorRef _supervisor;
+        IActorRef _streams;
         Guid _replayId;
+        string _projectionId;
 
         public Projection()
         {
@@ -31,7 +33,7 @@ namespace Even
         {
             Receive<InitializeProjection>(async ini =>
             {
-                _supervisor = ini.Supervisor;
+                _streams = ini.Streams;
 
                 var query = BuildQuery();
                 CurrentStreamID = query.StreamID;
@@ -43,15 +45,17 @@ namespace Even
                     return;
                 }
 
+                _projectionId = query.StreamID;
+
                 var knownState = await GetLastKnownState();
 
                 // if the projection is new or id is changed, the projection need to be rebuilt
-                if (knownState != null || !query.StreamID.Equals(knownState.StreamID, StringComparison.OrdinalIgnoreCase))
+                if (knownState == null || !query.StreamID.Equals(knownState.StreamID, StringComparison.OrdinalIgnoreCase))
                     await PrepareToRebuild();
 
                 _replayId = Guid.NewGuid();
 
-                _supervisor.Tell(new ProjectionSubscriptionRequest
+                _streams.Tell(new ProjectionSubscriptionRequest
                 {
                     ReplayID = _replayId,
                     Query = query,
@@ -64,6 +68,8 @@ namespace Even
 
         private void Replaying()
         {
+            Log.Debug("{0}: Starting Projection Replay", GetType().Name);
+
             Receive<ProjectionReplayEvent>(e =>
             {
                 var expected = CurrentSequence + 1;
@@ -83,6 +89,8 @@ namespace Even
 
             Receive<ProjectionReplayCompleted>(e =>
             {
+                Log.Debug("{0}: Projection Replay Completed", GetType().Name);
+
                 var expected = CurrentSequence;
                 var received = e.LastSequence;
 
@@ -115,17 +123,40 @@ namespace Even
 
         void Ready()
         {
+            // receive projection events
             Receive<IProjectionEvent>(e =>
             {
+                
+                var expected = CurrentSequence + 1;
+                var received = e.ProjectionSequence;
 
-            });
+                if (received == expected)
+                {
+                    CurrentSequence++;
+                    ProcessEventInternal(e);
+                    Stash.UnstashAll();
+                    return;
+                }
+
+                if (received > expected)
+                {
+                    Stash.Stash();
+                    return;
+                }
+
+            }, e => e.ProjectionID == _projectionId);
 
             OnReady();
         }
 
         private void ProcessEventInternal(IProjectionEvent e)
         {
-            CurrentSequence = e.ProjectionSequence;
+            OnReceiveEvent(e);
+
+            Action<IProjectionEvent> processor;
+
+            if (_eventHandlers.TryGetValue(e.DomainEvent.GetType(), out processor))
+                processor(e);
         }
 
         /// <summary>
@@ -140,7 +171,7 @@ namespace Even
 
         private ProjectionQuery BuildQuery()
         {
-            return null;
+            return new ProjectionQuery(_predicates);
         }
 
         /// <summary>
@@ -148,6 +179,9 @@ namespace Even
         /// You may use this to register receive handlers to the projection.
         /// </summary>
         protected virtual void OnReady()
+        { }
+
+        protected virtual void OnReceiveEvent(IProjectionEvent e)
         { }
 
         /// <summary>
@@ -158,15 +192,17 @@ namespace Even
             return Task.CompletedTask;
         }
 
-        public void ProcessEvent<T>(Action<IEvent> processor)
+        public void OnEvent<T>(Action<IEvent> processor)
         {
             Contract.Requires(processor != null);
             _eventHandlers.Add(typeof(T), processor);
+
+            _predicates.Add(new TypedEventQuery<T>());
         }
 
-        public void ProcessEvent<T>(Action<IEvent, T> processor)
+        public void OnEvent<T>(Action<IEvent, T> processor)
         {
-            ProcessEvent<T>(se => processor(se, (T)se.DomainEvent));
+            OnEvent<T>(se => processor(se, (T)se.DomainEvent));
         }
     }
 
