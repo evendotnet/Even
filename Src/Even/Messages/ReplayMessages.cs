@@ -28,7 +28,7 @@ namespace Even.Messages
     /// <summary>
     /// Request replay for all events.
     /// </summary>
-    public class ReplayEventsRequest : ReplayMessage
+    public class EventReplayRequest : ReplayMessage
     {
         public int InitialCheckpoint { get; set; }
         public int MaxEvents { get; set; }
@@ -96,19 +96,21 @@ namespace Even.Messages
     #region Stream Specific Messages
 
     /// <summary>
-    /// Requests a replay for a specific stream.
+    /// Requests a replay for an aggregate.
     /// </summary>
-    public class ReplayStreamRequest : ReplayRequest
+    public class ReplayAggregateRequest : ReplayRequest
     {
         public string StreamID { get; set; }
+        public int InitialSequence { get; set; }
+        public bool UseSnapshot { get; set; }
     }
 
     /// <summary>
     /// A snapshot offer from the event reader.
     /// </summary>
-    public class ReplayStreamSnapshot : ReplayResponse
+    public class AggregateSnapshotOffer : ReplayResponse
     {
-        public IStreamSnapshot Snapshot { get; set; }
+        public IAggregateSnapshot Snapshot { get; set; }
     }
 
     #endregion

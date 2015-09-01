@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public interface IStreamSnapshot
+    public interface IAggregateSnapshot
     {
         string StreamID { get; }
         int StreamSequence { get; }
@@ -17,6 +17,7 @@ namespace Even
     {
         string StreamID { get; }
         int StreamSequence { get; }
+        string ClrType { get; }
         byte[] Payload { get; }
     }
 }

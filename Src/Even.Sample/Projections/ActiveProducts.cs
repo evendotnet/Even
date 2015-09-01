@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Even.Sample.Projections
 {
-    public class ActiveProducts : Projection
+    public class ActiveProducts : EventProcessor
     {
         public ActiveProducts()
         {

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class Projection : ReceiveActor, IWithUnboundedStash
+    public class EventProcessor : ReceiveActor, IWithUnboundedStash
     {
         public IStash Stash { get; set; }
         protected int CurrentSequence { get; private set; }
@@ -24,16 +24,16 @@ namespace Even
         Guid _replayId;
         string _projectionId;
 
-        public Projection()
+        public EventProcessor()
         {
             Become(Uninitialized);
         }
 
         private void Uninitialized()
         {
-            Receive<InitializeProjection>(async ini =>
+            Receive<InitializeEventProcessor>(async ini =>
             {
-                _streams = ini.Streams;
+                _streams = ini.ProjectionStreamSupervisor;
 
                 var query = BuildQuery();
                 CurrentStreamID = query.StreamID;

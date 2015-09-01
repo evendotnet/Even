@@ -14,7 +14,7 @@ namespace Even
         {
             Receive<InitializeEventStoreWriter>(ini =>
             {
-                _writerFactory = ini.WriterFactory;
+                _writer = ini.StoreWriter;
                 _serializer = ini.Serializer;
                 _cryptoService = ini.CryptoService;
 
@@ -23,7 +23,7 @@ namespace Even
         }
 
         bool _writeRequested;
-        Func<IStorageWriter> _writerFactory;
+        IStreamStoreWriter _writer;
         ICryptoService _cryptoService;
         IDataSerializer _serializer;
         Queue<BufferEntry> _buffer = new Queue<BufferEntry>();
@@ -61,7 +61,6 @@ namespace Even
             // reset the request flag
             _writeRequested = false;
 
-            var writer = _writerFactory();
             var sender = Sender;
             var self = Self;
             var eventStream = Context.System.EventStream;
@@ -74,7 +73,7 @@ namespace Even
             // creates the actual events to be stored
             var storageEvents = rawEvents.Values.Select(o => CreateRawStorageEvent(o.RawEvent));
 
-            await writer.WriteEvents(storageEvents, (e, checkpoint) =>
+            await _writer.WriteEventsAsync(storageEvents, (e, checkpoint) =>
             {
                 Log.Debug("Event {0} Persisted", e.EventID);
 

@@ -17,34 +17,32 @@ namespace Even.Sample
         {
             var actorSystem = ActorSystem.Create("Sample");
 
-            var store = new InMemoryStorage();
-
-            var gateway = actorSystem
-                .SetupEventStore()
-                .UseStorage(store)
-                .AddProjection<ActiveProducts>()
-                .Start();
-
-            Thread.Sleep(500);
-
             Task.Run(async () =>
             {
-                await gateway.SendCommandAsync<Product>(1, new CreateProduct { Name = "Product 1" });
-                await gateway.SendCommandAsync<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" });
-                await gateway.SendCommandAsync<Product>(2, new CreateProduct { Name = "Product 2" });
-                await gateway.SendCommandAsync<Product>(3, new CreateProduct { Name = "Product 2" });
-                await gateway.SendCommandAsync<Product>(2, new DeleteProduct());
+                var memoryStore = new InMemoryStore();
+
+                var gateway = await actorSystem
+                    .SetupEventStore()
+                    .UseStore(memoryStore)
+                    .AddEventProcessor<ActiveProducts>()
+                    .Start();
+
+                await Task.WhenAll(
+                    gateway.SendCommandAsync<Product>(1, new CreateProduct { Name = "Product 1" }),
+                    gateway.SendCommandAsync<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" }),
+                    gateway.SendCommandAsync<Product>(2, new CreateProduct { Name = "Product 2" }),
+                    gateway.SendCommandAsync<Product>(3, new CreateProduct { Name = "Product 2" }),
+                    gateway.SendCommandAsync<Product>(2, new DeleteProduct())
+                );
 
                 await Task.Delay(500);
+
+                Console.WriteLine($"{"CP",-6} {"Stream ID",-50} Event Name");
+                foreach (var e in memoryStore.GetEvents())
+                    Console.WriteLine($"{e.Checkpoint,-6} {e.StreamID,-50} {e.EventName}");
+
+
             }).Wait();
-
-
-            Console.WriteLine("Persisted Events: ");
-
-            foreach (var e in store._store._events)
-            {
-                Console.WriteLine($"{e.StreamID,-20} {e.EventName,-30}");
-            }
 
             Console.WriteLine("End");
             Console.ReadLine();

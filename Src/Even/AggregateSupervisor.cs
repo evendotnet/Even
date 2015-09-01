@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class AggregateSupervisor : ReceiveActor
+    public class CommandProcessorSupervisor : ReceiveActor
     {
-        public AggregateSupervisor()
+        public CommandProcessorSupervisor()
         {
-            Receive<InitializeAggregateSupervisor>(ini => {
+            Receive<InitializeCommandProcessorSupervisor>(ini => {
                 _reader = ini.Reader;
                 _writer = ini.Writer;
                 Become(ReceivingCommands);

@@ -6,102 +6,109 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Even.Messages;
+using Even.Messages.Initialization;
+using System.Diagnostics.Contracts;
 
 namespace Even
 {
     public class EventStore : ReceiveActor
     {
-        internal static readonly string ReaderPath = "reader";
-        internal static readonly string WriterPath = "writer";
-        internal static readonly string StreamsPath = "streams";
-        internal static readonly string ProjectionSupervisorPath = "projections";
-        internal static readonly string AggregateSupervisorPath = "aggregates";
-        internal static readonly string IndexWriterPath = "indexwriter";
+        EventStoreSettings _settings;
+        IStreamStore _store;
 
-        public EventStore(EventStoreSettings settings)
+        IActorRef _reader;
+        IActorRef _writer;
+        IActorRef _projectionStreams;
+        IActorRef _commandProcessors;
+        IActorRef _eventProcessors;
+
+        public EventStore()
         {
-            _settings = settings;
+            Become(Uninitialized);
+        }
 
+        void Uninitialized()
+        {
             Receive<InitializeEventStore>(ini =>
             {
+                _settings = ini.Settings;
+                _store = ini.Settings.Store;
+
                 InitializeChildren();
+                InitializeEventProcessors(ini.EventProcessors);
 
-                foreach (var p in ini.Projections)
+                Sender.Tell(new EventStoreState
                 {
-                    _projections.Tell(new StartProjection
-                    {
-                        ProjectionType = p,
-                        ProjectionID = p.Name
-                    });
-                }
-            });
+                    Initialized = true,
+                    CommandProcessors = _commandProcessors,
+                    EventProcessors = _eventProcessors
+                });
 
-            Receive<ProjectionSubscriptionRequest>(o => _streams.Forward(o));
+                Become(Ready);
+            });
         }
+
+        void Ready()
+        { }
 
         void InitializeChildren()
         {
             // initialize reader
-            _reader = Context.ActorOf<EventStoreReader>(ReaderPath);
+            _reader = Context.ActorOf<EventStoreReader>("reader");
 
             _reader.Tell(new InitializeEventStoreReader {
-                ReaderFactory = _settings.StorageDriver.CreateReader,
+                StoreReader = _settings.Store,
                 Serializer = _settings.Serializer,
                 CryptoService = _settings.CryptoService
             });
 
             // initialize writer
-            _writer = Context.ActorOf<EventStoreWriter>(WriterPath);
+            _writer = Context.ActorOf<EventStoreWriter>("writer");
 
             _writer.Tell(new InitializeEventStoreWriter
             {
-                WriterFactory = _settings.StorageDriver.CreateWriter,
+                StoreWriter = _settings.Store,
                 Serializer = _settings.Serializer,
                 CryptoService = _settings.CryptoService
             });
+            
+            // initialize the projection streams supervisor
+            _projectionStreams = Context.ActorOf<ProjectionStreams>("projectionstreams");
 
-            // initialize index writer
-            _indexWriter = Context.ActorOf<ProjectionIndexWriter>(IndexWriterPath);
-
-            _indexWriter.Tell(new InitializeProjectionIndexWriter
-            {
-                WriterFactory = _settings.StorageDriver.CreateWriter
-            });
-
-            // initialize projection streams
-            _streams = Context.ActorOf<ProjectionStreams>(StreamsPath);
-
-            _streams.Tell(new InitializeProjectionStreams
-            {
-                Reader = _reader,
-                IndexWriter = _indexWriter
-            });
-
-            // initialize projections supervisor
-            _projections = Context.ActorOf<ProjectionSupervisor>(ProjectionSupervisorPath);
-
-            _projections.Tell(new InitializeProjectionSupervisor
-            {
-                Streams = _streams
-            });
-
-            // initialze aggregates
-            _aggregates = Context.ActorOf<AggregateSupervisor>(AggregateSupervisorPath);
-
-            _aggregates.Tell(new InitializeAggregateSupervisor
+            _projectionStreams.Tell(new InitializeProjectionStreams
             {
                 Reader = _reader,
                 Writer = _writer
             });
 
+            // initialize event processor supervisor
+            _eventProcessors = Context.ActorOf<EventProcessorSupervisor>("eventprocessors");
+
+            _eventProcessors.Tell(new InitializeEventProcessorSupervisor
+            {
+                ProjectionStreamSupervisor = _projectionStreams
+            });
+
+            // initialze command processors
+            _commandProcessors = Context.ActorOf<CommandProcessorSupervisor>("commandprocessors");
+
+            _commandProcessors.Tell(new InitializeCommandProcessorSupervisor
+            {
+                Reader = _reader,
+                Writer = _writer
+            });
         }
 
-        EventStoreSettings _settings;
-        IActorRef _writer;
-        IActorRef _reader;
-        IActorRef _streams;
-        IActorRef _projections;
-        IActorRef _aggregates;
-        private IActorRef _indexWriter;
+        void InitializeEventProcessors(IEnumerable<EventProcessorEntry> entries)
+        {
+            foreach (var e in entries)
+            {
+                _eventProcessors.Tell(new StartEventProcessor
+                {
+                    Type = e.Type,
+                    Name = e.Name
+                });
+            }
+        }
     }
 }

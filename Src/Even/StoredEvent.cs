@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class PersistedStreamEvent : IEvent
+    public class StoredEvent : IEvent
     {
-        public PersistedStreamEvent(long checkpoint, Guid eventId, string streamId, int streamSequence, string eventName, Dictionary<string, object> headers, object domainEvent)
+        public StoredEvent(long checkpoint, Guid eventId, string streamId, int streamSequence, string eventName, Dictionary<string, object> headers, object domainEvent)
         {
             Checkpoint = checkpoint;
             EventID = eventId;

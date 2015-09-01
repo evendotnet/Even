@@ -12,7 +12,8 @@ namespace Even
     public class EventStoreGateway 
     {
         public IActorRef EventStore { get; set; }
-        public ICanTell Aggregates { get; set; }
+        public IActorRef CommandProcessors { get; set; }
+        public IActorRef EventProcessors { get; set; }
 
         /// <summary>
         /// Sends a command to an aggregate using the aggregate's category and the aggregate id to compose the stream id.
@@ -59,7 +60,7 @@ namespace Even
 
             try
             {
-                response = await Aggregates.Ask(request, timeout) as AggregateCommandResponse;
+                response = await CommandProcessors.Ask(request, timeout) as AggregateCommandResponse;
             }
             catch (TaskCanceledException ex)
             {

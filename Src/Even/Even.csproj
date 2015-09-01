@@ -56,9 +56,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AggregateSnapshot.cs" />
+    <Compile Include="CommandProcessor.cs" />
     <Compile Include="ESCategory.cs" />
+    <Compile Include="EvenException.cs" />
+    <Compile Include="EventProcessorEntry.cs" />
     <Compile Include="IRawStorageProjectionEvent.cs" />
-    <Compile Include="Messages\Projections.cs" />
+    <Compile Include="Messages\Initialization\InitializeEventStore.cs" />
+    <Compile Include="IStreamStore.cs" />
     <Compile Include="ProjectionIndexWriter.cs" />
     <Compile Include="IProjectionStreamIndex.cs" />
     <Compile Include="Messages\PersistenceMessages.cs" />
@@ -67,7 +72,7 @@
     <Compile Include="AggregateSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="Persistence\InMemoryStorage.cs" />
-    <Compile Include="Projection.cs" />
+    <Compile Include="EventProcessor.cs" />
     <Compile Include="EventSerializer.cs" />
     <Compile Include="EventStore.cs" />
     <Compile Include="EventStoreConfig.cs" />
@@ -92,13 +97,13 @@
     <Compile Include="IStorageWriter.cs" />
     <Compile Include="IStreamEvent.cs" />
     <Compile Include="IStreamPredicate.cs" />
-    <Compile Include="PersistedStreamEvent.cs" />
+    <Compile Include="StoredEvent.cs" />
     <Compile Include="ProjectionState.cs" />
     <Compile Include="ProjectionStreamSupervisor.cs" />
     <Compile Include="ProjectionStreamState.cs" />
     <Compile Include="ProjectionStream.cs" />
     <Compile Include="ProjectionStreamEvent.cs" />
-    <Compile Include="ProjectionSupervisor.cs" />
+    <Compile Include="EventProcessorSupervisor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropsFactory.cs" />
     <Compile Include="QueryHint.cs" />
@@ -111,6 +116,7 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

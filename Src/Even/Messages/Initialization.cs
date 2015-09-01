@@ -8,26 +8,21 @@ using System.Threading.Tasks;
 
 namespace Even.Messages
 {
-    public class InitializeEventStore
-    {
-        public IReadOnlyCollection<Type> Projections { get; set; }
-    }
-
     public class InitializeEventStoreReader
     {
         public ICryptoService CryptoService { get; set; }
         public IDataSerializer Serializer { get; set; }
-        public Func<IStorageReader> ReaderFactory { get; set; }
+        public IStreamStoreReader StoreReader { get; set; }
     }
 
     public class InitializeEventStoreWriter
     {
         public ICryptoService CryptoService { get; set; }
         public IDataSerializer Serializer { get; set; }
-        public Func<IStorageWriter> WriterFactory { get; set; }
+        public IStreamStoreWriter StoreWriter { get; set; }
     }
 
-    public class InitializeAggregateSupervisor
+    public class InitializeCommandProcessorSupervisor
     {
         public IActorRef Writer { get; set; }
         public IActorRef Reader { get; set; }
@@ -38,15 +33,15 @@ namespace Even.Messages
         public Func<IStorageWriter> WriterFactory { get; set; }
     }
 
-    public class InitializeProjectionSupervisor
+    public class InitializeEventProcessorSupervisor
     {
-        public IActorRef Streams { get; set; }
+        public IActorRef ProjectionStreamSupervisor { get; set; }
     }
 
     public class InitializeProjectionStreams
     {
         public IActorRef Reader { get; set; }
-        public IActorRef IndexWriter { get; set; }
+        public IActorRef Writer { get; set; }
     }
 
     public class InitializeAggregate
@@ -68,7 +63,7 @@ namespace Even.Messages
 
     public class InitializeProjectionStreamReplayWorker
     {
-        public ReplayEventsRequest Request { get; set; }
+        public EventReplayRequest Request { get; set; }
         public IActorRef ReplyTo { get; set; }
         public Func<IRawStorageEvent, IEvent> Deserializer { get; set; }
         public IStorageReader StorageReader { get; set; }
@@ -76,13 +71,19 @@ namespace Even.Messages
 
     public class InitializeAggregateReplayWorker
     {
-        public ReplayStreamRequest Request { get; set; }
+        public ReplayAggregateRequest Request { get; set; }
         public IActorRef ReplyTo { get; set; }
         public InitializeEventStoreReader ReaderInitializer { get; set; }
     }
 
-    public class InitializeProjection
+    public class StartEventProcessor
     {
-        public IActorRef Streams;
+        public string Name { get; set; }
+        public Type Type { get; set; }
+    }
+
+    public class InitializeEventProcessor
+    {
+        public IActorRef ProjectionStreamSupervisor { get; set; }
     }
 }

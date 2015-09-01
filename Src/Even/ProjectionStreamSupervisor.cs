@@ -15,7 +15,7 @@ namespace Even
             Receive<InitializeProjectionStreams>(ini =>
             {
                 _reader = ini.Reader;
-                _indexWriter = ini.IndexWriter;
+                _indexWriter = ini.Writer;
 
                 Become(ReceivingRequests);
             });

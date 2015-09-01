@@ -1,5 +1,6 @@
 ﻿using Akka.Actor;
 using Even.Messages;
+using Even.Messages.Initialization;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -12,8 +13,7 @@ namespace Even
     public class EventStoreSetup
     {
         private ActorSystem _system;
-        private Dictionary<Type, Type> _aggregates = new Dictionary<Type, Type>();
-        private List<Type> _projections = new List<Type>();
+        private List<EventProcessorEntry> _eventProcessors = new List<EventProcessorEntry>();
         private EventStoreSettings _settings = new EventStoreSettings();
 
         public EventStoreSetup(ActorSystem system)
@@ -22,10 +22,10 @@ namespace Even
             this._system = system;
         }
 
-        public EventStoreSetup UseStorage(IStorageDriver driver)
+        public EventStoreSetup UseStore(IStreamStore store)
         {
-            Contract.Requires(driver != null);
-            _settings.StorageDriver = driver;
+            Contract.Requires(store != null);
+            _settings.Store = store;
             return this;
         }
 
@@ -44,58 +44,37 @@ namespace Even
             return this;
         }
 
-        public EventStoreSetup AddProjection<T>()
-            where T : Projection
+        public EventStoreSetup AddEventProcessor<T>(string name = null)
+            where T : EventProcessor
         {
-            _projections.Add(typeof(T));
-
-            return this;
-        }
-
-        public EventStoreSetup RegisterAggregate<T, TAggregate>()
-            where TAggregate : Aggregate<T>
-            where T : new()
-        {
-            return RegisterAggregate(typeof(T), typeof(TAggregate));
-        }
-
-        public EventStoreGateway Start()
-        {
-            var props = CreateProps();
-
-            var esRef = _system.ActorOf(props, "EventStore");
-
-            esRef.Tell(new InitializeEventStore
+            _eventProcessors.Add(new EventProcessorEntry
             {
-                Projections = _projections
+                Type = typeof(T),
+                Name = name
             });
 
-            var aggregatePath = esRef.Path.ToString() + "/" + EventStore.AggregateSupervisorPath;
+            return this;
+        }
 
-            var gateway = new EventStoreGateway
+        public async Task<EventStoreGateway> Start()
+        {
+            var esRef = _system.ActorOf<EventStore>("EventStore");
+
+            var state = await esRef.Ask(new InitializeEventStore
+            {
+                Settings = _settings,
+                EventProcessors = _eventProcessors
+            }) as EventStoreState;
+
+            if (!state.Initialized)
+                throw new Exception("Error initializing the event store.");
+
+            return new EventStoreGateway
             {
                 EventStore = esRef,
-                Aggregates = _system.ActorSelection(aggregatePath)
+                CommandProcessors = state.CommandProcessors,
+                EventProcessors = state.EventProcessors
             };
-
-            return gateway;
-        }
-
-        private Props CreateProps()
-        {
-            return Props.Create<EventStore>(_settings);
-        }
-
-        public EventStoreSetup RegisterProjection(Type projectionType)
-        {
-            _projections.Add(projectionType);
-            return this;
-        }
-
-        public EventStoreSetup RegisterAggregate(Type stateType, Type aggregateType)
-        {
-            _aggregates.Add(stateType, aggregateType);
-            return this;
         }
     }
 
