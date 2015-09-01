@@ -28,11 +28,6 @@ namespace Even.Messages
         public IActorRef Reader { get; set; }
     }
 
-    public class InitializeProjectionIndexWriter
-    {
-        public Func<IStorageWriter> WriterFactory { get; set; }
-    }
-
     public class InitializeEventProcessorSupervisor
     {
         public IActorRef ProjectionStreamSupervisor { get; set; }
@@ -44,29 +39,33 @@ namespace Even.Messages
         public IActorRef Writer { get; set; }
     }
 
+    public class InitializeCommandProcessor
+    {
+        public IActorRef CommandProcessorSupervisor { get; set; }
+        public IActorRef Writer { get; set; }
+    }
+
     public class InitializeAggregate
     {
         public string StreamID { get; set; }
         public IActorRef Reader { get; set; }
         public IActorRef Writer { get; set; }
-
-        public IActorRef CommandSender { get; set; }
-        public AggregateCommandRequest Command { get; set; }
+        public IActorRef CommandProcessorSupervisor { get; set; }
     }
+
+    public class AggregateInitializationState
+    {
+        public bool Initialized { get; set; }
+        public string InitializationFailureReason { get; set; }
+    }
+
+    public class WillStop { }
 
     public class InitializeProjectionStream
     {
         public ProjectionQuery Query { get; set; }
-        public IActorRef EventReader { get; set; }
-        public IActorRef IndexWriter { get; set; }
-    }
-
-    public class InitializeProjectionStreamReplayWorker
-    {
-        public EventReplayRequest Request { get; set; }
-        public IActorRef ReplyTo { get; set; }
-        public Func<IRawStorageEvent, IEvent> Deserializer { get; set; }
-        public IStorageReader StorageReader { get; set; }
+        public IActorRef Reader { get; set; }
+        public IActorRef Writer { get; set; }
     }
 
     public class InitializeAggregateReplayWorker

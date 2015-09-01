@@ -64,7 +64,7 @@ namespace Even
             {
                 Settings = _settings,
                 EventProcessors = _eventProcessors
-            }) as EventStoreState;
+            }) as EventStoreInitializationState;
 
             if (!state.Initialized)
                 throw new Exception("Error initializing the event store.");

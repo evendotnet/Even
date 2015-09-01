@@ -45,14 +45,14 @@ namespace Even.Messages
     /// </summary>
     public class ReplayEvent : ReplayResponse
     {
-        public IEvent Event { get; set; }
+        public IPersistedEvent Event { get; set; }
     }
 
     /// <summary>
     /// Requests the replay to be cancelled.
     /// Cancellation happens is asynchronously, and the actor may receive messages even after the cancellation has been requested.
     /// </summary>
-    public class ReplayCancelRequest : ReplayRequest
+    public class CancelReplayRequest : ReplayRequest
     { }
 
     /// <summary>
@@ -112,6 +112,12 @@ namespace Even.Messages
     {
         public IAggregateSnapshot Snapshot { get; set; }
     }
+
+    /// <summary>
+    /// Signals that there will be no snapshot offers for the replay.
+    /// </summary>
+    public class NoAggregateSnapshotOffer : ReplayResponse
+    { }
 
     #endregion
 

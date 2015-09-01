@@ -15,8 +15,7 @@ namespace Even
         protected int CurrentSequence { get; private set; }
         protected string CurrentStreamID { get; private set; }
 
-        List<IStreamPredicate> _predicates = new List<IStreamPredicate>();
-        Dictionary<Type, Action<IProjectionEvent>> _eventHandlers = new Dictionary<Type, Action<IProjectionEvent>>();
+        Dictionary<Type, Func<IProjectionEvent, Task>> _eventProcessors = new Dictionary<Type, Func<IProjectionEvent, Task>>();
 
         ILoggingAdapter Log = Context.GetLogger();
 
@@ -28,6 +27,8 @@ namespace Even
         {
             Become(Uninitialized);
         }
+
+        #region Actor States
 
         private void Uninitialized()
         {
@@ -70,14 +71,14 @@ namespace Even
         {
             Log.Debug("{0}: Starting Projection Replay", GetType().Name);
 
-            Receive<ProjectionReplayEvent>(e =>
+            Receive<ProjectionReplayEvent>(async e =>
             {
                 var expected = CurrentSequence + 1;
                 var received = e.Event.ProjectionSequence;
                 
                 if (received == expected)
                 {
-                    ProcessEventInternal(e.Event);
+                    await ProcessEventInternal(e.Event);
                     Stash.UnstashAll();
                     return;
                 }
@@ -124,7 +125,7 @@ namespace Even
         void Ready()
         {
             // receive projection events
-            Receive<IProjectionEvent>(e =>
+            Receive<IProjectionEvent>(async e =>
             {
                 
                 var expected = CurrentSequence + 1;
@@ -133,7 +134,7 @@ namespace Even
                 if (received == expected)
                 {
                     CurrentSequence++;
-                    ProcessEventInternal(e);
+                    await ProcessEventInternal(e);
                     Stash.UnstashAll();
                     return;
                 }
@@ -144,19 +145,21 @@ namespace Even
                     return;
                 }
 
-            }, e => e.ProjectionID == _projectionId);
+            }, e => e.ProjectionStreamID == _projectionId);
 
             OnReady();
         }
 
-        private void ProcessEventInternal(IProjectionEvent e)
+        #endregion
+
+        async Task ProcessEventInternal(IProjectionEvent e)
         {
             OnReceiveEvent(e);
 
-            Action<IProjectionEvent> processor;
+            Func<IProjectionEvent, Task> processor;
 
-            if (_eventHandlers.TryGetValue(e.DomainEvent.GetType(), out processor))
-                processor(e);
+            if (_eventProcessors.TryGetValue(e.DomainEvent.GetType(), out processor))
+                await processor(e);
         }
 
         /// <summary>
@@ -171,7 +174,9 @@ namespace Even
 
         private ProjectionQuery BuildQuery()
         {
-            return new ProjectionQuery(_predicates);
+            var predicates = _eventProcessors.Keys.Select(t => new DomainEventPredicate(t)).ToList();
+
+            return new ProjectionQuery(predicates);
         }
 
         /// <summary>
@@ -192,18 +197,37 @@ namespace Even
             return Task.CompletedTask;
         }
 
-        public void OnEvent<T>(Action<IEvent> processor)
-        {
-            Contract.Requires(processor != null);
-            _eventHandlers.Add(typeof(T), processor);
+        #region Event Processor Registration
 
-            _predicates.Add(new TypedEventQuery<T>());
+        protected void OnEvent<T>(Func<IPersistedEvent, Task> processor)
+        {
+            _eventProcessors.Add(typeof(T), e => processor(e));
         }
 
-        public void OnEvent<T>(Action<IEvent, T> processor)
+        protected void OnEvent<T>(Func<IPersistedEvent, T, Task> processor)
         {
-            OnEvent<T>(se => processor(se, (T)se.DomainEvent));
+            _eventProcessors.Add(typeof(T), e => processor(e, (T)e.DomainEvent));
         }
+
+        protected void OnEvent<T>(Action<IPersistedEvent> processor)
+        {
+            _eventProcessors.Add(typeof(T), e =>
+            {
+                processor(e);
+                return Task.CompletedTask;
+            });
+        }
+
+        protected void OnEvent<T>(Action<IPersistedEvent, T> processor)
+        {
+            _eventProcessors.Add(typeof(T), e =>
+            {
+                processor(e, (T)e.DomainEvent);
+                return Task.CompletedTask;
+            });
+        }
+
+        #endregion
     }
 
     public class ProjectionReplayState

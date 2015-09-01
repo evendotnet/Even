@@ -7,14 +7,20 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class StreamEventAttribute : Attribute
+    public class ESEventAttribute : Attribute
     {
-        public StreamEventAttribute(string name)
+        public ESEventAttribute(string name)
         {
             Contract.Requires(String.IsNullOrEmpty(name));
             this.Name = name;
         }
 
         public string Name { get; }
+
+        public static string GetEventName(Type type)
+        {
+            var a = Attribute.GetCustomAttribute(type, typeof(ESEventAttribute)) as ESEventAttribute;
+            return a?.Name ?? type.Name;
+        }
     }
 }

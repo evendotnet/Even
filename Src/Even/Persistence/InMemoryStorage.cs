@@ -9,7 +9,7 @@ namespace Even.Persistence
 {
     public class InMemoryStore : IStreamStore
     {
-        public IReadOnlyCollection<IRawStorageEvent> GetEvents()
+        public IReadOnlyCollection<IRawPersistedEvent> GetEvents()
         {
             lock (_events)
             {
@@ -17,262 +17,172 @@ namespace Even.Persistence
             }
         }
 
-        #region StreamStore
+        List<IRawPersistedEvent> _events = new List<IRawPersistedEvent>();
 
-        List<IRawStorageEvent> _events = new List<IRawStorageEvent>();
+        #region StoreWriter
 
-        public Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct)
+        public Task<IWriteResult> WriteEventsAsync(IEnumerable<IRawStreamEvent> events)
         {
-            throw new NotImplementedException();
+            lock (_events)
+            {
+                var sequenceData = events.Select(e => e.StreamID)
+                    .Distinct()
+                    .ToDictionary(s => s, s => GetLastStreamSequence(s));
+
+                var sequencer = new Sequencer(sequenceData);
+                var checkpoint = _events.Count + 1;
+
+                var eventsToStore = events.Select(e => new InternalEvent
+                {
+                    Checkpoint = checkpoint++,
+                    StreamSequence = sequencer.GetNext(e.StreamID),
+                    StreamID = e.StreamID.ToLowerInvariant(),
+                    IRawEvent = e
+                }).ToList();
+
+                _events.AddRange(eventsToStore);
+
+                var result = new WriteResult
+                {
+                    Sequences = eventsToStore.Select(e => EventFactory.CreateWrittenEventSequence(e.EventID, e.Checkpoint, e.StreamSequence)).ToList()
+                };
+
+                return Task.FromResult<IWriteResult>(result);
+            }
         }
 
-        public Task<long> ReadHighestCheckpointAsync()
+        public Task<IWriteResult> WriteEventsStrictAsync(string streamId, int expectedSequence, IEnumerable<IRawEvent> events)
         {
-            throw new NotImplementedException();
-        }
+            lock (_events)
+            {
+                var sequence = GetLastStreamSequence(streamId);
 
-        public Task<int> ReadHighestStreamSequenceAsync(string streamId)
-        {
-            throw new NotImplementedException();
-        }
+                if (sequence != expectedSequence)
+                    throw new StrictEventWriteException();
 
-        public Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+                var checkpoint = _events.Count + 1;
 
-        public Task WriteEventsAsync(IEnumerable<IRawStorageEvent> events, Action<IRawStorageEvent, long> writtenCallback)
-        {
-            throw new NotImplementedException();
+                var eventsToStore = events.Select(e => new InternalEvent
+                {
+                    Checkpoint = checkpoint++,
+                    StreamSequence = ++sequence,
+                    StreamID = streamId.ToLowerInvariant(),
+                    IRawEvent = e
+                }).ToList();
+
+                _events.AddRange(eventsToStore);
+
+                var result = new WriteResult
+                {
+                    Sequences = eventsToStore.Select(e => EventFactory.CreateWrittenEventSequence(e.EventID, e.Checkpoint, e.StreamSequence)).ToList()
+                };
+
+                return Task.FromResult<IWriteResult>(result);
+            }
         }
 
         #endregion
 
-        //public class InMemoryStore: IStorageWriter, IStorageReader
-        //{
-        //    public List<MemoryEvent> _events = new List<MemoryEvent>();
-        //    public Dictionary<string, List<IProjectionStreamIndex>> _projections = new Dictionary<string, List<IProjectionStreamIndex>>(StringComparer.OrdinalIgnoreCase);
-        //    public Dictionary<string, long> _projectionCheckpoints = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
-        //    public Dictionary<string, IRawAggregateSnapshot> _snapshots = new Dictionary<string, IRawAggregateSnapshot>(StringComparer.OrdinalIgnoreCase);
+        #region StoreReader
 
-        //    private List<IProjectionStreamIndex> GetOrCreateIndex(string streamId)
-        //    {
-        //        List<IProjectionStreamIndex> index;
+        public Task<long> ReadHighestCheckpointAsync()
+        {
+            lock (_events)
+            {
+                return Task.FromResult<long>(_events.Count);
+            }
+        }
 
-        //        if (!_projections.TryGetValue(streamId, out index))
-        //        {
-        //            index = new List<IProjectionStreamIndex>();
-        //            _projections[streamId] = index;
-        //        }
+        public Task<int> ReadHighestStreamSequenceAsync(string streamId)
+        {
+            lock (_events)
+            {
+                return Task.FromResult(GetLastStreamSequence(streamId));
+            }
+        }
 
-        //        return index;
-        //    }
+        public Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IRawPersistedEvent> readCallback, CancellationToken ct)
+        {
+            lock (_events)
+            {
+                var re = from e in _events
+                         where e.Checkpoint >= initialCheckpoint
+                         orderby e.Checkpoint
+                         select e;
 
-        //    #region Storage writer
+                foreach (var e in re.Take(maxEvents))
+                    readCallback(e);
 
-        //    public Task WriteEvents(IEnumerable<IRawStorageEvent> events, Action<IRawStorageEvent, long> writtenCallback)
-        //    {
-        //        lock (_events)
-        //        {
-        //            foreach (var e in events)
-        //            {
-        //                var checkpoint = _events.Count + 1;
+                return Task.CompletedTask;
+            }
+        }
 
-        //                _events.Add(new MemoryEvent
-        //                {
-        //                    Checkpoint = checkpoint,
-        //                    EventID = e.EventID,
-        //                    EventName = e.EventName,
-        //                    Headers = e.Headers,
-        //                    Payload = e.Payload,
-        //                    StreamID = e.StreamID,
-        //                    StreamSequence = e.StreamSequence
-        //                });
+        public Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IRawPersistedEvent> readCallback, CancellationToken ct)
+        {
+            streamId = streamId.ToLowerInvariant();
 
-        //                writtenCallback(e, checkpoint);
-        //            }
+            lock (_events)
+            {
+                var re = from e in _events
+                         where e.StreamID == streamId && e.StreamSequence >= initialSequence
+                         orderby e.StreamSequence
+                         select e;
 
-        //            return Task.CompletedTask;
-        //        }
-        //    }
+                foreach (var e in re.Take(maxEvents))
+                    readCallback(e);
 
-        //    public Task ClearProjectionIndex(string projectionId)
-        //    {
-        //        lock (_projections)
-        //        {
-        //            _projections[projectionId] = null;
-        //        }
+                return Task.CompletedTask;
+            }
+        }
 
-        //        return Task.CompletedTask;
-        //    }
+        #endregion
 
-        //    public Task WriteProjectionStreamIndex(IEnumerable<IProjectionStreamIndex> entries)
-        //    {
-        //        lock (_projections) {
-        //            foreach (var e in entries)
-        //            {
-        //                var index = GetOrCreateIndex(e.ProjectionID);
-        //                index.Add(e);
-        //            }
-        //        }
+        #region Helpers
 
-        //        return Task.CompletedTask;
-        //    }
+        class Sequencer
+        {
+            public Sequencer(Dictionary<string, int> data = null)
+            {
+                _counters = data ?? new Dictionary<string, int>();
+            }
 
-        //    public Task WriteSnapshot(string streamId, IRawAggregateSnapshot snapshot)
-        //    {
-        //        lock (_snapshots)
-        //        {
-        //            _snapshots[streamId] = snapshot;
-        //        }
+            Dictionary<string, int> _counters = new Dictionary<string, int>();
 
-        //        return Task.CompletedTask;
-        //    }
+            public int GetNext(string streamId)
+            {
+                if (!_counters.ContainsKey(streamId))
+                    _counters[streamId] = 0;
 
-        //    #endregion
+                return _counters[streamId]++;
+            }
+        }
 
-        //    #region Reader
+        class InternalEvent : IRawPersistedEvent
+        {
+            public long Checkpoint { get; set; }
+            public int StreamSequence { get; set; }
+            public string StreamID { get; set; }
 
-        //    public Task<long> GetHighestCheckpointAsync()
-        //    {
-        //        lock (_events)
-        //        {
-        //            return Task.FromResult((long)_events.Count);
-        //        }
-        //    }
+            public IRawEvent IRawEvent { get; set; }
 
-        //    public Task<int> GetHighestStreamSequenceAsync(string streamId)
-        //    {
-        //        lock (_events)
-        //        {
-        //            var re = from e in _events
-        //                     where String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase)
-        //                     select e.StreamSequence;
+            public Guid EventID => IRawEvent.EventID;
+            public string EventName => IRawEvent.EventName;
+            public byte[] Headers => IRawEvent.Headers;
+            public byte[] Payload => IRawEvent.Payload;
+            public DateTime UtcTimeStamp => IRawEvent.UtcTimeStamp;
+        }
 
-        //            return Task.FromResult(re.Max());
-        //        }
-        //    }
+        private int GetLastStreamSequence(string streamId)
+        {
+            streamId = streamId.ToLowerInvariant();
 
-        //    public Task<IRawAggregateSnapshot> ReadStreamSnapshotAsync(string streamId, CancellationToken ct)
-        //    {
-        //        lock (_snapshots)
-        //        {
-        //            IRawAggregateSnapshot snapshot = null;
-        //            _snapshots.TryGetValue(streamId, out snapshot);
-        //            return Task.FromResult(snapshot);
-        //        }
-        //    }
+            var re = from e in _events
+                     where e.StreamID == streamId
+                     select e.StreamSequence;
 
-        //    public Task ReadStreamAsync(string projectionStreamId, int initialSequence, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct)
-        //    {
-        //        List<MemoryEvent> events;
+            return re.Any() ? re.Max() : 0;
+        }
 
-        //        lock (_events)
-        //        {
-        //            var re = from e in _events
-        //                     where String.Equals(e.StreamID, projectionStreamId, StringComparison.OrdinalIgnoreCase)
-        //                     orderby e.StreamSequence
-        //                     select e;
-
-        //            events = re.Take(maxEvents).ToList();
-        //        }
-
-        //        foreach (var e in events)
-        //            readCallback(e);
-
-        //        return Task.CompletedTask;
-        //    }
-
-        //    public Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IRawStorageEvent> readCallback, CancellationToken ct)
-        //    {
-        //        List<MemoryEvent> all;
-
-        //        lock (_events)
-        //        {
-        //            all = _events
-        //                    .Where(e => e.Checkpoint >= initialCheckpoint)
-        //                    .Take(maxEvents)
-        //                    .ToList();
-        //        }
-
-        //        foreach (var e in all)
-        //            readCallback(e);
-
-        //        return Task.CompletedTask;
-        //    }
-
-        //    public Task<long> GetHighestProjectionCheckpoint(string projectionStreamId)
-        //    {
-        //        long checkpoint;
-
-        //        lock (_projectionCheckpoints) {
-
-        //            if (_projectionCheckpoints.TryGetValue(projectionStreamId, out checkpoint))
-        //                return Task.FromResult(checkpoint);
-        //        }
-
-        //        lock (_projections)
-        //        {
-        //            var p = GetOrCreateIndex(projectionStreamId);
-
-        //            if (p.Count == 0)
-        //                return Task.FromResult(0l);
-
-        //            return Task.FromResult(p.Max(e => e.Checkpoint));
-        //        }
-        //    }
-
-        //    public Task<int> GetHighestProjectionStreamSequenceAsync(string projectionStreamId)
-        //    {
-        //        lock (_projections)
-        //        {
-        //            var p = GetOrCreateIndex(projectionStreamId);
-
-        //            if (p.Count == 0)
-        //                return Task.FromResult(0);
-
-        //            return Task.FromResult(p.Max(e => e.ProjectionSequence));
-        //        }
-        //    }
-
-        //    public Task ReadProjectionEventStreamAsync(string projectionStreamId, int initialSequence, int maxEvents, Action<IRawStorageProjectionEvent> readCallback, CancellationToken ct)
-        //    {
-        //        List<IProjectionStreamIndex> projection;
-
-        //        lock (_projections)
-        //        {
-        //            projection = GetOrCreateIndex(projectionStreamId).ToList();
-        //        }
-
-        //        List<RawStorageProjectionEvent> events;
-
-        //        lock (_events)
-        //        {
-        //            var re = from e in _events
-        //                     join p in projection on e.Checkpoint equals p.Checkpoint
-        //                     select new RawStorageProjectionEvent(p.ProjectionID, p.ProjectionSequence, e);
-
-        //            events = re.Take(maxEvents).ToList();
-        //        }
-
-        //        foreach (var e in events)
-        //            readCallback(e);
-
-        //        return Task.CompletedTask;
-        //    }
-
-        //    #endregion
-
-        //    public class MemoryEvent : IRawStorageEvent
-        //    {
-        //        public long Checkpoint { get; set; }
-        //        public Guid EventID { get; set; }
-        //        public string EventName { get; set; }
-        //        public byte[] Headers { get; set; }
-        //        public byte[] Payload { get; set; }
-        //        public string StreamID { get; set; }
-        //        public int StreamSequence { get; set; }
-        //    }
-        //}
+        #endregion
     }
 }

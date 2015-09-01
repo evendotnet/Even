@@ -14,13 +14,28 @@ namespace Even.Sample.Projections
     {
         public ActiveProducts()
         {
-            OnEvent<ProductCreated>(Add);
-            OnEvent<ProductRenamed>(Rename);
-            OnEvent<ProductDeleted>(Delete);
+            OnEvent<ProductCreated>((pe, e) =>
+            {
+                _list.Add(new ProductInfo { ID = pe.StreamID, Name = e.Name });
+            });
+
+            OnEvent<ProductRenamed>((pe, e) =>
+            {
+                var pi = _list.FirstOrDefault(i => i.ID == pe.StreamID);
+
+                if (pi != null)
+                    pi.Name = e.NewName;
+            });
+
+            OnEvent<ProductDeleted>((pe, e) =>
+            {
+                _list.RemoveAll(i => i.ID == pe.StreamID);
+            });
         }
 
         protected override void OnReceiveEvent(IProjectionEvent e)
         {
+            Console.WriteLine(e.ProjectionSequence);
         }
 
         protected override void OnReady()
@@ -36,22 +51,19 @@ namespace Even.Sample.Projections
 
         #region Event Processors
 
-        private void Add(IEvent e, ProductCreated pe)
+        private void Add(IPersistedEvent pe, ProductCreated e)
         {
-            _list.Add(new ProductInfo { ID = e.StreamID, Name = pe.Name });
-        }
-
-        private void Rename(IEvent e, ProductRenamed pe)
-        {
-            var pi = _list.FirstOrDefault(i => i.ID == e.StreamID);
             
-            if (pi != null)
-                pi.Name = pe.NewName;
         }
 
-        private void Delete(IEvent e)
+        private void Rename(IPersistedEvent pe, ProductRenamed e)
         {
-            _list.RemoveAll(i => i.ID == e.StreamID);
+
+        }
+
+        private void Delete(IPersistedEvent pe, ProductDeleted e)
+        {
+           
         }
 
         #endregion

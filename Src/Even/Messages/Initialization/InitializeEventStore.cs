@@ -13,7 +13,7 @@ namespace Even.Messages.Initialization
         public IReadOnlyCollection<EventProcessorEntry> EventProcessors { get; set; }
     }
 
-    public class EventStoreState
+    public class EventStoreInitializationState
     {
         public bool Initialized { get; set; }
         public IActorRef CommandProcessors { get; set; }

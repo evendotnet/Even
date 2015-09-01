@@ -45,7 +45,7 @@ namespace Even
         public async Task SendCommandAsync<T>(string streamId, object command, TimeSpan? timeout)
             where T : Aggregate
         {
-            var request = new TypedAggregateCommandRequest
+            var request = new TypedCommandRequest
             {
                 CommandID = Guid.NewGuid(),
                 AggregateType = typeof(T),
@@ -56,28 +56,27 @@ namespace Even
             // the command gateway translates error messages into exceptions, so the user
             // don't have to deal with messaging to talk interoperate with the event store
 
-            AggregateCommandResponse response;
+            CommandResponse response;
 
             try
             {
-                response = await CommandProcessors.Ask(request, timeout) as AggregateCommandResponse;
+                response = await CommandProcessors.Ask(request, timeout) as CommandResponse;
             }
-            catch (TaskCanceledException ex)
+            catch (TaskCanceledException)
             {
                 throw new CommandTimeoutException();
             }
 
-            if (response is AggregateCommandSuccessful)
+            if (response is CommandSucceeded)
                 return;
 
-            if (response is AggregateCommandRefused)
+            if (response is CommandRefused)
                 throw new CommandRefusedException();
 
-            if (response is AggregateCommandFailed)
+            if (response is CommandFailed)
                 throw new CommandFailedException();
 
-            if (response == null)
-                throw new Exception("Should not get here...");
+            throw new Exception("Should not get here...");
         }
     }
 

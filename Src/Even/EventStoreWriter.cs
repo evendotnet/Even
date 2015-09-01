@@ -10,6 +10,14 @@ namespace Even
 {
     public class EventStoreWriter : ReceiveActor
     {
+        IStreamStoreWriter _writer;
+        ICryptoService _cryptoService;
+        IDataSerializer _serializer;
+
+        IActorRef _eventWriter;
+        IActorRef _snapshotWriter;
+        IActorRef _projectionIndexWriter;
+
         public EventStoreWriter()
         {
             Receive<InitializeEventStoreWriter>(ini =>
@@ -18,142 +26,215 @@ namespace Even
                 _serializer = ini.Serializer;
                 _cryptoService = ini.CryptoService;
 
-                Become(ReceivingRequests);
-            });
-        }
+                var ewProps = PropsFactory.Create<EventWriter>(_writer, (Serializer) Serialize);
+                _eventWriter = Context.ActorOf(ewProps, "eventwriter");
 
-        bool _writeRequested;
-        IStreamStoreWriter _writer;
-        ICryptoService _cryptoService;
-        IDataSerializer _serializer;
-        Queue<BufferEntry> _buffer = new Queue<BufferEntry>();
-        ILoggingAdapter Log = Context.GetLogger();
+                // initialize snapshot writer
+                var sWriter = _writer as IAggregateSnapshotStoreWriter;
 
-        public void ReceivingRequests()
-        {
-            Receive<PersistenceRequest>(req =>
-            {
-                Log.Debug("PersistenceRequest {0} Received", req.EventID);
-
-                // enqueues all writes into a buffer and immediatelly requests writing
-                // this allows to handle many writes in batches
-                // while still processing quickly single requests
-
-                _buffer.Enqueue(new BufferEntry { Sender = Sender, Request = req });
-
-                if (!_writeRequested)
+                if (sWriter != null)
                 {
-                    Self.Tell(new WriteBufferCommand());
-                    _writeRequested = true;
+                    var swProps = PropsFactory.Create<AggregateSnapshotWriter>(sWriter, (Serializer) Serialize);
+                    _snapshotWriter = Context.ActorOf(swProps, "snapshotwriter");
                 }
-            });
 
-            Receive<WriteBufferCommand>(o =>
+                // initialize projection index writer
+                var pWriter = _writer as IProjectionStoreWriter;
+
+                if (pWriter != null)
+                {
+                    var pwProps = PropsFactory.Create<ProjectionIndexWriter>(pWriter);
+                    _projectionIndexWriter = Context.ActorOf(pwProps, "projectionwriter");
+                }
+
+                Become(Ready);
+            });
+        }
+
+        public void Ready()
+        {
+            Receive<EventPersistenceRequest>(request =>
             {
-                // the writer handles only one batch at a time
-                if (_buffer.Count > 0)
-                    AkkaAsyncHelper.Await(WriteBuffer);
+                _eventWriter.Forward(request);
             });
-        }
 
-        public async Task WriteBuffer()
-        {
-            // reset the request flag
-            _writeRequested = false;
-
-            var sender = Sender;
-            var self = Self;
-            var eventStream = Context.System.EventStream;
-
-            // creates a dictionary mapping the events to raw events
-            var rawEvents = _buffer.ToDictionary(e => e.Request.EventID, e => new { Sender = e.Sender, RawEvent = CreateRawEvents(e.Request) });
-
-            _buffer.Clear();
-
-            // creates the actual events to be stored
-            var storageEvents = rawEvents.Values.Select(o => CreateRawStorageEvent(o.RawEvent));
-
-            await _writer.WriteEventsAsync(storageEvents, (e, checkpoint) =>
+            Receive<StrictEventPersistenceRequest>(request =>
             {
-                Log.Debug("Event {0} Persisted", e.EventID);
+                _eventWriter.Forward(request);
+            });
 
-                var obj = rawEvents[e.EventID];
+            // snapshots and indexes don't have persistence responses
+            // if the store doesn't support, we just ignore it
 
-                // notify the aggregate
-                obj.Sender.Tell(new PersistenceSuccessful { EventID = e.EventID }, self);
+            Receive<AggregateSnapshotPersistenceRequest>(request =>
+            {
+                if (_snapshotWriter != null)
+                    _snapshotWriter.Forward(request);
+            });
 
-                // grab the event from the dictionary and publish the original event (before serialization)
-                var rawEvent = new RawStreamEvent(checkpoint, obj.RawEvent);
-
-                // publish the event
-                eventStream.Publish(rawEvent);
+            Receive<ProjectionIndexPersistenceRequest>(request =>
+            {
+                if (_projectionIndexWriter != null)
+                    _projectionIndexWriter.Forward(request);
             });
         }
 
-        private RawEvent CreateRawEvents(PersistenceRequest request)
+        public byte[] Serialize(object o, bool encrypt)
         {
-            var domainEvent = request.DomainEvent;
-            var eventType = domainEvent.GetType();
-            var eventName = GetEventName(eventType);
-            var headers = GetHeaders(eventType);
+            var bytes = _serializer.Serialize(o);
 
-            return new RawEvent(request.EventID, request.StreamID, request.StreamSequence, eventName, headers, domainEvent);
+            if (encrypt && _cryptoService != null)
+                bytes = _cryptoService.Encrypt(bytes);
+
+            return bytes;
         }
 
-        private IRawStorageEvent CreateRawStorageEvent(IRawEvent rawEvent)
+        delegate byte[] Serializer(object input, bool encrypt);
+
+        class EventWriter : ReceiveActor
         {
-            var headerBytes = _serializer.Serialize(rawEvent.Headers);
-            var payloadBytes = _serializer.Serialize(rawEvent.DomainEvent);
+            IStreamStoreWriter _writer;
+            Serializer _serializer;
 
-            if (_cryptoService != null)
-                payloadBytes = _cryptoService.Encrypt(payloadBytes);
+            public EventWriter(IStreamStoreWriter writer, Serializer serializer)
+            {
+                _writer = writer;
+                _serializer = serializer;
 
-            return new InternalRawStorageEvent(rawEvent, headerBytes, payloadBytes);
-        }
+                Receive<EventPersistenceRequest>(async r =>
+                {
+                    try
+                    {
+                        await WriteEvents(r);
+                        Sender.Tell(new PersistenceSuccessful { PersistenceID = r.PersistenceID });
+                    }
+                    catch (UnexpectedSequenceException)
+                    {
+                        Sender.Tell(new UnexpectedSequenceFailure { PersistenceID = r.PersistenceID });
+                    }
+                    catch (Exception ex)
+                    {
+                        Sender.Tell(new PersistenceUnknownError { Exception = ex, PersistenceID = r.PersistenceID });
+                    }
+                });
 
-        private static string GetEventName(Type type)
-        {
-            var attr = Attribute.GetCustomAttribute(type, typeof(StreamEventAttribute)) as StreamEventAttribute;
-            return attr?.Name ?? type.Name;
-        }
+                Receive<StrictEventPersistenceRequest>(async r =>
+                {
+                    try
+                    {
+                        await WriteEventsStrict(r);
+                        Sender.Tell(new PersistenceSuccessful { PersistenceID = r.PersistenceID });
+                    }
+                    catch (UnexpectedSequenceException)
+                    {
+                        Sender.Tell(new UnexpectedSequenceFailure { PersistenceID = r.PersistenceID });
+                    }
+                    catch (Exception ex)
+                    {
+                        Sender.Tell(new PersistenceUnknownError { Exception = ex, PersistenceID = r.PersistenceID });
+                    }
+                });
+            }
 
-        private static Dictionary<string, object> GetHeaders(Type type)
-        {
-            var fullName = type.FullName + "," + type.Assembly.GetName().Name;
+            async Task WriteEvents(EventPersistenceRequest request)
+            {
+                var events = request.Events;
 
-            var headers = new Dictionary<string, object>(1)
+                // serialize the events into raw events
+                var rawEvents = events.Select(e => 
+                {
+                    var type = e.DomainEvent.GetType();
+
+                    var eventName = ESEventAttribute.GetEventName(type);
+                    var headers = GetHeaders(type);
+                    var headersBytes = _serializer(headers, false);
+                    var payloadBytes = _serializer(e.DomainEvent, true);
+
+                    return EventFactory.CreateRawStreamEvent(e, eventName, headersBytes, payloadBytes);
+                });
+
+                var result = await _writer.WriteEventsAsync(rawEvents);
+
+                // publishes the events in the order they were sent
+                foreach (var e in events)
+                {
+                    var seq = result.Sequences.Single(s => s.EventID == e.EventID);
+
+                    var persistedEvent = EventFactory.CreatePersistedEvent(e, seq.Checkpoint, seq.StreamSequence);
+
+                    // notify the sender
+                    Sender.Tell(persistedEvent);
+
+                    // publish to the event stream
+                    Context.System.EventStream.Publish(persistedEvent);
+                }
+            }
+
+            async Task WriteEventsStrict(StrictEventPersistenceRequest request)
+            {
+                var events = request.Events;
+
+                // serialize the events into raw events
+                var rawEvents = events.Select(e =>
+                {
+                    var type = e.DomainEvent.GetType();
+
+                    var eventName = ESEventAttribute.GetEventName(type);
+                    var headers = GetHeaders(type);
+                    var headersBytes = _serializer(headers, false);
+                    var payloadBytes = _serializer(e.DomainEvent, true);
+
+                    return EventFactory.CreateRawStreamEvent(e, request.StreamID, eventName, headersBytes, payloadBytes);
+                }).ToList();
+
+                var result = await _writer.WriteEventsStrictAsync(request.StreamID, request.ExpectedStreamSequence, rawEvents);
+
+                // publishes the events in the order they were sent
+                foreach (var e in events)
+                {
+                    var seq = result.Sequences.Single(s => s.EventID == e.EventID);
+
+                    var persistedEvent = EventFactory.CreatePersistedEvent(e, request.StreamID, seq.Checkpoint, seq.StreamSequence);
+
+                    // notify the sender
+                    Sender.Tell(persistedEvent);
+
+                    // publish to the event stream
+                    Context.System.EventStream.Publish(persistedEvent);
+                }
+            }
+
+            private static Dictionary<string, object> GetHeaders(Type type)
+            {
+                var fullName = type.FullName + "," + type.Assembly.GetName().Name;
+
+                var headers = new Dictionary<string, object>(1)
                 {
                     { "CLRType", fullName }
                 };
 
-            return headers;
-        }
-
-        class InternalRawStorageEvent : IRawStorageEvent
-        {
-            public InternalRawStorageEvent(IRawEvent rawEvent, byte[] headers, byte[] payload)
-            {
-                RawEvent = rawEvent;
-                Headers = headers;
-                Payload = payload;
+                return headers;
             }
-
-            public long Checkpoint { get; }
-            public IRawEvent RawEvent { get; }
-            public Guid EventID => RawEvent.EventID;
-            public string StreamID => RawEvent.StreamID;
-            public int StreamSequence => RawEvent.StreamSequence;
-            public string EventName => RawEvent.EventName;
-            public byte[] Headers { get; }
-            public byte[] Payload { get; }
         }
 
-        class WriteBufferCommand { }
-
-        class BufferEntry
+        class AggregateSnapshotWriter  : ReceiveActor
         {
-            public IActorRef Sender;
-            public PersistenceRequest Request;
+            IAggregateSnapshotStoreWriter _writer;
+
+            public AggregateSnapshotWriter(IAggregateSnapshotStoreWriter writer)
+            {
+                
+            }
+        }
+
+        class ProjectionIndexWriter : ReceiveActor
+        {
+            IProjectionStoreWriter _writer;
+
+            public ProjectionIndexWriter(IProjectionStoreWriter writer)
+            {
+                _writer = writer;
+            }
         }
     }
 }

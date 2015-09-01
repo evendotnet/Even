@@ -37,8 +37,8 @@ namespace Even
                     pRef = Context.ActorOf<ProjectionStream>();
                     pRef.Tell(new InitializeProjectionStream {
                         Query = ps.Query,
-                        EventReader = _reader,
-                        IndexWriter = _indexWriter
+                        Reader = _reader,
+                        Writer = _indexWriter
                     });
                 }
 

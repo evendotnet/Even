@@ -13,9 +13,9 @@ namespace Even
     /// </summary>
     public class ProjectionQuery
     {
-        public ProjectionQuery(IReadOnlyCollection<IStreamPredicate> predicates)
+        public ProjectionQuery(IReadOnlyCollection<IProjectionStreamPredicate> predicates)
         {
-            this.Predicates = predicates ?? new IStreamPredicate[0];
+            this.Predicates = predicates ?? new IProjectionStreamPredicate[0];
         }
 
         private string _id;
@@ -24,7 +24,7 @@ namespace Even
         /// A deterministic ID that will always be the same for the same query.
         /// </summary>
         public string StreamID => _id ?? (_id = GenerateDeterministicID());
-        public IReadOnlyCollection<IStreamPredicate> Predicates { get; }
+        public IReadOnlyCollection<IProjectionStreamPredicate> Predicates { get; }
 
         protected string GenerateDeterministicID()
         {

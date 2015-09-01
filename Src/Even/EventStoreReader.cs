@@ -36,14 +36,6 @@ namespace Even
                 actor.Forward(request);
             });
 
-            //Receive<EventReplayRequest>(request =>
-            //{
-            //    _log.Debug("Received ReplayQueryRequest");
-            //    var props = PropsFactory.Create<EventReplayWorker>(_storeReader, _serializer, _cryptoService);
-            //    var actor = Context.ActorOf(props);
-            //    actor.Forward(request);
-            //});
-
             Receive<ProjectionStreamReplayRequest>(request =>
             {
                 _log.Debug("Received ReplayProjectionStreamRequest");
@@ -86,7 +78,7 @@ namespace Even
 
             protected void ReplayStarted()
             {
-                Receive<ReplayCancelRequest>(request =>
+                Receive<CancelReplayRequest>(request =>
                 {
                     _cts.Cancel();
                     Sender.Tell(new ReplayCancelled { ReplayID = ReplayID });
@@ -103,11 +95,11 @@ namespace Even
                 });
             }
 
-            protected IEvent DeserializeEvent(IRawStorageEvent rawEvent)
+            protected IPersistedEvent DeserializeEvent(IRawPersistedEvent e)
             {
-                var headers = Serializer.Deserialize(rawEvent.Headers);
+                var headers = Serializer.Deserialize(e.Headers);
 
-                var payloadBytes = rawEvent.Payload;
+                var payloadBytes = e.Payload;
 
                 if (CryptoService != null)
                     payloadBytes = CryptoService.Decrypt(payloadBytes);
@@ -116,7 +108,7 @@ namespace Even
                 var type = Type.GetType(typeName);
                 var domainEvent = Serializer.Deserialize(type, payloadBytes);
 
-                return new StoredEvent(rawEvent.Checkpoint, rawEvent.EventID, rawEvent.StreamID, rawEvent.StreamSequence, rawEvent.EventName, headers, domainEvent);
+                return EventFactory.CreatePersistedEvent(e, domainEvent);
             }
 
             protected IAggregateSnapshot DeserializeSnapshot(IRawAggregateSnapshot rawSnapshot)
@@ -161,6 +153,7 @@ namespace Even
                             return;
 
                         var initialSequence = request.InitialSequence;
+                        var snapshotSent = false;
 
                         // only read the snapshot if requested and reading from start
                         if (request.UseSnapshot && initialSequence <= 1)
@@ -170,7 +163,7 @@ namespace Even
 
                             if (snapshotStore != null)
                             {
-                                var rawSnapshot = await snapshotStore.ReadStreamSnapshotAsync(request.StreamID);
+                                var rawSnapshot = await snapshotStore.ReadAggregateSnapshotAsync(request.StreamID);
 
                                 if (rawSnapshot != null)
                                 {
@@ -194,25 +187,31 @@ namespace Even
                                         initialSequence = snapshot.StreamSequence + 1;
 
                                         // send to the aggregate
-                                        Sender.Tell(new AggregateSnapshotOffer
+                                        sender.Tell(new AggregateSnapshotOffer
                                         {
                                             ReplayID = request.ReplayID,
                                             Snapshot = snapshot
-                                        });
+                                        }, self);
+
+                                        snapshotSent = true;
                                     }
                                 }
                             }
                         }
 
-                        var isAborted = false;
+                        if (!snapshotSent)
+                            sender.Tell(new NoAggregateSnapshotOffer { ReplayID = ReplayID }, self);
 
                         // continue reading from events
+
+                        var isAborted = false;
+                        
                         await reader.ReadStreamAsync(request.StreamID, initialSequence, Int32.MaxValue, e =>
                         {
                             if (IsReplayCancelled || isAborted)
                                 return;
 
-                            IEvent @event;
+                            IPersistedEvent @event;
 
                             try
                             {
@@ -229,7 +228,7 @@ namespace Even
                             {
                                 ReplayID = request.ReplayID,
                                 Event = @event
-                            });
+                            }, self);
 
                         }, ReplayCancelToken);
 
@@ -322,7 +321,7 @@ namespace Even
                             return;
 
                         var sequence = request.InitialSequence;
-                        var checkpoint = 1L;
+                        var checkpoint = 0L;
 
                         // check if the store supports projection indexes
                         var projectionStore = reader as IProjectionStore;
@@ -342,7 +341,7 @@ namespace Even
                                     checkpoint = e.Checkpoint;
                                     sequence = e.ProjectionSequence;
 
-                                    IEvent @event;
+                                    IPersistedEvent @event;
 
                                     try
                                     {
@@ -358,7 +357,7 @@ namespace Even
                                     var replayEvent = new ProjectionReplayEvent
                                     {
                                         ReplayID = request.ReplayID,
-                                        Event = new ProjectionEvent(e.ProjectionID, e.ProjectionSequence, @event)
+                                        Event = EventFactory.CreateProjectionEvent(e.ProjectionStreamID, e.ProjectionSequence, @event)
                                     };
 
                                     sender.Tell(replayEvent, self);

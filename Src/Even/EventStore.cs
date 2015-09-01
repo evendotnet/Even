@@ -37,7 +37,7 @@ namespace Even
                 InitializeChildren();
                 InitializeEventProcessors(ini.EventProcessors);
 
-                Sender.Tell(new EventStoreState
+                Sender.Tell(new EventStoreInitializationState
                 {
                     Initialized = true,
                     CommandProcessors = _commandProcessors,

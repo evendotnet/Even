@@ -21,7 +21,6 @@ namespace Even.Messages
     {
         public string StreamID { get; set; }
         public object Command { get; set; }
-        public int Retries { get; set; }
     }
 
     public class CommandResponse : CommandMessage
@@ -35,13 +34,13 @@ namespace Even.Messages
     /// <summary>
     /// Indicates the command was applied successfully.
     /// </summary>
-    public class CommandSucceeded : CommandResponse
+    public class AggregateCommandSuccessful : CommandResponse
     { }
 
     /// <summary>
     /// Indicates the command failed for some reason.
     /// </summary>
-    public class CommandFailed : CommandResponse
+    public class AggregateCommandFailed : CommandResponse
     {
         public Exception Exception { get; set; }
     }
@@ -49,10 +48,10 @@ namespace Even.Messages
     /// <summary>
     /// Indicates the command timed out.
     /// </summary>
-    public class CommandTimedout : CommandResponse
+    public class AggregateCommandTimedout : CommandResponse
     { }
 
-    public class CommandRefused : CommandResponse
+    public class AggregateCommandRefused : CommandResponse
     {
         public CommandRequest CommandRequest { get; set; }
         public string Reason { get; set; }

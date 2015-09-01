@@ -11,6 +11,10 @@ namespace Even
 {
     public class CommandProcessorSupervisor : ReceiveActor
     {
+        private IActorRef _reader;
+        private IActorRef _writer;
+        private Dictionary<string, IActorRef> _activeProcessors = new Dictionary<string, IActorRef>();
+
         public CommandProcessorSupervisor()
         {
             Receive<InitializeCommandProcessorSupervisor>(ini => {
@@ -20,34 +24,68 @@ namespace Even
             });
         }
 
-        private IActorRef _reader;
-        private IActorRef _writer;
-        private Dictionary<string, IActorRef> _aggregates = new Dictionary<string, IActorRef>();
+        protected override SupervisorStrategy SupervisorStrategy()
+        {
+            // default behavior to handle exceptions in aggregates and processors is to always restart
+            return new OneForOneStrategy(ex => Directive.Restart);
+        }
 
         private void ReceivingCommands()
         {
-            Receive<TypedAggregateCommandRequest>(req =>
+            Receive<TypedCommandRequest>(async request =>
             {
-                var aRef = Context.Child(req.StreamID);
+                IActorRef aRef;
 
-                // if the aggregate doesn't exist, start it
-                if (aRef == null || aRef == ActorRefs.Nobody)
+                // if the processor doesn't exist, create it
+                if (!_activeProcessors.TryGetValue(request.StreamID, out aRef))
                 {
-                    var props = PropsFactory.Create(req.AggregateType);
-                    aRef = Context.ActorOf(props, req.StreamID);
-                    aRef.Tell(new InitializeAggregate
+                    var props = PropsFactory.Create(request.AggregateType);
+                    aRef = Context.ActorOf(props);
+
+                    var state = await aRef.Ask(new InitializeAggregate
                     {
-                        StreamID = req.StreamID,
+                        StreamID = request.StreamID,
                         Reader = _reader,
                         Writer = _writer,
+                    }) as AggregateInitializationState;
 
-                        Command = req,
-                        CommandSender = Sender
-                    });
+                    // if the initialization failed, tell the sender
+                    if (state == null || !state.Initialized)
+                    {
+                        Sender.Tell(new CommandRefused
+                        {
+                            CommandID = request.CommandID,
+                            Reason = "Processor Initializing Error: " + state?.InitializationFailureReason ?? "Unknown"
+                        });
+
+                        Context.Stop(aRef);
+
+                        return;
+                    }
+
+                    // if we get here, the processor initialized fine
+                    _activeProcessors.Add(request.StreamID, aRef);
+                    Context.Watch(aRef);
                 }
 
-                aRef.Forward(req);
+                aRef.Forward(request);
             });
+
+            // remove children that are going to stop or terminated
+            Receive<WillStop>(_ => RemoveActiveProcessor(Sender));
+            Receive<Terminated>(t => RemoveActiveProcessor(t.ActorRef));
+        }
+
+        void RemoveActiveProcessor(IActorRef aref)
+        {
+            foreach (var kvp in _activeProcessors)
+            {
+                if (aref.Equals(kvp.Value))
+                {
+                    _activeProcessors.Remove(kvp.Key);
+                    return;
+                }
+            }
         }
     }
 }
