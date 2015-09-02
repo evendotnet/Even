@@ -32,6 +32,7 @@ namespace Even.MySql
 
             using (var cn = DB.CreateConnection())
             {
+                cn.Open();
                 await DB.ExecuteNonQueryAsync("start transaction", cn);
 
                 var checkpoint = await DB.ExecuteScalarAsync<long>("SELECT MAX(Checkpoint) FROM `events`", cn);
@@ -47,7 +48,7 @@ namespace Even.MySql
                     DB.ExecuteNonQuery("commit", cn);
                     return result;
                 }
-                catch (MySqlException)
+                catch (MySqlException ex)
                 {
                     DB.ExecuteNonQuery("rollback", cn);
                     throw;
@@ -61,6 +62,7 @@ namespace Even.MySql
 
             using (var cn = DB.CreateConnection())
             {
+                cn.Open();
                 await DB.ExecuteNonQueryAsync("start transaction", cn);
 
                 var currentSequence = await DB.ExecuteScalarAsync<int>(streamsQuery);
@@ -83,7 +85,7 @@ namespace Even.MySql
                     DB.ExecuteNonQuery("commit", cn);
                     return result;
                 }
-                catch (MySqlException)
+                catch (MySqlException ex)
                 {
                     DB.ExecuteNonQuery("rollback", cn);
                     throw;
@@ -227,7 +229,7 @@ namespace Even.MySql
 
             sb.Append("INSERT INTO events (EventID, StreamID, StreamSequence, EventName, UtcTimeStamp, Headers, Payload) VALUES ");
 
-            var valueFormat = "(UNHEX('{0}'), '{1}', {2}, '{3}', '{4}', UNHEX('{5}'), UNHEX('{6}'), ";
+            var valueFormat = "(UNHEX('{0}'), '{1}', {2}, '{3}', '{4}', UNHEX('{5}'), UNHEX('{6}')), ";
 
             foreach (var e in events)
             {
