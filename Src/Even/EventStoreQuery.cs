@@ -39,10 +39,5 @@ namespace Even
 
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
         }
-
-        public QueryHint CreateHint()
-        {
-            return null;
-        }
     }
 }

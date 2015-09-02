@@ -87,7 +87,6 @@
     <Compile Include="EventProcessorSupervisor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PropsFactory.cs" />
-    <Compile Include="QueryHint.cs" />
     <Compile Include="EventStoreSetup.cs" />
     <Compile Include="ESEventAttribute.cs" />
   </ItemGroup>
