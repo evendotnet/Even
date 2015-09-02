@@ -18,7 +18,7 @@ namespace Even
         IActorRef _supervisor;
         IActorRef _reader;
         IActorRef _writer;
-        Dictionary<Type, Func<IPersistedEvent, Task>> _eventProcessors = new Dictionary<Type, Func<IPersistedEvent, Task>>();
+        MessageHandler<IPersistedEvent> _eventProcessors = new MessageHandler<IPersistedEvent>();
         LinkedList<IEvent> _unpersistedEvents = new LinkedList<IEvent>();
         StrictEventPersistenceRequest _persistenceRequest;
 
@@ -325,46 +325,78 @@ namespace Even
 
         #region Event Processor Registration
 
+        // on event
+
+        protected void OnEvent<T>(Func<T, Task> processor)
+        {
+            _eventProcessors.AddHandler<T>(e => processor((T) e.DomainEvent));
+        }
+
+        protected void OnEvent<T>(Func<T, IPersistedEvent, Task> processor)
+        {
+            _eventProcessors.AddHandler<T>(e => processor((T)e.DomainEvent, e));
+        }
+
+        protected void OnEvent<T>(Action<T> processor)
+        {
+            _eventProcessors.AddHandler<T>(e => processor((T) e.DomainEvent));
+        }
+
+        protected void OnEvent<T>(Action<T, IPersistedEvent> processor)
+        {
+            _eventProcessors.AddHandler<T>(e => processor((T)e.DomainEvent, e));
+        }
+
+        // on persisted
+
         protected void OnPersisted<T>(Func<T, Task> processor)
         {
-            _eventProcessors.Add(typeof(T), e => processor((T) e.DomainEvent));
+            OnEvent<T>( e => {
+                if (!IsReplaying)
+                    return processor(e);
+
+                return Task.CompletedTask;
+            });
         }
 
         protected void OnPersisted<T>(Func<T, IPersistedEvent, Task> processor)
         {
-            _eventProcessors.Add(typeof(T), e => processor((T)e.DomainEvent, e));
+            OnEvent<T>((e, pe) =>
+            {
+                if (!IsReplaying)
+                    return processor(e, pe);
+
+                return Task.CompletedTask;
+            });
         }
 
         protected void OnPersisted<T>(Action<T> processor)
         {
-            _eventProcessors.Add(typeof(T), e =>
+            OnEvent<T>(e =>
             {
-                processor((T) e.DomainEvent);
-                return Task.CompletedTask;
+                if (!IsReplaying)
+                    processor(e);
             });
         }
 
         protected void OnPersisted<T>(Action<T, IPersistedEvent> processor)
         {
-            _eventProcessors.Add(typeof(T), e =>
+            OnEvent<T>((e, pe) =>
             {
-                processor((T)e.DomainEvent, e);
-                return Task.CompletedTask;
+                if (!IsReplaying)
+                    processor(e, pe);
             });
         }
 
         #endregion
+
         private async Task ApplyEventInternal(IPersistedEvent e)
         {
             StreamSequence++;
             var eventType = e.DomainEvent.GetType();
 
-            Func<IPersistedEvent, Task> processor;
-
-            if (_eventProcessors.TryGetValue(eventType, out processor))
-                await processor(e);
-
             await OnReceiveEvent(e);
+            await _eventProcessors.Handle(e);
         }
 
         protected virtual Task OnReceiveEvent(IPersistedEvent e)
@@ -381,9 +413,8 @@ namespace Even
     }
 
     public abstract class Aggregate<TState> : Aggregate
-        where TState : new()
     {
-        protected TState State { get; set; } = new TState();
+        protected TState State { get; set; }
 
         protected override bool AcceptSnapshot(object snapshot)
         {

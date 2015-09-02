@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AggregateSnapshot.cs" />
+    <Compile Include="MessageHandler.cs" />
     <Compile Include="CommandProcessor.cs" />
     <Compile Include="CommandProcessorBase.cs" />
     <Compile Include="ESCategory.cs" />
