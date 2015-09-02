@@ -200,17 +200,17 @@ namespace Even
 
         #region Event Processor Registration
 
-        protected void OnEvent<T>(Func<IPersistedEvent, Task> processor)
+        protected void OnEvent<T>(Func<IProjectionEvent, Task> processor)
         {
             _eventProcessors.Add(typeof(T), e => processor(e));
         }
 
-        protected void OnEvent<T>(Func<IPersistedEvent, T, Task> processor)
+        protected void OnEvent<T>(Func<IProjectionEvent, T, Task> processor)
         {
             _eventProcessors.Add(typeof(T), e => processor(e, (T)e.DomainEvent));
         }
 
-        protected void OnEvent<T>(Action<IPersistedEvent> processor)
+        protected void OnEvent<T>(Action<IProjectionEvent> processor)
         {
             _eventProcessors.Add(typeof(T), e =>
             {
@@ -219,7 +219,7 @@ namespace Even
             });
         }
 
-        protected void OnEvent<T>(Action<IPersistedEvent, T> processor)
+        protected void OnEvent<T>(Action<IProjectionEvent, T> processor)
         {
             _eventProcessors.Add(typeof(T), e =>
             {

@@ -321,7 +321,8 @@ namespace Even
                             return;
 
                         var sequence = 0;
-                        var checkpoint = 0L;
+                        var indexedCheckpoint = 0L;
+                        var highestCheckpoint = 0L;
 
                         // check if the store supports projection indexes
                         var projectionStore = reader as IProjectionStore;
@@ -338,7 +339,7 @@ namespace Even
                                     if (IsReplayCancelled || isAborted)
                                         return;
 
-                                    checkpoint = e.Checkpoint;
+                                    indexedCheckpoint = e.Checkpoint;
                                     sequence = e.ProjectionSequence;
 
                                     IPersistedEvent @event;
@@ -370,14 +371,14 @@ namespace Even
                                 sequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.ProjectionID);
                             }
 
-                            var storedCheckpoint = await projectionStore.ReadHighestProjectionCheckpointAsync(request.ProjectionID);
-
-                            // ensure we're seeing the last checkpoint the projection stream saw
-                            checkpoint = Math.Max(storedCheckpoint, checkpoint);
+                            highestCheckpoint = await projectionStore.ReadHighestProjectionCheckpointAsync(request.ProjectionID);
                         }
 
                         if (IsReplayCancelled)
                             return;
+
+                        // ensure we're seeing the last checkpoint the projection stream saw
+                        var checkpoint = Math.Max(highestCheckpoint, indexedCheckpoint);
 
                         // sinals the end of the index and the start of the non-indexed event stream
                         sender.Tell(new ProjectionStreamIndexReplayCompleted
@@ -392,7 +393,7 @@ namespace Even
 
                         if (maxEvents > 0)
                         {
-                            await reader.ReadAsync(checkpoint, maxEvents,  e =>
+                            await reader.ReadAsync(checkpoint + 1, maxEvents,  e =>
                             {
                                 var streamEvent = DeserializeEvent(e);
 

@@ -12,3 +12,17 @@
 
 CREATE UNIQUE INDEX uix_events_Events ON `events` (EventID);
 CREATE UNIQUE INDEX uix_events_Streams ON `events` (StreamID, StreamSequence);
+
+create table projectionstreams (
+  ProjectionStreamID binary(20) not null,
+  ProjectionStreamSequence int not null,
+  Checkpoint bigint not null,
+  primary key (ProjectionStreamID, ProjectionStreamSequence, Checkpoint)
+)
+partition by key(ProjectionStreamID)
+partitions 5;
+
+create table projectionstream_state (
+  ProjectionStreamID binary(20) not null primary key,
+  LastCheckpoint bigint not null
+);

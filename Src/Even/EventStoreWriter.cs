@@ -230,11 +230,40 @@ namespace Even
         class ProjectionIndexWriter : ReceiveActor
         {
             IProjectionStoreWriter _writer;
+            LinkedList<ProjectionIndexPersistenceRequest> _buffer = new LinkedList<ProjectionIndexPersistenceRequest>();
+            bool _flushRequested;
+
+            TimeSpan _flushDelay = TimeSpan.FromSeconds(5);
 
             public ProjectionIndexWriter(IProjectionStoreWriter writer)
             {
                 _writer = writer;
+
+                Receive<ProjectionIndexPersistenceRequest>(request => AddToBuffer(request));
+                Receive<WriteBufferCommand>(_ => WriteBuffer());
             }
+
+            void AddToBuffer(ProjectionIndexPersistenceRequest request)
+            {
+                _buffer.AddLast(request);
+
+                if (_buffer.Count > 500)
+                    Self.Tell(new WriteBufferCommand());
+
+                else if (!_flushRequested)
+                {
+                    _flushRequested = true;
+                    Context.System.Scheduler.ScheduleTellOnce(_flushDelay, Self, new WriteBufferCommand(), Self);
+                }
+            }
+
+            async Task WriteBuffer()
+            {
+                _flushRequested = false;
+                await _writer.WriteProjectionIndexAsync(_buffer.ToList());
+            }
+
+            class WriteBufferCommand { }
         }
     }
 }

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Even.MySql
 {
-    public class MySqlStore : IStreamStore
+    public class MySqlStore : IStreamStore, IProjectionStore
     {
         public MySqlStore(string connectionString)
         {
@@ -28,7 +28,7 @@ namespace Even.MySql
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            var streamsQuery = $"SELECT StreamID, MAX(StreamSequence) FROM `events` WHERE StreamID IN ({InClause(uniqueStreams)}";
+            var streamsQuery = $"SELECT StreamID, MAX(StreamSequence) FROM `events` WHERE StreamID IN ({InClause(uniqueStreams)} GROUP BY StreamID";
 
             using (var cn = DB.CreateConnection())
             {
@@ -97,7 +97,7 @@ namespace Even.MySql
 
         #region Stream Reader
 
-        static readonly string BaseSelect = "select Checkpoint, EventID, StreamID, StreamSequence, EventName, UtcTimeStamp, Headers, Payload from `events`";
+        static readonly string BaseSelect = "SELECT Checkpoint, EventID, StreamID, StreamSequence, EventName, UtcTimeStamp, Headers, Payload FROM `events`";
 
         public async Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IRawPersistedEvent> readCallback, CancellationToken ct)
         {
@@ -143,6 +143,124 @@ namespace Even.MySql
         public Task<int> ReadHighestStreamSequenceAsync(string streamId)
         {
             return DB.ExecuteScalarAsync<int>($"SELECT MAX(StreamSequence) from `events` where StreamID = '{Escape(streamId)}'");
+        }
+
+        #endregion
+
+        #region Projection Writer
+
+        readonly string ProjectionStreamsQuery = "SELECT ProjectionStreamID, MAX(ProjectionStreamSequence) FROM projectionstreams WHERE ProjectionStreamID IN ({0}) GROUP BY ProjectionStreamID";
+
+        public async Task WriteProjectionIndexAsync(IReadOnlyCollection<IProjectionStreamIndex> entries)
+        {
+            var streams = entries
+                .Select(e => e.ProjectionStreamID)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var byGroup = from e in entries
+                          group e by e.ProjectionStreamID into g
+                          select new
+                          {
+                              ID = g.Key,
+                              Entries = g
+                          };
+
+            using (var cn = DB.CreateConnection())
+            {
+                cn.Open();
+                var trans = cn.BeginTransaction();
+
+                var query = String.Format(ProjectionStreamsQuery, InClause(streams));
+                var counters = await DB.ExecuteDictionaryAsync<string, int>(query);
+
+                var re = from g in byGroup
+                         let min = GetDictValue(g.ID, counters)
+                         let newSeq = g.Entries.Where(e => e.ProjectionSequence > min)
+                         select newSeq;
+
+                var re2 = re.SelectMany(e => e);
+
+                var insertSql = CreateInsertIndexSql(re2);
+                await DB.ExecuteNonQueryAsync(insertSql);
+                trans.Commit();
+            }
+        }
+
+        private static int GetDictValue(string key, Dictionary<string, int> dict)
+        {
+            if (dict.ContainsKey(key))
+                return dict[key];
+
+            else return 0;
+        }
+
+        private static string CreateInsertIndexSql(IEnumerable<IProjectionStreamIndex> entries)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("INSERT INTO projectionstreams VALUES ");
+
+            foreach (var e in entries)
+                sb.AppendFormat("(UNHEX('{0}'), {1}, {2}), ", e.ProjectionStreamID, e.ProjectionSequence, e.Checkpoint);
+
+            sb.Length -= 2;
+
+            var insertSql = sb.ToString();
+            return insertSql;
+        }
+
+        public async Task WriteProjectionCheckpointAsync(string projectionStreamId, long checkpoint)
+        {
+            var update = $"UPDATE projectionstream_state SET LastCheckpoint = {checkpoint} WHERE ProjectionStreamID = UNHEX('{projectionStreamId}')";
+
+            var affected = await DB.ExecuteNonQueryAsync(update);
+
+            if (affected == 0) {
+                var insert = $"INSERT INTO projectionstream_state (ProjectionStreamID, LastCheckpoint) values (UNHEX('{projectionStreamId}'), {checkpoint});";
+                await DB.ExecuteNonQueryAsync(insert);
+            }
+        }
+
+        public async Task<long> ReadHighestProjectionCheckpointAsync(string projectionStreamId)
+        {
+            var ta = DB.ExecuteScalarAsync<long>($"SELECT LastCheckpoint FROM projectionstream_state WHERE ProjectionStreamID = UNHEX('{projectionStreamId}')");
+            var tb = DB.ExecuteScalarAsync<long>($"SELECT MAX(Checkpoint) FROM projectionstreams WHERE ProjectionStreamID = UNHEX('{projectionStreamId}')");
+
+            var a = await ta;
+            var b = await tb;
+
+            return Math.Max(a, b);
+        }
+
+        public Task<int> ReadHighestProjectionStreamSequenceAsync(string projectionStreamId)
+        {
+            return DB.ExecuteScalarAsync<int>($"SELECT MAX(ProjectionStreamSequence) FROM projectionstreams WHERE ProjectionStreamID = UNHEX('{projectionStreamId}')");
+        }
+
+        readonly string ProjectionSelectQuery = @"SELECT a.Checkpoint, EventID, StreamID, StreamSequence, EventName, UtcTimeStamp, Headers, Payload, ProjectionStreamSequence
+FROM `events` a INNER JOIN projectionstreams b ON a.Checkpoint = b.Checkpoint
+WHERE ProjectionStreamID = UNHEX('{0}') AND ProjectionStreamSequence >= {1}
+ORDER BY ProjectionStreamSequence{2}";
+
+        public async Task ReadProjectionEventStreamAsync(string projectionStreamId, int initialSequence, int maxEvents, Action<IRawProjectionEvent> readCallback, CancellationToken ct)
+        {
+            var limit = maxEvents < Int32.MaxValue ? " LIMIT " + maxEvents : String.Empty;
+            
+            var query = String.Format(ProjectionSelectQuery, projectionStreamId, initialSequence, limit);
+
+            using (var reader = await DB.ExecuteReaderAsync(query))
+            {
+                while (await reader.ReadAsync())
+                {
+                    var e = ReadProjectionEvent(reader, projectionStreamId);
+
+                    readCallback(e);
+
+                    if (ct.IsCancellationRequested)
+                        return;
+                }
+            }
         }
 
         #endregion
@@ -195,6 +313,22 @@ namespace Even.MySql
                 reader.GetDateTime(5),
                 (byte[]) reader[6],
                 (byte[]) reader[7]
+            );
+        }
+
+        private static IRawProjectionEvent ReadProjectionEvent(DbDataReader reader, string projectionStreamId)
+        {
+            return EventFactory.CreateRawProjectionEvent(
+                reader.GetInt64(0),
+                reader.GetGuid(1),
+                reader.GetString(2),
+                reader.GetInt32(3),
+                reader.GetString(4),
+                reader.GetDateTime(5),
+                (byte[])reader[6],
+                (byte[])reader[7],
+                projectionStreamId,
+                reader.GetInt32(8)
             );
         }
 

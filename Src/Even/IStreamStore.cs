@@ -129,7 +129,7 @@ namespace Even
         /// </remarks>
         /// <param name="entries">The index entries to store.</param>
         /// <returns>A task that completes when all events are written to the store.</returns>
-        Task WriteProjectionIndexAsync(IEnumerable<IProjectionStreamIndex> entries);
+        Task WriteProjectionIndexAsync(IReadOnlyCollection<IProjectionStreamIndex> entries);
 
         /// <summary>
         /// Stores the maximum checkpoint the stream has seen.

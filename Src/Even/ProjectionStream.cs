@@ -27,9 +27,11 @@ namespace Even
 
         int _projectionStreamSequence;
         long _checkpoint;
+        bool _isReplaying = true;
+        int _lastIndexedSequence;
 
         // TODO: read this from settings
-        TimeSpan _replayTimeout = TimeSpan.FromSeconds(15);
+        TimeSpan _replayTimeout = TimeSpan.FromHours(15);
 
         public ILoggingAdapter Log = Context.GetLogger();
         public IStash Stash { get; set; }
@@ -79,7 +81,7 @@ namespace Even
             {
                 Log.Debug("{0}: Projection Index Replay Complete", _projectionStreamId);
 
-                _projectionStreamSequence = msg.LastSeenSequence;
+                _projectionStreamSequence = _lastIndexedSequence = msg.LastSeenSequence;
                 _checkpoint = msg.LastSeenCheckpoint;
 
                 Become(ReplayFromEvents);
@@ -108,6 +110,8 @@ namespace Even
             Receive<ReplayCompleted>(_ =>
             {
                 Log.Debug("{0}: Projection Event Replay Complete", _projectionStreamId);
+
+                _isReplaying = false;
 
                 // clear the replay id
                 _replayId = Guid.Empty;
@@ -219,7 +223,11 @@ namespace Even
 
                 // and the event matches que query, emit it
                 if (EventMatches(e))
+                {
+                    // increment the sequence
+                    _projectionStreamSequence++;
                     Emit(e);
+                }
 
                 // if we received events out of order before, unstash
                 Stash.UnstashAll();
@@ -243,22 +251,26 @@ namespace Even
 
         protected virtual void Emit(IPersistedEvent @event)
         {
-            _projectionStreamSequence++;
-
-            // tell the subscribers
-            var projectionEvent = EventFactory.CreateProjectionEvent(_projectionStreamId, _projectionStreamSequence, @event);
-
-            foreach (var s in _subscribers)
-                s.Tell(projectionEvent);
-
-            // index the event
-            _writer.Tell(new ProjectionIndexPersistenceRequest
+            if (!_isReplaying)
             {
-                PersistenceID = Guid.NewGuid(),
-                ProjectionStreamID = _projectionStreamId,
-                ProjectionSequence = _projectionStreamSequence,
-                Checkpoint = _checkpoint
-            });
+                // tell the subscribers
+                var projectionEvent = EventFactory.CreateProjectionEvent(_projectionStreamId, _projectionStreamSequence, @event);
+
+                foreach (var s in _subscribers)
+                    s.Tell(projectionEvent);
+            }
+
+            if (_projectionStreamSequence > _lastIndexedSequence)
+            {
+                // index the event
+                _writer.Tell(new ProjectionIndexPersistenceRequest
+                {
+                    PersistenceID = Guid.NewGuid(),
+                    ProjectionStreamID = _projectionStreamId,
+                    ProjectionSequence = _projectionStreamSequence,
+                    Checkpoint = _checkpoint
+                });
+            }
         }
 
         /// <summary>
@@ -277,7 +289,7 @@ namespace Even
             IActorRef _subscriber;
             int _projectionSequence;
             long _checkpoint;
-            TimeSpan _replayTimeout = TimeSpan.FromSeconds(15);
+            TimeSpan _replayTimeout = TimeSpan.FromHours(15);
 
             Guid _replayId;
             Guid _subscriberReplayId;

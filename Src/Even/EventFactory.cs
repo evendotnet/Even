@@ -248,6 +248,33 @@ namespace Even
 
         #endregion
 
+        #region IRawProjectionEvent
+
+        public static IRawProjectionEvent CreateRawProjectionEvent(long checkpoint, Guid eventId, string streamId, int streamSequence, string eventName, DateTime utcTimeStamp, byte[] headers, byte[] payload, string projectionStreamId, int projectionStreamSequence)
+        {
+            return new RawProjectionEvent
+            {
+                Checkpoint = checkpoint,
+                EventID = eventId,
+                StreamID = streamId,
+                StreamSequence = streamSequence,
+                EventName = eventName,
+                UtcTimeStamp = utcTimeStamp,
+                Headers = headers,
+                Payload = payload,
+                ProjectionStreamID = projectionStreamId,
+                ProjectionSequence = projectionStreamSequence
+            };
+        }
+
+        class RawProjectionEvent : FullRawPersistedEvent, IRawProjectionEvent
+        {
+            public int ProjectionSequence { get; set; }
+            public string ProjectionStreamID { get; set; }
+        }
+
+        #endregion
+
         #region IWrittenEventSequence
 
         public static IWrittenEventSequence CreateWrittenEventSequence(Guid eventId, long checkpoint, int streamSequence)
@@ -266,7 +293,7 @@ namespace Even
             public Guid EventID { get; set; }
             public int StreamSequence { get; set; }
         }
-
+        
         #endregion
     }
 }
