@@ -51,8 +51,6 @@ namespace Even
                     return;
                 }
 
-                _log.Debug("{0}: Command Accepted", request.CommandID);
-
                 // create the context process the command
 
                 CurrentCommand = new CommandContext { Request = request, Sender = Sender };
@@ -71,7 +69,7 @@ namespace Even
 
                         CurrentCommand = null;
 
-                        OnCommandFail();
+                        OnCommandFailed();
                         return;
                     }
 
@@ -82,9 +80,8 @@ namespace Even
 
                     if (!willWait)
                     {
-                        CurrentCommand = null;
-                        AcceptCommand();
                         OnCommandSucceeded();
+                        AcceptCommand();
                     }
                 });
             });
@@ -130,7 +127,7 @@ namespace Even
         protected void OnBeforeProcessCommand()
         { }
 
-        protected void OnCommandFail()
+        protected void OnCommandFailed()
         { }
 
         protected void OnCommandSucceeded()
@@ -146,18 +143,21 @@ namespace Even
         {
             _log.Debug("{0}: Command Accepted", CurrentCommand.Request.CommandID);
             CurrentCommand.Sender.Tell(new CommandSucceeded { CommandID = CurrentCommand.Request.CommandID });
+            CurrentCommand = null;
         }
 
         internal void FailCommand(Exception ex)
         {
             _log.Debug("{0}: Command Failed - {1}", CurrentCommand.Request.CommandID, ex.Message);
             CurrentCommand.Sender.Tell(new CommandFailed { CommandID = CurrentCommand.Request.CommandID, Exception = ex });
+            CurrentCommand = null;
         }
 
         internal void RefuseCommand(IActorRef sender, CommandRequest cmd, string message)
         {
             _log.Debug("{0}: Command Refused with {1}", cmd.CommandID, message);
             Sender.Tell(new CommandRefused { CommandID = cmd.CommandID, Reason = "Invalid Stream" });
+            CurrentCommand = null;
         }
 
         #region Command Handler Registration

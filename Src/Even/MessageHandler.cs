@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,13 @@ namespace Even
 {
     public class MessageHandler<TMessage>
     {
+        public MessageHandler(Func<TMessage, Type> typeMapper)
+        {
+            Contract.Requires(typeMapper != null);
+            _typeMapper = typeMapper;
+        }
+
+        Func<TMessage, Type> _typeMapper;
         class HandlerList : LinkedList<Func<TMessage, Task>> { }
 
         Dictionary<Type, HandlerList> _handlers = new Dictionary<Type, HandlerList>();
@@ -17,9 +25,14 @@ namespace Even
             if (message == null)
                 return;
 
+            var type = _typeMapper(message);
+
+            if (type == null)
+                return;
+
             HandlerList list;
 
-            if (_handlers.TryGetValue(message.GetType(), out list))
+            if (_handlers.TryGetValue(type, out list))
             {
                 foreach (var handler in list)
                     await handler(message);
@@ -47,5 +60,12 @@ namespace Even
                 return Task.CompletedTask;
             });
         }
+    }
+
+    public class PersistedEventHandler : MessageHandler<IPersistedEvent>
+    {
+        public PersistedEventHandler()
+            : base(e => e.DomainEvent?.GetType())
+        { }
     }
 }

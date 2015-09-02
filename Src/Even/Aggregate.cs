@@ -18,7 +18,7 @@ namespace Even
         IActorRef _supervisor;
         IActorRef _reader;
         IActorRef _writer;
-        MessageHandler<IPersistedEvent> _eventProcessors = new MessageHandler<IPersistedEvent>();
+        PersistedEventHandler _eventProcessors = new PersistedEventHandler();
         LinkedList<IEvent> _unpersistedEvents = new LinkedList<IEvent>();
         StrictEventPersistenceRequest _persistenceRequest;
 
@@ -245,6 +245,8 @@ namespace Even
 
             Receive<PersistenceSuccessful>(_ =>
             {
+                OnCommandSucceeded();
+                AcceptCommand();
                 Become(Ready);
                 
             }, msg => msg.PersistenceID == _persistenceRequest.PersistenceID);
@@ -345,47 +347,6 @@ namespace Even
         protected void OnEvent<T>(Action<T, IPersistedEvent> processor)
         {
             _eventProcessors.AddHandler<T>(e => processor((T)e.DomainEvent, e));
-        }
-
-        // on persisted
-
-        protected void OnPersisted<T>(Func<T, Task> processor)
-        {
-            OnEvent<T>( e => {
-                if (!IsReplaying)
-                    return processor(e);
-
-                return Task.CompletedTask;
-            });
-        }
-
-        protected void OnPersisted<T>(Func<T, IPersistedEvent, Task> processor)
-        {
-            OnEvent<T>((e, pe) =>
-            {
-                if (!IsReplaying)
-                    return processor(e, pe);
-
-                return Task.CompletedTask;
-            });
-        }
-
-        protected void OnPersisted<T>(Action<T> processor)
-        {
-            OnEvent<T>(e =>
-            {
-                if (!IsReplaying)
-                    processor(e);
-            });
-        }
-
-        protected void OnPersisted<T>(Action<T, IPersistedEvent> processor)
-        {
-            OnEvent<T>((e, pe) =>
-            {
-                if (!IsReplaying)
-                    processor(e, pe);
-            });
         }
 
         #endregion
