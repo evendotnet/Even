@@ -14,13 +14,6 @@ namespace Even.Messages
     public class PersistenceRequest : PersistenceMessage
     { }
 
-    //public class UnpersistedEvent
-    //{
-    //    public string StreamID { get; set; }
-    //    public Guid EventID { get; set; }
-    //    public object DomainEvent { get; set; }
-    //}
-
     /// <summary>
     /// Represents a persistence request with no requirements for stream order.
     /// The events should just be appended to the end of the stream.

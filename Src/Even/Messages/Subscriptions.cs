@@ -8,7 +8,7 @@ namespace Even.Messages
 {
     public class ProjectionSubscriptionRequest
     {
-        public ProjectionQuery Query { get; set; }
+        public ProjectionStreamQuery Query { get; set; }
         public int LastKnownSequence { get; set; }
         public Guid ReplayID { get; set; }
     }

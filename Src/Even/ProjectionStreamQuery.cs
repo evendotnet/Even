@@ -8,11 +8,11 @@ using System.Text;
 namespace Even
 {
     /// <summary>
-    /// Represents a query to the event store.
+    /// Represents a projection stream query.
     /// </summary>
-    public class ProjectionQuery
+    public class ProjectionStreamQuery
     {
-        public ProjectionQuery(IReadOnlyCollection<IProjectionStreamPredicate> predicates)
+        public ProjectionStreamQuery(IReadOnlyCollection<IProjectionStreamPredicate> predicates)
         {
             this.Predicates = predicates ?? new IProjectionStreamPredicate[0];
         }
@@ -22,10 +22,10 @@ namespace Even
         /// <summary>
         /// A deterministic ID that will always be the same for the same query.
         /// </summary>
-        public string StreamID => _id ?? (_id = GenerateDeterministicID());
+        public string ProjectionStreamID => _id ?? (_id = GenerateID());
         public IReadOnlyCollection<IProjectionStreamPredicate> Predicates { get; }
 
-        protected string GenerateDeterministicID()
+        private string GenerateID()
         {
             var items = Predicates
                 .Select(q => JsonConvert.SerializeObject(q.GetDeterministicHashSource()))
@@ -37,7 +37,12 @@ namespace Even
             var ha = new System.Security.Cryptography.SHA1CryptoServiceProvider();
             var hash = ha.ComputeHash(bytes, 0, bytes.Length);
 
-            return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            var sb = new StringBuilder(bytes.Length * 2);
+
+            foreach (var b in hash)
+                sb.Append(b.ToString("x2"));
+
+            return sb.ToString().ToLowerInvariant();
         }
     }
 }

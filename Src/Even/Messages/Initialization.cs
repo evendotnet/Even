@@ -63,7 +63,7 @@ namespace Even.Messages
 
     public class InitializeProjectionStream
     {
-        public ProjectionQuery Query { get; set; }
+        public ProjectionStreamQuery Query { get; set; }
         public IActorRef Reader { get; set; }
         public IActorRef Writer { get; set; }
     }

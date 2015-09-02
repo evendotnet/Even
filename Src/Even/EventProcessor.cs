@@ -37,7 +37,7 @@ namespace Even
                 _streams = ini.ProjectionStreamSupervisor;
 
                 var query = BuildQuery();
-                CurrentStreamID = query.StreamID;
+                CurrentStreamID = query.ProjectionStreamID;
 
                 if (query == null)
                 {
@@ -46,12 +46,12 @@ namespace Even
                     return;
                 }
 
-                _projectionId = query.StreamID;
+                _projectionId = query.ProjectionStreamID;
 
                 var knownState = await GetLastKnownState();
 
                 // if the projection is new or id is changed, the projection need to be rebuilt
-                if (knownState == null || !query.StreamID.Equals(knownState.StreamID, StringComparison.OrdinalIgnoreCase))
+                if (knownState == null || !query.ProjectionStreamID.Equals(knownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
                     await PrepareToRebuild();
 
                 _replayId = Guid.NewGuid();
@@ -60,7 +60,7 @@ namespace Even
                 {
                     ReplayID = _replayId,
                     Query = query,
-                    LastKnownSequence = knownState?.Sequence ?? 0
+                    LastKnownSequence = knownState?.ProjectionSequence ?? 0
                 });
 
                 Become(Replaying);
@@ -173,11 +173,11 @@ namespace Even
             return Task.FromResult<ProjectionState>(null);
         }
 
-        private ProjectionQuery BuildQuery()
+        private ProjectionStreamQuery BuildQuery()
         {
             var predicates = _eventProcessors.Keys.Select(t => new DomainEventPredicate(t)).ToList();
 
-            return new ProjectionQuery(predicates);
+            return new ProjectionStreamQuery(predicates);
         }
 
         /// <summary>

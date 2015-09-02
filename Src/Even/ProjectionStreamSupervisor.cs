@@ -28,7 +28,7 @@ namespace Even
         {
             Receive<ProjectionSubscriptionRequest>(ps =>
             {
-                var key = "projection-" + ps.Query.StreamID;
+                var key = "projection-" + ps.Query.ProjectionStreamID;
                 IActorRef pRef = Context.Child(key);
 
                 // if the projection stream doesn't exist, start one

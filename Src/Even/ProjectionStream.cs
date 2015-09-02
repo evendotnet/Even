@@ -46,7 +46,7 @@ namespace Even
             Receive<InitializeProjectionStream>(ini =>
             {
                 // store work variables
-                _projectionStreamId = ini.Query.StreamID;
+                _projectionStreamId = ini.Query.ProjectionStreamID;
                 _predicates = ini.Query.Predicates.ToArray();
                 _eventReader = ini.Reader;
                 _writer = ini.Writer;
@@ -185,7 +185,7 @@ namespace Even
                     });
                 }
 
-            }, ps => ps.Query.StreamID == _projectionStreamId);
+            }, ps => ps.Query.ProjectionStreamID == _projectionStreamId);
 
             // unsubscribe terminated projections
             Receive<Terminated>(t =>
