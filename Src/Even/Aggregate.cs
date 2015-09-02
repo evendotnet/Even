@@ -325,30 +325,30 @@ namespace Even
 
         #region Event Processor Registration
 
-        protected void OnEvent<T>(Func<IPersistedEvent, Task> processor)
+        protected void OnPersisted<T>(Func<T, Task> processor)
         {
-            _eventProcessors.Add(typeof(T), e => processor(e));
+            _eventProcessors.Add(typeof(T), e => processor((T) e.DomainEvent));
         }
 
-        protected void OnEvent<T>(Func<IPersistedEvent, T, Task> processor)
+        protected void OnPersisted<T>(Func<T, IPersistedEvent, Task> processor)
         {
-            _eventProcessors.Add(typeof(T), e => processor(e, (T)e.DomainEvent));
+            _eventProcessors.Add(typeof(T), e => processor((T)e.DomainEvent, e));
         }
 
-        protected void OnEvent<T>(Action<IPersistedEvent> processor)
+        protected void OnPersisted<T>(Action<T> processor)
         {
             _eventProcessors.Add(typeof(T), e =>
             {
-                processor(e);
+                processor((T) e.DomainEvent);
                 return Task.CompletedTask;
             });
         }
 
-        protected void OnEvent<T>(Action<IPersistedEvent, T> processor)
+        protected void OnPersisted<T>(Action<T, IPersistedEvent> processor)
         {
             _eventProcessors.Add(typeof(T), e =>
             {
-                processor(e, (T)e.DomainEvent);
+                processor((T)e.DomainEvent, e);
                 return Task.CompletedTask;
             });
         }
