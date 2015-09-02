@@ -151,7 +151,7 @@ namespace Even
                     var payloadBytes = _serializer(e.DomainEvent, true);
 
                     return EventFactory.CreateRawStreamEvent(e, eventName, headersBytes, payloadBytes);
-                });
+                }).ToList();
 
                 var result = await _writer.WriteEventsAsync(rawEvents);
 

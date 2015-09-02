@@ -50,7 +50,7 @@ namespace Even
         /// </summary>
         /// <param name="events">The events to write.</param>
         /// <returns>A task that completes when all events are written and contains the sequences generated for the written events.</returns>
-        Task<IWriteResult> WriteEventsAsync(IEnumerable<IRawStreamEvent> events);
+        Task<IWriteResult> WriteEventsAsync(IReadOnlyCollection<IRawStreamEvent> events);
 
         /// <summary>
         /// Writes the provided events to the specified stream after the expected sequence.
@@ -60,7 +60,7 @@ namespace Even
         /// <param name="expectedSequence">The expected sequence.</param>
         /// <param name="events">The events to write.</param>
         /// <returns>A task that completes when all events are written and contains the sequences generated for the written events.</returns>
-        Task<IWriteResult> WriteEventsStrictAsync(string streamId, int expectedSequence, IEnumerable<IRawEvent> events);
+        Task<IWriteResult> WriteEventsStrictAsync(string streamId, int expectedSequence, IReadOnlyCollection<IRawEvent> events);
     }
 
     public interface IStreamStoreReader

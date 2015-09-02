@@ -21,7 +21,7 @@ namespace Even.Persistence
 
         #region StoreWriter
 
-        public Task<IWriteResult> WriteEventsAsync(IEnumerable<IRawStreamEvent> events)
+        public Task<IWriteResult> WriteEventsAsync(IReadOnlyCollection<IRawStreamEvent> events)
         {
             lock (_events)
             {
@@ -51,7 +51,7 @@ namespace Even.Persistence
             }
         }
 
-        public Task<IWriteResult> WriteEventsStrictAsync(string streamId, int expectedSequence, IEnumerable<IRawEvent> events)
+        public Task<IWriteResult> WriteEventsStrictAsync(string streamId, int expectedSequence, IReadOnlyCollection<IRawEvent> events)
         {
             lock (_events)
             {
