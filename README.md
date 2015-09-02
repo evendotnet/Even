@@ -77,7 +77,7 @@ Command processors are similar to Aggregates in which they receive commands and 
 command processors don't replay events neither require strict event ordering. You can use them to validate commands
 and store events to any stream.
 
-```
+```cs
 public class TrackDevice { public Guid DeviceID { get; set; } }
 
 public class Tracker : CommandProcessor 
@@ -106,7 +106,7 @@ on the events. That stream is automatically sequenced and indexed, so any replay
 
 The query is defined by the events the processor decides to receive. For example:
 
-```
+```cs
 public class ActiveUsers : EventProcessor
 {
 	public RegisteredUser()
@@ -125,7 +125,7 @@ Because the stream is indexed in the database, replaying the events don't requir
 
 You can use event processors to build projections in external stores. For example:
 
-```
+```cs
 public class ActiveUsers : EventProcessor
 {
 	public RegisteredUser()
