@@ -30,6 +30,7 @@ namespace Even
         protected string StreamPrefix { get; private set; }
         protected string StreamID { get; private set; }
         protected int StreamSequence { get; private set; }
+        protected bool IsReplaying { get; private set; } = true;
 
         // TODO: read these from settings
         static TimeSpan ReplayTimeout = TimeSpan.FromSeconds(10);
@@ -175,6 +176,8 @@ namespace Even
                 _log.Debug("Replay Completed");
 
                 _replayId = Guid.Empty;
+
+                IsReplaying = false;
 
                 // remove the timeout handler
                 SetReceiveTimeout(null);
