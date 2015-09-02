@@ -73,7 +73,7 @@ namespace Even.MySql
                 }
 
                 var checkpoint = await DB.ExecuteScalarAsync<long>("SELECT MAX(Checkpoint) FROM `events`", cn);
-                var sequencer = new Sequencer(checkpoint + 1, new Dictionary<string, int> { { streamId, currentSequence } });
+                var sequencer = new Sequencer(checkpoint + 1, new Dictionary<string, int> { { streamId, currentSequence + 1 } });
 
                 var insertSql = CreateInsertSql(events.Select(e => EventFactory.CreateRawStreamEvent(e, streamId)), sequencer);
                 var result = sequencer.GetResult();
