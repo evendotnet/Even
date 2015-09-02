@@ -62,7 +62,7 @@
     <Compile Include="Messages\Persistence.cs" />
     <Compile Include="Messages\Subscriptions.cs" />
     <Compile Include="Aggregate.cs" />
-    <Compile Include="AggregateSupervisor.cs" />
+    <Compile Include="CommandProcessorSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="Persistence\InMemoryStorage.cs" />
     <Compile Include="EventProcessor.cs" />

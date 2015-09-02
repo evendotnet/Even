@@ -1,4 +1,5 @@
 ﻿using Akka.Actor;
+using Akka.Event;
 using Even.Messages;
 using System;
 using System.Collections.Generic;
@@ -44,6 +45,7 @@ namespace Even
 
                     var state = await aRef.Ask(new InitializeAggregate
                     {
+                        CommandProcessorSupervisor = Self,
                         StreamID = request.StreamID,
                         Reader = _reader,
                         Writer = _writer,
@@ -76,12 +78,14 @@ namespace Even
             Receive<Terminated>(t => RemoveActiveProcessor(t.ActorRef));
         }
 
-        void RemoveActiveProcessor(IActorRef aref)
+        void RemoveActiveProcessor(IActorRef aRef)
         {
             foreach (var kvp in _activeProcessors)
             {
-                if (aref.Equals(kvp.Value))
+                if (aRef.Equals(kvp.Value))
                 {
+                    Context.GetLogger().Debug("Processor {0} will stop", aRef);
+
                     _activeProcessors.Remove(kvp.Key);
                     return;
                 }
