@@ -320,7 +320,7 @@ namespace Even
                         if (IsReplayCancelled)
                             return;
 
-                        var sequence = request.InitialSequence;
+                        var sequence = 0;
                         var checkpoint = 0L;
 
                         // check if the store supports projection indexes
@@ -388,7 +388,7 @@ namespace Even
                         }, self);
 
                         // try reading additional events from the global event stream that weren't emitted yet 
-                        var maxEvents = request.MaxEvents - sequence;
+                        var maxEvents = request.MaxEvents == Int32.MaxValue ?  request.MaxEvents : request.MaxEvents - sequence;
 
                         if (maxEvents > 0)
                         {

@@ -168,6 +168,7 @@ namespace Even
                         ProjectionID = _projectionStreamId,
                         InitialSequence = ps.LastKnownSequence + 1,
                         Subscriber = Sender,
+                        SubscriberReplayID = ps.ReplayID,
                         Checkpoint = _checkpoint,
                         Predicates = _predicates.ToArray()
                     });
@@ -290,7 +291,7 @@ namespace Even
                     // store some work variables
                     _subscriber = ini.Subscriber;
                     _projectionStreamId = ini.ProjectionID;
-                    _projectionSequence = ini.InitialSequence;
+                    _projectionSequence = 0;
                     _predicates = ini.Predicates;
                     _checkpoint = 0;
                     _subscriberReplayId = ini.SubscriberReplayID;
@@ -466,7 +467,6 @@ namespace Even
                 public IActorRef EventReader { get; set; }
                 public IActorRef Subscriber { get; set; }
                 public long Checkpoint { get; set; }
-                public Func<IEvent, bool> EventMatches { get; set; }
                 public IProjectionStreamPredicate[] Predicates { get; set; }
             }
         }

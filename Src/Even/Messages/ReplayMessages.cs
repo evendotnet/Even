@@ -128,8 +128,8 @@ namespace Even.Messages
         public string ProjectionID { get; set; }
         public int InitialSequence { get; set; }
         public bool SendIndexedEvents { get; set; }
-        public long MaxCheckpoint { get; set; }
-        public int MaxEvents { get; internal set; }
+        public long MaxCheckpoint { get; set; } = Int64.MaxValue;
+        public int MaxEvents { get; internal set; } = Int32.MaxValue;
     }
 
     /// <summary>
