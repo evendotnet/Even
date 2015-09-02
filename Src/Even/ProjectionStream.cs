@@ -396,6 +396,8 @@ namespace Even
 
                     if (received == expected)
                     {
+                        _checkpoint = received;
+
                         // forward the event only if it matches the stream query
                         if (EventMatches(e.Event))
                         {

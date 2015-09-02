@@ -78,6 +78,7 @@ namespace Even
                 
                 if (received == expected)
                 {
+                    CurrentSequence = received;
                     await ProcessEventInternal(e.Event);
                     Stash.UnstashAll();
                     return;
