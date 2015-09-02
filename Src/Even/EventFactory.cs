@@ -111,6 +111,15 @@ namespace Even
 
         #region IRawStreamEvent
 
+        public static IRawStreamEvent CreateRawStreamEvent(IRawEvent e, string streamId)
+        {
+            return new RawStreamEvent2
+            {
+                StreamID = streamId,
+                RawEvent = e
+            };
+        }
+
         public static IRawStreamEvent CreateRawStreamEvent(IEvent e, string streamId, string eventName, byte[] headers, byte[] payload)
         {
             var e2 = CreateStreamEvent(streamId, e);
@@ -141,9 +150,36 @@ namespace Even
             public DateTime UtcTimeStamp => StreamEvent.UtcTimeStamp;
         }
 
+        class RawStreamEvent2 : IRawStreamEvent
+        {
+            public string StreamID { get; set; }
+            public IRawEvent RawEvent { get; set; }
+
+            public Guid EventID => RawEvent.EventID;
+            public string EventName => RawEvent.EventName;
+            public DateTime UtcTimeStamp => RawEvent.UtcTimeStamp;
+            public byte[] Headers => RawEvent.Headers;
+            public byte[] Payload => RawEvent.Payload;
+        }
+
         #endregion
 
         #region IRawPersistedEvent 
+
+        public static IRawPersistedEvent CreateRawPersistedEvent(long checkpoint, Guid eventId, string streamId, int streamSequence, string eventName, DateTime utcTimeStamp, byte[] headers, byte[] payload)
+        {
+            return new FullRawPersistedEvent
+            {
+                Checkpoint = checkpoint,
+                EventID = eventId,
+                StreamID = streamId,
+                StreamSequence = streamSequence,
+                EventName = eventName,
+                UtcTimeStamp = utcTimeStamp,
+                Headers = headers,
+                Payload = payload
+            };
+        }
 
         public static IRawPersistedEvent CreateRawPersistedEvent(IRawStreamEvent e, long checkpoint, int streamSequence)
         {
@@ -168,6 +204,18 @@ namespace Even
             public byte[] Payload => RawStreamEvent.Payload;
             public string StreamID => RawStreamEvent.StreamID;
             public DateTime UtcTimeStamp => RawStreamEvent.UtcTimeStamp;
+        }
+
+        class FullRawPersistedEvent : IRawPersistedEvent
+        {
+            public long Checkpoint { get; set; }
+            public Guid EventID { get; set; }
+            public string EventName { get; set; }
+            public byte[] Headers { get; set; }
+            public byte[] Payload { get; set; }
+            public string StreamID { get; set; }
+            public int StreamSequence { get; set; }
+            public DateTime UtcTimeStamp { get; set; }
         }
 
         #endregion
