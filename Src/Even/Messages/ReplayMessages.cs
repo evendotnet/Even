@@ -26,21 +26,6 @@ namespace Even.Messages
     #region Generic Messages
 
     /// <summary>
-    /// Request replay for all events.
-    /// </summary>
-    public class EventReplayRequest : ReplayMessage
-    {
-        public int InitialCheckpoint { get; set; }
-        public int MaxEvents { get; set; }
-
-        /// <summary>
-        /// The query hint may be used or not. If used, ReplayEventGap messages
-        /// should be sent to signal the receiver that no events were missed.
-        /// </summary>
-        public QueryHint QueryHint { get; set; }
-    }
-
-    /// <summary>
     /// Represents an event being replayed.
     /// </summary>
     public class ReplayEvent : ReplayResponse
