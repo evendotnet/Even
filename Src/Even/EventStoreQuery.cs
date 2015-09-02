@@ -35,7 +35,7 @@ namespace Even
             var str = String.Concat(items);
             var bytes = Encoding.UTF8.GetBytes(str);
 
-            var ha = MurmurHash.Create128();
+            var ha = new System.Security.Cryptography.SHA1CryptoServiceProvider();
             var hash = ha.ComputeHash(bytes, 0, bytes.Length);
 
             return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
