@@ -3,6 +3,7 @@ using Akka.Event;
 using Even.Messages;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -26,7 +27,7 @@ namespace Even
         Guid _replayId;
 
         int _projectionStreamSequence;
-        long _checkpoint;
+        long _globalSequence;
         bool _isReplaying = true;
         int _lastIndexedSequence;
 
@@ -81,8 +82,8 @@ namespace Even
             {
                 Log.Debug("{0}: Projection Index Replay Complete", _projectionStreamId);
 
-                _projectionStreamSequence = _lastIndexedSequence = msg.LastSeenSequence;
-                _checkpoint = msg.LastSeenCheckpoint;
+                _projectionStreamSequence = _lastIndexedSequence = msg.LastSeenProjectionStreamSequence;
+                _globalSequence = msg.LastSeenGlobalSequence;
 
                 Become(ReplayFromEvents);
 
@@ -173,7 +174,7 @@ namespace Even
                         InitialSequence = ps.LastKnownSequence + 1,
                         Subscriber = Sender,
                         SubscriberReplayID = ps.ReplayID,
-                        Checkpoint = _checkpoint,
+                        Checkpoint = _globalSequence,
                         Predicates = _predicates.ToArray()
                     });
                 }
@@ -184,8 +185,8 @@ namespace Even
                     Sender.Tell(new ProjectionReplayCompleted
                     {
                         ReplayID = ps.ReplayID,
-                        LastCheckpoint = _checkpoint,
-                        LastSequence = _projectionStreamSequence
+                        LastSeenGlobalSequence = _globalSequence,
+                        LastSeenProjectionStreamSequence = _projectionStreamSequence
                     });
                 }
 
@@ -213,31 +214,17 @@ namespace Even
 
         private void ReceiveEventInternal(IPersistedEvent e)
         {
-            var received = e.Checkpoint;
-            var expected = _checkpoint + 1;
+            Contract.Assert(e.GlobalSequence == _globalSequence + 1);
 
-            // if the checkpoint order matches
-            if (received == expected)
+            _globalSequence++;
+
+            // and the event matches que query, emit it
+            if (EventMatches(e))
             {
-                _checkpoint++;
-
-                // and the event matches que query, emit it
-                if (EventMatches(e))
-                {
-                    // increment the sequence
-                    _projectionStreamSequence++;
-                    Emit(e);
-                }
-
-                // if we received events out of order before, unstash
-                Stash.UnstashAll();
-
-                return;
+                // increment the sequence
+                _projectionStreamSequence++;
+                Emit(e);
             }
-
-            // if it's a future checkpoint, stash until we get the right one
-            if (received > expected)
-                Stash.Stash();
         }
 
         private bool EventMatches(IPersistedEvent streamEvent)
@@ -254,7 +241,7 @@ namespace Even
             if (!_isReplaying)
             {
                 // tell the subscribers
-                var projectionEvent = EventFactory.CreateProjectionEvent(_projectionStreamId, _projectionStreamSequence, @event);
+                var projectionEvent = ProjectionEventFactory.Create(_projectionStreamId, _projectionStreamSequence, @event);
 
                 foreach (var s in _subscribers)
                     s.Tell(projectionEvent);
@@ -265,10 +252,12 @@ namespace Even
                 // index the event
                 _writer.Tell(new ProjectionIndexPersistenceRequest
                 {
-                    PersistenceID = Guid.NewGuid(),
                     ProjectionStreamID = _projectionStreamId,
-                    ProjectionSequence = _projectionStreamSequence,
-                    Checkpoint = _checkpoint
+                    Entry = new IndexSequenceEntry
+                    {
+                        GlobalSequence = _globalSequence,
+                        ProjectionStreamSequence = _projectionStreamSequence
+                    }
                 });
             }
         }
@@ -287,8 +276,8 @@ namespace Even
 
             string _projectionStreamId;
             IActorRef _subscriber;
-            int _projectionSequence;
-            long _checkpoint;
+            int _projectionStreamSequence;
+            long _globalSequence;
             TimeSpan _replayTimeout = TimeSpan.FromHours(15);
 
             Guid _replayId;
@@ -303,9 +292,9 @@ namespace Even
                     // store some work variables
                     _subscriber = ini.Subscriber;
                     _projectionStreamId = ini.ProjectionID;
-                    _projectionSequence = 0;
+                    _projectionStreamSequence = 0;
                     _predicates = ini.Predicates;
-                    _checkpoint = 0;
+                    _globalSequence = 0;
                     _subscriberReplayId = ini.SubscriberReplayID;
 
                     // set the new replay id and request data to the reader
@@ -339,51 +328,26 @@ namespace Even
                 // matches events read from stream
                 Receive<ProjectionReplayEvent>(e =>
                 {
-                    // ensure we're emitting events in the right order
-                    var received = e.Event.ProjectionSequence;
-                    var expected = _projectionSequence + 1;
+                    Contract.Assert(e.Event.ProjectionStreamSequence == _projectionStreamSequence + 1);
 
-                    // if the order matches, forward the event to the subscriber
-                    if (received == expected)
+                    _projectionStreamSequence++;
+                    _globalSequence = e.Event.GlobalSequence;
+
+                    _subscriber.Tell(new ProjectionReplayEvent
                     {
-                        // update the virtual stream state
-                        _projectionSequence = expected;
-                        _checkpoint = e.Event.Checkpoint;
-
-                        _subscriber.Tell(new ProjectionReplayEvent
-                        {
-                            ReplayID = _subscriberReplayId,
-                            Event = e.Event
-                        });
-
-                        Stash.UnstashAll();
-
-                        return;
-                    }
-
-                    // if it's newer, stash until the correct one is received
-                    if (received > expected)
-                        Stash.Stash();
+                        ReplayID = _subscriberReplayId,
+                        Event = e.Event
+                    });
 
                 }, e => e.ReplayID == _replayId);
 
                 // when the replay is completed
                 Receive<ProjectionStreamIndexReplayCompleted>(e =>
                 {
-                    // ensure we're switching to rebuild in the right order
-                    var received = e.LastSeenSequence;
-                    var expected = _projectionSequence;
+                    Contract.Assert(e.LastSeenProjectionStreamSequence == _projectionStreamSequence);
 
-                    if (received == expected)
-                    {
-                        // update the last known checkpoint
-                        _checkpoint = e.LastSeenCheckpoint;
-                        Become(ReplayFromEvents);
-                        return;
-                    }
-
-                    if (received > expected)
-                        Stash.Stash();
+                    _globalSequence = e.LastSeenGlobalSequence;
+                    Become(ReplayFromEvents);
 
                 }, e => e.ReplayID == _replayId);
 
@@ -402,57 +366,40 @@ namespace Even
 
                 Receive<ReplayEvent>(e =>
                 {
-                    // ensure the events are checked in the right order
-                    var received = e.Event.Checkpoint;
-                    var expected = _checkpoint + 1;
+                    Contract.Assert(e.Event.GlobalSequence == _globalSequence + 1);
 
-                    if (received == expected)
+                    _globalSequence++;
+
+                    // forward the event only if it matches the stream query
+                    if (EventMatches(e.Event))
                     {
-                        _checkpoint = received;
+                        _projectionStreamSequence++;
 
-                        // forward the event only if it matches the stream query
-                        if (EventMatches(e.Event))
+                        var replayEvent = new ProjectionReplayEvent
                         {
-                            _projectionSequence++;
-
-                            var replayEvent = new ProjectionReplayEvent
-                            {
-                                ReplayID = _subscriberReplayId,
-                                Event = EventFactory.CreateProjectionEvent(_projectionStreamId, _projectionSequence, e.Event)
-                            };
+                            ReplayID = _subscriberReplayId,
+                            Event = ProjectionEventFactory.Create(_projectionStreamId, _projectionStreamSequence, e.Event)
+                        };
                             
-                            _subscriber.Tell(replayEvent);
-                        }
-
-                        Stash.UnstashAll();
-
-                        return;
+                        _subscriber.Tell(replayEvent);
                     }
-
-                    if (received > expected)
-                        Stash.Stash();
 
                 }, e => e.ReplayID == _replayId);
 
                 Receive<ReplayCompleted>(e =>
                 {
-                    // ensure the replay finished in the right order
-                    if (e.LastCheckpoint == _checkpoint)
-                    {
-                        // notify the subscriber and stop the worker
-                        _subscriber.Tell(new ProjectionReplayCompleted {
-                            ReplayID = _subscriberReplayId,
-                            LastCheckpoint = _checkpoint,
-                            LastSequence = _projectionSequence
-                        });
+                    Contract.Assert(e.LastSeenGlobalSequence == _globalSequence);
 
-                        Context.Stop(Self);
-                        return;
-                    }
+                    // notify the subscriber and stop the worker
+                    _subscriber.Tell(new ProjectionReplayCompleted {
+                        ReplayID = _subscriberReplayId,
+                        LastSeenGlobalSequence = _globalSequence,
+                        LastSeenProjectionStreamSequence = _projectionStreamSequence
+                    });
 
-                    if (e.LastCheckpoint > _checkpoint)
-                        Stash.Stash();
-
+                    Context.Stop(Self);
+                    return;
+                    
                 }, e => e.ReplayID == _replayId);
 
                 Receive<ReceiveTimeout>(_ => HandleReplayTimeout());
@@ -469,7 +416,7 @@ namespace Even
 
             private void HandleReplayTimeout()
             {
-                _subscriber.Tell(new ReplayAborted { ReplayID = _subscriberReplayId, Message = "Timeout" });
+                _subscriber.Tell(new ReplayAborted { ReplayID = _subscriberReplayId });
                 Context.Stop(Self);
             }
 

@@ -21,6 +21,7 @@ namespace Even
         IActorRef _projectionStreams;
         IActorRef _commandProcessors;
         IActorRef _eventProcessors;
+        EventRegistry _registry = new EventRegistry();
 
         public EventStore()
         {
@@ -59,7 +60,7 @@ namespace Even
             _reader.Tell(new InitializeEventStoreReader {
                 StoreReader = _settings.Store,
                 Serializer = _settings.Serializer,
-                CryptoService = _settings.CryptoService
+                EventRegistry = _registry
             });
 
             // initialize writer
@@ -68,8 +69,7 @@ namespace Even
             _writer.Tell(new InitializeEventStoreWriter
             {
                 StoreWriter = _settings.Store,
-                Serializer = _settings.Serializer,
-                CryptoService = _settings.CryptoService
+                Serializer = _settings.Serializer
             });
             
             // initialize the projection streams supervisor

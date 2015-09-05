@@ -48,13 +48,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AggregateSnapshot.cs" />
+    <Compile Include="DefaultDataSerializer.cs" />
+    <Compile Include="EvenStorageFormatAttribute.cs" />
+    <Compile Include="EventRegistry.cs" />
+    <Compile Include="IndexSequenceEntry.cs" />
     <Compile Include="MessageHandler.cs" />
     <Compile Include="CommandProcessor.cs" />
     <Compile Include="CommandProcessorBase.cs" />
-    <Compile Include="ESCategory.cs" />
+    <Compile Include="ESCategoryAttribute.cs" />
     <Compile Include="EvenException.cs" />
-    <Compile Include="EventFactory.cs" />
     <Compile Include="EventProcessorEntry.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Messages\Initialization\InitializeEventStore.cs" />
@@ -64,22 +66,23 @@
     <Compile Include="Aggregate.cs" />
     <Compile Include="CommandProcessorSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
+    <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\InMemoryStorage.cs" />
     <Compile Include="EventProcessor.cs" />
-    <Compile Include="EventSerializer.cs" />
+    <Compile Include="ISerializer.cs" />
     <Compile Include="EventStore.cs" />
     <Compile Include="EventStoreConfig.cs" />
     <Compile Include="EventStoreContext.cs" />
+    <Compile Include="ProjectionEvent.cs" />
+    <Compile Include="ProjectionRawEvent.cs" />
     <Compile Include="ProjectionStreamQuery.cs" />
     <Compile Include="EventStoreReader.cs" />
     <Compile Include="EventStoreSettings.cs" />
     <Compile Include="EventStoreWriter.cs" />
     <Compile Include="EventStoreGateway.cs" />
-    <Compile Include="ICryptoService.cs" />
     <Compile Include="Messages\Commands.cs" />
     <Compile Include="Messages\ReplayMessages.cs" />
     <Compile Include="Messages\Initialization.cs" />
-    <Compile Include="DataInterfaces.cs" />
     <Compile Include="IProjectionStreamPredicate.cs" />
     <Compile Include="ProjectionState.cs" />
     <Compile Include="ProjectionStreamSupervisor.cs" />
@@ -89,6 +92,9 @@
     <Compile Include="PropsFactory.cs" />
     <Compile Include="EventStoreSetup.cs" />
     <Compile Include="ESEventAttribute.cs" />
+    <Compile Include="PersistedRawEvent.cs" />
+    <Compile Include="UnpersistedEvent.cs" />
+    <Compile Include="UnpersistedRawEvent.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

@@ -10,15 +10,14 @@ namespace Even.Messages
 {
     public class InitializeEventStoreReader
     {
-        public ICryptoService CryptoService { get; set; }
-        public IDataSerializer Serializer { get; set; }
+        public EventRegistry EventRegistry { get; set; }
+        public ISerializer Serializer { get; set; }
         public IStreamStoreReader StoreReader { get; set; }
     }
 
     public class InitializeEventStoreWriter
     {
-        public ICryptoService CryptoService { get; set; }
-        public IDataSerializer Serializer { get; set; }
+        public ISerializer Serializer { get; set; }
         public IStreamStoreWriter StoreWriter { get; set; }
     }
 

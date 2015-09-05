@@ -9,18 +9,21 @@ namespace Even
 {
     public class ESEventAttribute : Attribute
     {
-        public ESEventAttribute(string name)
+        public ESEventAttribute()
+        { }
+
+        public ESEventAttribute(string eventType)
         {
-            Contract.Requires(String.IsNullOrEmpty(name));
-            this.Name = name;
+            Contract.Requires(!String.IsNullOrEmpty(eventType));
+            this.EventType = eventType;
         }
 
-        public string Name { get; }
+        public string EventType { get; }
 
-        public static string GetEventName(Type type)
+        public static string GetEventType(Type type)
         {
             var a = Attribute.GetCustomAttribute(type, typeof(ESEventAttribute)) as ESEventAttribute;
-            return a?.Name ?? type.Name;
+            return a.EventType ?? type.Name;
         }
     }
 }

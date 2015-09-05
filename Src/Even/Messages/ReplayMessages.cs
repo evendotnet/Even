@@ -48,7 +48,7 @@ namespace Even.Messages
         /// <summary>
         /// The last checkpoint the reader saw before completing.
         /// </summary>
-        public long LastCheckpoint { get; set; }
+        public long LastSeenGlobalSequence { get; set; }
     }
 
     /// <summary>
@@ -59,12 +59,11 @@ namespace Even.Messages
     { }
 
     /// <summary>
-    /// Signals the replay was aborted for some reason. Compensatory actions will be required.
+    /// Signals the replay was aborted for some reason.
     /// Further messages for this replay after this message was received should be discarded.
     /// </summary>
     public class ReplayAborted : ReplayResponse
     {
-        public string Message { get; set; }
         public Exception Exception { get; set; }
     }
 
@@ -87,22 +86,7 @@ namespace Even.Messages
     {
         public string StreamID { get; set; }
         public int InitialSequence { get; set; }
-        public bool UseSnapshot { get; set; }
     }
-
-    /// <summary>
-    /// A snapshot offer from the event reader.
-    /// </summary>
-    public class AggregateSnapshotOffer : ReplayResponse
-    {
-        public IAggregateSnapshot Snapshot { get; set; }
-    }
-
-    /// <summary>
-    /// Signals that there will be no snapshot offers for the replay.
-    /// </summary>
-    public class NoAggregateSnapshotOffer : ReplayResponse
-    { }
 
     #endregion
 
@@ -123,8 +107,8 @@ namespace Even.Messages
     /// </summary>
     public class ProjectionStreamIndexReplayCompleted : ReplayResponse
     {
-        public int LastSeenSequence { get; set; }
-        public long LastSeenCheckpoint { get; set; }
+        public int LastSeenProjectionStreamSequence { get; set; }
+        public long LastSeenGlobalSequence { get; set; }
     }
 
     public class ProjectionReplayEvent : ReplayResponse
@@ -137,7 +121,7 @@ namespace Even.Messages
         /// <summary>
         /// The last sequence the reader saw when replaying the projection.
         /// </summary>
-        public int LastSequence { get; set; }
+        public int LastSeenProjectionStreamSequence { get; set; }
     }
 
     #endregion

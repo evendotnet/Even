@@ -11,7 +11,6 @@ namespace Even
     {
         public string EventStoreID { get; set; }
         public IStreamStore Store { get; set; }
-        public ICryptoService CryptoService { get; set; }
-        public IDataSerializer Serializer { get; set; } = new DefaultSerializer();
+        public ISerializer Serializer { get; set; } = new DefaultSerializer();
     }
 }

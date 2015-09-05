@@ -65,6 +65,7 @@ namespace Even
                     }
                     catch (Exception ex)
                     {
+                        _log.Error(ex, "Command Processor Error");
                         FailCommand(ex);
 
                         CurrentCommand = null;

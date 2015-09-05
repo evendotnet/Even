@@ -19,14 +19,6 @@ namespace Even.Sample.Projections
                 _list.Add(new ProductInfo { ID = pe.StreamID, Name = e.Name });
             });
 
-            OnEvent<ProductRenamed>((pe, e) =>
-            {
-                var pi = _list.FirstOrDefault(i => i.ID == pe.StreamID);
-
-                if (pi != null)
-                    pi.Name = e.NewName;
-            });
-
             OnEvent<ProductDeleted>((pe, e) =>
             {
                 _list.RemoveAll(i => i.ID == pe.StreamID);
@@ -35,7 +27,7 @@ namespace Even.Sample.Projections
 
         protected override void OnReceiveEvent(IProjectionEvent e)
         {
-            Console.WriteLine(e.ProjectionSequence);
+            Console.WriteLine($"Projection Received Event {e.ProjectionStreamSequence}: {e.EventType}");
         }
 
         protected override void OnReady()

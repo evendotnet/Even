@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public interface ICryptoService
+    public class IndexSequenceEntry
     {
-        byte[] Encrypt(byte[] data);
-        byte[] Decrypt(byte[] data);
+        public int ProjectionStreamSequence { get; set; }
+        public long GlobalSequence { get; set; }
     }
 }

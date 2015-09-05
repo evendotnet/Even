@@ -29,17 +29,17 @@ namespace Even.Sample
 
                 await Task.WhenAll(
                     gateway.SendCommandAsync<Product>(1, new CreateProduct { Name = "Product 1" }),
-                    gateway.SendCommandAsync<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" }),
                     gateway.SendCommandAsync<Product>(2, new CreateProduct { Name = "Product 2" }),
                     gateway.SendCommandAsync<Product>(3, new CreateProduct { Name = "Product 2" }),
-                    gateway.SendCommandAsync<Product>(2, new DeleteProduct())
+                    gateway.SendCommandAsync<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" }),
+                    gateway.SendCommandAsync<Product>(1, new DeleteProduct())
                 );
 
                 await Task.Delay(500);
 
                 Console.WriteLine($"{"CP",-6} {"Stream ID",-50} Event Name");
                 foreach (var e in memoryStore.GetEvents())
-                    Console.WriteLine($"{e.Checkpoint,-6} {e.StreamID,-50} {e.EventName}");
+                    Console.WriteLine($"{e.GlobalSequence,-6} {e.StreamID,-50} {e.EventType}");
 
 
             }).Wait();

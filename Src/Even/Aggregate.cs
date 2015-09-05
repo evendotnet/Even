@@ -19,8 +19,8 @@ namespace Even
         IActorRef _reader;
         IActorRef _writer;
         PersistedEventHandler _eventProcessors = new PersistedEventHandler();
-        LinkedList<IEvent> _unpersistedEvents = new LinkedList<IEvent>();
-        StrictEventPersistenceRequest _persistenceRequest;
+        LinkedList<UnpersistedEvent> _unpersistedEvents = new LinkedList<UnpersistedEvent>();
+        PersistenceRequest _persistenceRequest;
 
         bool _snapshotNotAccepted;
 
@@ -33,7 +33,7 @@ namespace Even
         protected bool IsReplaying { get; private set; } = true;
 
         // TODO: read these from settings
-        static TimeSpan ReplayTimeout = TimeSpan.FromSeconds(10);
+        static TimeSpan ReplayTimeout = TimeSpan.FromSeconds(30);
 
         protected override TimeSpan? IdleTimeout => TimeSpan.FromSeconds(30);
 
@@ -92,82 +92,20 @@ namespace Even
                     InitialSequence = 1
                 });
 
-                Become(AwaitingSnapshot);
+                Become(Replaying);
 
             }, r => String.Equals(r.StreamID, StreamID, StringComparison.OrdinalIgnoreCase));
         }
         
-        void AwaitingSnapshot()
+        void Replaying()
         {
-            Receive<AggregateSnapshotOffer>(e =>
-            {
-                // if the snapshot is ok, proceed to 
-                if (AcceptSnapshot(e.Snapshot))
-                {
-                    Become(ReplayingFromEvents);
-                    return;
-                }
-                // if the snapshot is not accepted
-                else
-                {
-                    // cancel the current replay
-                    Sender.Tell(new CancelReplayRequest
-                    {
-                        ReplayID = _replayId
-                    });
-
-                    // add a flag so we can replace the current snapshot once the replay is finished
-                    _snapshotNotAccepted = true;
-
-                    // start a new replay without snapshots
-                    _replayId = Guid.NewGuid();
-
-                    _reader.Tell(new ReplayAggregateRequest
-                    {
-                        ReplayID = _replayId,
-                        StreamID = StreamID,
-                        InitialSequence = 1,
-                        UseSnapshot = false
-                    });
-
-                    Become(ReplayingFromEvents);
-                }
-
-            }, e => e.ReplayID == _replayId);
-
-            Receive<NoAggregateSnapshotOffer>(_ => 
-            {
-                Become(ReplayingFromEvents);
-
-            }, e => e.ReplayID == _replayId);
-
-            // stash anything else
-            ReceiveAny(o => Stash.Stash());
-        }
-
-        void ReplayingFromEvents()
-        {
-            Stash.UnstashAll();
-
             Receive<ReplayEvent>(async e =>
             {
                 _log.Debug("Received Replay Event Sequence " + e.Event.StreamSequence);
 
-                var expected = StreamSequence + 1;
-                var received = e.Event.StreamSequence;
+                Contract.Assert(e.Event.StreamSequence == StreamSequence + 1, "Received event in wrong order");
 
-                if (received == expected)
-                {
-                    await ApplyEventInternal(e.Event);
-                    Stash.UnstashAll();
-                    return;
-                }
-
-                if (received < expected)
-                    return;
-
-                if (received > expected)
-                    Stash.Stash();
+                await ApplyEventInternal(e.Event);
 
             }, e => e.ReplayID == _replayId);
 
@@ -243,7 +181,7 @@ namespace Even
 
             }, e => e.StreamID.Equals(e.StreamID, StringComparison.OrdinalIgnoreCase));
 
-            Receive<PersistenceSuccessful>(_ =>
+            Receive<PersistenceSuccess>(_ =>
             {
                 OnCommandSucceeded();
                 AcceptCommand();
@@ -252,7 +190,7 @@ namespace Even
             }, msg => msg.PersistenceID == _persistenceRequest.PersistenceID);
 
             // if there is a failure during persistence, try to restart and send the command to itself again
-            Receive<PersistenceFailure>(_ =>
+            Receive<PersistenceFailure>(failure =>
             {
                 // forward the current command to itself again
                 Self.Tell(new CommandRequest
@@ -263,7 +201,7 @@ namespace Even
                     Retries = CurrentCommand.Request.Retries + 1
                 }, CurrentCommand.Sender);
 
-                throw new StrictEventWriteException();
+                throw new Exception("Error persisting event", failure.Exception);
 
                 return;
             });
@@ -286,7 +224,7 @@ namespace Even
         protected void Persist(object domainEvent)
         {
             Contract.Requires(domainEvent != null);
-            _unpersistedEvents.AddLast(EventFactory.CreateEvent(domainEvent));
+            _unpersistedEvents.AddLast(new UnpersistedEvent(domainEvent));
         }
 
         #endregion
@@ -296,13 +234,7 @@ namespace Even
             if (_unpersistedEvents.Count == 0)
                 return false;
 
-            var request = new StrictEventPersistenceRequest
-            {
-                PersistenceID  = Guid.NewGuid(),
-                StreamID = StreamID,
-                ExpectedStreamSequence = StreamSequence,
-                Events = _unpersistedEvents.ToList()
-            };
+            var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList(), false);
 
             _persistenceRequest = request;
 
@@ -356,8 +288,15 @@ namespace Even
             StreamSequence++;
             var eventType = e.DomainEvent.GetType();
 
-            await OnReceiveEvent(e);
-            await _eventProcessors.Handle(e);
+            try {
+                await OnReceiveEvent(e);
+                await _eventProcessors.Handle(e);
+            }
+            catch (Exception ex)
+            {
+                _log.Error(ex, "Error processing agggregate event");
+                throw;
+            }
         }
 
         protected virtual Task OnReceiveEvent(IPersistedEvent e)
@@ -369,7 +308,7 @@ namespace Even
         {
             public IActorRef CommandSender { get; set; }
             public CommandRequest Command { get; set; }
-            public StrictEventPersistenceRequest PersistenceRequest { get; set; }
+            public PersistenceRequest PersistenceRequest { get; set; }
         }
     }
 

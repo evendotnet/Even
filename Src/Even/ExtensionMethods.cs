@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public static class LinkedListExtensions
+    internal static class LinkedListExtensions
     {
         public static IEnumerable<LinkedListNode<T>> Nodes<T>(this LinkedList<T> list)
         {

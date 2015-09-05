@@ -1,67 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Even.Messages
 {
-    public class PersistenceMessage
-    {
-        public Guid PersistenceID { get; set; }
-    }
-
-    public class PersistenceRequest : PersistenceMessage
-    { }
-
     /// <summary>
-    /// Represents a persistence request with no requirements for stream order.
-    /// The events should just be appended to the end of the stream.
+    /// Represents a request to persist events to a stream.
     /// </summary>
-    public class EventPersistenceRequest : PersistenceRequest
+    public class PersistenceRequest
     {
-        public IReadOnlyCollection<IStreamEvent> Events { get; set; }
+        public PersistenceRequest(string streamId, int expectedStreamSequence, IEnumerable<UnpersistedEvent> events, bool allowBuffering = false)
+        {
+            Contract.Requires(!String.IsNullOrEmpty(streamId));
+            Contract.Requires(expectedStreamSequence >= 0);
+            Contract.Requires(events != null && events.Any());
+
+            this.PersistenceID = Guid.NewGuid();
+            this.StreamID = streamId;
+            this.ExpectedStreamSequence = expectedStreamSequence;
+            this.Events = events.ToList();
+            this.UseWriteBuffer = allowBuffering && expectedStreamSequence == 0;
+        }
+
+        public Guid PersistenceID { get; }
+        public string StreamID { get; }
+        public int ExpectedStreamSequence { get; }
+        public IReadOnlyCollection<UnpersistedEvent> Events { get; }
+        public bool UseWriteBuffer { get; }
     }
 
-    /// <summary>
-    /// Represents a strict persistence request, where the stream sequence must match the expected sequence.
-    /// This kind of request expects all events to belong to the same stream.
-    /// </summary>
-    public class StrictEventPersistenceRequest : PersistenceRequest
+    public abstract class PersistenceResponse
     {
-        public string StreamID { get; set; }
-        public int ExpectedStreamSequence { get; set; }
-        public IReadOnlyCollection<IEvent> Events { get; set; }
+        public PersistenceResponse(Guid persistenceId)
+        {
+            PersistenceID = persistenceId;
+        }
+
+        public Guid PersistenceID { get; }
     }
 
-    public class AggregateSnapshotPersistenceRequest : PersistenceRequest
+    public class PersistenceSuccess : PersistenceResponse
     {
-        public IAggregateSnapshot Snapshot { get; set; }
+        public PersistenceSuccess(Guid persistenceId)
+            : base(persistenceId)
+        { }
     }
-
-    public class ProjectionIndexPersistenceRequest : PersistenceRequest, IProjectionStreamIndex
-    {
-        public string ProjectionStreamID { get; set; }
-        public long Checkpoint { get; set; }
-        public int ProjectionSequence { get; set; }
-    }
-
-    public class PersistenceResponse : PersistenceMessage
-    { }
-
-    public class PersistenceSuccessful : PersistenceResponse
-    { }
 
     public class PersistenceFailure : PersistenceResponse
-    { }
-
-    public class UnexpectedSequenceFailure : PersistenceFailure
-    { }
-
-    public class PersistenceUnknownError : PersistenceFailure
     {
-        public Exception Exception { get; set; }
+        public PersistenceFailure(Guid persistenceId, string message, Exception ex)
+            : base(persistenceId)
+        {
+            Message = message;
+            Exception = ex;
+        }
+
+        public string Message { get; private set; }
+        public Exception Exception { get; private set; }
     }
 
+    public class UnexpectedStreamSequence : PersistenceResponse
+    {
+        public UnexpectedStreamSequence(Guid persistenceId)
+            : base(persistenceId)
+        { }
+    }
 
+    public class ProjectionIndexPersistenceRequest
+    {
+        public string ProjectionStreamID { get; set; }
+        public IndexSequenceEntry Entry { get; set; }
+    }
 }

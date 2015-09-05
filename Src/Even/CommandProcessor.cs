@@ -11,7 +11,7 @@ namespace Even
 {
     public class CommandProcessor : CommandProcessorBase
     {
-        LinkedList<IStreamEvent> _unpersistedEvents = new LinkedList<IStreamEvent>();
+        LinkedList<UnpersistedStreamEvent> _unpersistedEvents = new LinkedList<UnpersistedStreamEvent>();
         IActorRef _writer;
 
         private IActorRef _supervisor;
@@ -40,26 +40,24 @@ namespace Even
         {
             if (_unpersistedEvents.Count == 0)
                 return false;
-            
-            // because the command processor doesn't care about stream sequence,
+
+            // because the command processor doesn't care about stream sequences,
             // it delegates the persistence job to a worker and go on to process other commands
+            var requests = _unpersistedEvents.Select(u => new PersistenceRequest(u.StreamID, 0, new[] { u })).ToList();
 
             var workerContext = new WorkerContext
             {
                 Command = CurrentCommand,
                 Writer = _writer,
-                Request = new EventPersistenceRequest
-                {
-                    PersistenceID = Guid.NewGuid(),
-                    Events = _unpersistedEvents.ToList()
-                }
+                Requests = requests
             };
 
             var props = PropsFactory.Create<PersistenceWorker>(workerContext);
             var worker = Context.ActorOf(props);
 
-            // send the persistence request on behalf of the worker
-            _writer.Tell(workerContext.Request, worker);
+            // send the persistence request immediately on behalf of the worker
+            foreach (var request in requests)
+                _writer.Tell(requests, worker);
 
             // clear the events and return
             _unpersistedEvents.Clear();
@@ -74,31 +72,40 @@ namespace Even
         {
             Contract.Requires(streamId != null);
             Contract.Requires(domainEvent != null);
-            _unpersistedEvents.AddLast(EventFactory.CreateStreamEvent(streamId, domainEvent));
+            _unpersistedEvents.AddLast(new UnpersistedStreamEvent(streamId, domainEvent));
         }
 
         /// <summary>
-        /// Handles the persistence results and informs the command sender.
+        /// Handles the persistence results and tell the command sender.
         /// </summary>
         class PersistenceWorker : ReceiveActor
         {
+            LinkedList<PersistenceRequest> _requests;
+
             public PersistenceWorker(WorkerContext ctx)
             {
-                var persistenceId = ctx.Request.PersistenceID;
+                _requests = new LinkedList<PersistenceRequest>(ctx.Requests);
                 var cmd = ctx.Command;
 
-                Receive<PersistenceSuccessful>(msg =>
+                Receive<PersistenceSuccess>(msg =>
                 {
-                    cmd.Sender.Tell(new CommandSucceeded
+                    var node = _requests.Nodes().FirstOrDefault(n => n.Value.PersistenceID == msg.PersistenceID);
+
+                    if (node != null)
+                        _requests.Remove(node);
+
+                    if (_requests.Count == 0)
                     {
-                        CommandID = cmd.Request.CommandID
-                    });
+                        cmd.Sender.Tell(new CommandSucceeded
+                        {
+                            CommandID = cmd.Request.CommandID
+                        });
 
-                    Context.Stop(Self);
+                        Context.Stop(Self);
+                    }
+                });
 
-                }, msg => msg.PersistenceID == persistenceId);
-
-                Receive<PersistenceUnknownError>(msg =>
+                Receive<PersistenceFailure>(msg =>
                 {
                     cmd.Sender.Tell(new CommandFailed
                     {
@@ -113,6 +120,20 @@ namespace Even
             }
         }
 
+
+        private class UnpersistedStreamEvent : UnpersistedEvent
+        {
+            public UnpersistedStreamEvent(string streamId, object domainEvent)
+                : base(domainEvent)
+            {
+                Contract.Requires(!String.IsNullOrEmpty(streamId));
+
+                StreamID = streamId;
+            }
+
+            public string StreamID { get; }
+        }
+
         /// <summary>
         /// Context information to initialize the worker.
         /// </summary>
@@ -120,7 +141,7 @@ namespace Even
         {
             public CommandContext Command { get; set; }
             public IActorRef Writer { get; set; }
-            public EventPersistenceRequest Request { get; set; }
+            public IReadOnlyCollection<PersistenceRequest> Requests { get; set; }
         }
     }
 }

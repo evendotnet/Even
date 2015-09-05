@@ -29,14 +29,7 @@ namespace Even
             return this;
         }
 
-        public EventStoreSetup UseEncryption(ICryptoService cryptoService)
-        {
-            Contract.Requires(cryptoService != null);
-            _settings.CryptoService = cryptoService;
-            return this;
-        }
-
-        public EventStoreSetup UseSerializer(IDataSerializer serializer)
+        public EventStoreSetup UseSerializer(ISerializer serializer)
         {
             Contract.Requires(serializer != null);
             _settings.Serializer = serializer;

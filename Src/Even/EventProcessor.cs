@@ -74,7 +74,7 @@ namespace Even
             Receive<ProjectionReplayEvent>(async e =>
             {
                 var expected = CurrentSequence + 1;
-                var received = e.Event.ProjectionSequence;
+                var received = e.Event.ProjectionStreamSequence;
                 
                 if (received == expected)
                 {
@@ -94,7 +94,7 @@ namespace Even
                 Log.Debug("{0}: Projection Replay Completed", GetType().Name);
 
                 var expected = CurrentSequence;
-                var received = e.LastSequence;
+                var received = e.LastSeenProjectionStreamSequence;
 
                 if (received == expected)
                 {
@@ -128,9 +128,8 @@ namespace Even
             // receive projection events
             Receive<IProjectionEvent>(async e =>
             {
-                
                 var expected = CurrentSequence + 1;
-                var received = e.ProjectionSequence;
+                var received = e.ProjectionStreamSequence;
 
                 if (received == expected)
                 {

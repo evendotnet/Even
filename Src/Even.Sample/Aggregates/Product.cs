@@ -9,7 +9,6 @@ namespace Even.Sample.Aggregates
     // define the state
     public class ProductState
     {
-        public bool IsCreated { get; set; }
         public bool IsDeleted { get; set; }
         public string Name { get; set; }
     }
@@ -23,23 +22,26 @@ namespace Even.Sample.Aggregates
 
             OnCommand<CreateProduct>(c => {
 
-                if (State.IsCreated)
+                if (State != null)
                     Fail("Product already exists");
 
-                if (!State.IsDeleted)
-                    Persist(new ProductCreated { Name = c.Name });
+                Persist(new ProductCreated { Name = c.Name });
             });
 
-            OnEvent<ProductCreated>((pe, e) => {
-                State.IsCreated = true;
-                State.Name = e.Name;
+            OnEvent<ProductCreated>(e => {
+                State = new ProductState()
+                {
+                    Name = e.Name
+                };
             });
-
 
             // renaming
 
             OnCommand<RenameProduct>(async c =>
             {
+                if (State == null)
+                    Fail("Product doesn't exist");
+
                 var alreadyExists = await Task.FromResult(false);
 
                 if (alreadyExists)
@@ -48,7 +50,8 @@ namespace Even.Sample.Aggregates
                 Persist(new ProductRenamed { NewName = c.NewName });
             });
 
-            OnEvent<ProductRenamed>((pe, e) => {
+            OnEvent<ProductRenamed>(e =>
+            {
                 State.Name = e.NewName;
             });
 
@@ -56,7 +59,7 @@ namespace Even.Sample.Aggregates
 
             OnCommand<DeleteProduct>(c =>
             {
-                if (State.IsCreated && !State.IsDeleted)
+                if (State != null && !State.IsDeleted)
                     Persist(new ProductDeleted());
             });
 

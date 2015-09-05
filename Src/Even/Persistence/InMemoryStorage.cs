@@ -9,7 +9,11 @@ namespace Even.Persistence
 {
     public class InMemoryStore : IStreamStore
     {
-        public IReadOnlyCollection<IRawPersistedEvent> GetEvents()
+        List<PersistedRawEvent> _events = new List<PersistedRawEvent>();
+        Dictionary<string, List<PersistedRawEvent>> _projections = new Dictionary<string, List<PersistedRawEvent>>(StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, long> _projectionCheckpoints = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+        public List<PersistedRawEvent> GetEvents()
         {
             lock (_events)
             {
@@ -17,79 +21,52 @@ namespace Even.Persistence
             }
         }
 
-        List<IRawPersistedEvent> _events = new List<IRawPersistedEvent>();
+        #region StreamStore
 
-        #region StoreWriter
-
-        public Task<IWriteResult> WriteEventsAsync(IReadOnlyCollection<IRawStreamEvent> events)
+        public Task WriteEventsAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
         {
             lock (_events)
             {
-                var sequenceData = events.Select(e => e.StreamID)
-                    .Distinct()
-                    .ToDictionary(s => s, s => GetLastStreamSequence(s));
+                var streamEvents = _events
+                    .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
+                    .Select(e => e.StreamSequence);
 
-                var sequencer = new Sequencer(sequenceData);
-                var checkpoint = _events.Count + 1;
+                var lastStreamSequence = streamEvents.Any() ? streamEvents.Max() : 0;
 
-                var eventsToStore = events.Select(e => new InternalEvent
+                if (expectedSequence >= 0 && expectedSequence != lastStreamSequence)
+                    throw new UnexpectedStreamSequenceException();
+
+                var globalSequence = _events.Count + 1;
+                var streamSequence = lastStreamSequence + 1;
+
+                foreach (var e in events)
                 {
-                    Checkpoint = checkpoint++,
-                    StreamSequence = sequencer.GetNext(e.StreamID),
-                    StreamID = e.StreamID.ToLowerInvariant(),
-                    IRawEvent = e
-                }).ToList();
+                    e.SetSequences(globalSequence++, streamSequence++);
 
-                _events.AddRange(eventsToStore);
+                    var p = new PersistedRawEvent
+                    {
+                        GlobalSequence = e.GlobalSequence,
+                        EventID = e.EventID,
+                        StreamID = streamId,
+                        StreamSequence = e.StreamSequence,
+                        EventType = e.EventType,
+                        UtcTimestamp = e.UtcTimestamp,
+                        Metadata = e.Metadata,
+                        Payload = e.Payload
+                    };
 
-                var result = new WriteResult
-                {
-                    Sequences = eventsToStore.Select(e => EventFactory.CreateWrittenEventSequence(e.EventID, e.Checkpoint, e.StreamSequence)).ToList()
-                };
-
-                return Task.FromResult<IWriteResult>(result);
+                    _events.Add(p);
+                }
             }
+
+            return Task.CompletedTask;
         }
 
-        public Task<IWriteResult> WriteEventsStrictAsync(string streamId, int expectedSequence, IReadOnlyCollection<IRawEvent> events)
+        public Task<long> ReadHighestGlobalSequence()
         {
             lock (_events)
             {
-                var sequence = GetLastStreamSequence(streamId);
-
-                if (sequence != expectedSequence)
-                    throw new StrictEventWriteException();
-
-                var checkpoint = _events.Count + 1;
-
-                var eventsToStore = events.Select(e => new InternalEvent
-                {
-                    Checkpoint = checkpoint++,
-                    StreamSequence = ++sequence,
-                    StreamID = streamId.ToLowerInvariant(),
-                    IRawEvent = e
-                }).ToList();
-
-                _events.AddRange(eventsToStore);
-
-                var result = new WriteResult
-                {
-                    Sequences = eventsToStore.Select(e => EventFactory.CreateWrittenEventSequence(e.EventID, e.Checkpoint, e.StreamSequence)).ToList()
-                };
-
-                return Task.FromResult<IWriteResult>(result);
-            }
-        }
-
-        #endregion
-
-        #region StoreReader
-
-        public Task<long> ReadHighestCheckpointAsync()
-        {
-            lock (_events)
-            {
-                return Task.FromResult<long>(_events.Count);
+                return Task.FromResult((long) _events.Count);
             }
         }
 
@@ -97,90 +74,38 @@ namespace Even.Persistence
         {
             lock (_events)
             {
-                return Task.FromResult(GetLastStreamSequence(streamId));
+                var streamEvents = _events
+                    .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
+                    .Select(e => e.StreamSequence);
+
+                return Task.FromResult(streamEvents.Any() ? streamEvents.Max() : 0);
             }
         }
 
-        public Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IRawPersistedEvent> readCallback, CancellationToken ct)
+        public Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
             lock (_events)
             {
-                var re = from e in _events
-                         where e.Checkpoint >= initialCheckpoint
-                         orderby e.Checkpoint
-                         select e;
-
-                foreach (var e in re.Take(maxEvents))
+                foreach (var e in _events.Skip((int)initialCheckpoint).Take(maxEvents))
                     readCallback(e);
-
-                return Task.CompletedTask;
             }
+
+            return Task.CompletedTask;
         }
 
-        public Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IRawPersistedEvent> readCallback, CancellationToken ct)
+        public Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
-            streamId = streamId.ToLowerInvariant();
-
             lock (_events)
             {
-                var re = from e in _events
-                         where e.StreamID == streamId && e.StreamSequence >= initialSequence
-                         orderby e.StreamSequence
-                         select e;
+                var streamEvents = _events
+                    .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(e => e.StreamSequence);
 
-                foreach (var e in re.Take(maxEvents))
+                foreach (var e in streamEvents.Skip(initialSequence).Take(maxEvents))
                     readCallback(e);
-
-                return Task.CompletedTask;
-            }
-        }
-
-        #endregion
-
-        #region Helpers
-
-        class Sequencer
-        {
-            public Sequencer(Dictionary<string, int> data = null)
-            {
-                _counters = data ?? new Dictionary<string, int>();
             }
 
-            Dictionary<string, int> _counters = new Dictionary<string, int>();
-
-            public int GetNext(string streamId)
-            {
-                if (!_counters.ContainsKey(streamId))
-                    _counters[streamId] = 0;
-
-                return _counters[streamId]++;
-            }
-        }
-
-        class InternalEvent : IRawPersistedEvent
-        {
-            public long Checkpoint { get; set; }
-            public int StreamSequence { get; set; }
-            public string StreamID { get; set; }
-
-            public IRawEvent IRawEvent { get; set; }
-
-            public Guid EventID => IRawEvent.EventID;
-            public string EventName => IRawEvent.EventName;
-            public byte[] Headers => IRawEvent.Headers;
-            public byte[] Payload => IRawEvent.Payload;
-            public DateTime UtcTimeStamp => IRawEvent.UtcTimeStamp;
-        }
-
-        private int GetLastStreamSequence(string streamId)
-        {
-            streamId = streamId.ToLowerInvariant();
-
-            var re = from e in _events
-                     where e.StreamID == streamId
-                     select e.StreamSequence;
-
-            return re.Any() ? re.Max() : 0;
+            return Task.CompletedTask;
         }
 
         #endregion
