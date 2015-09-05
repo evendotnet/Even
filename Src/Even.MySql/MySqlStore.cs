@@ -25,7 +25,7 @@ namespace Even.MySql
 
         public async Task WriteEventsAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
         {
-            var maxStreamSequenceQuery = $"SELECT MAX(StreamSequence) FROM events WHERE StreamID = '{Escape(streamId)}'";
+            var maxStreamSequenceQuery = $"SELECT MAX(StreamSequence) FROM events WHERE StreamID = {Unhex(GetHash(streamId))}";
             var maxGlobalSequenceQuery = "SELECT MAX(GlobalSequence) FROM events";
 
             using (var cn = DB.CreateConnection())
