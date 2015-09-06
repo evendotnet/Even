@@ -10,24 +10,25 @@ using System.Threading.Tasks;
 
 namespace Even.Sample.Projections
 {
-    public class ActiveProducts : EventProcessor
+    public class ActiveProducts : Projection
     {
         public ActiveProducts()
         {
-            OnEvent<ProductCreated>((pe, e) =>
+            OnEvent<ProductCreated>(e =>
             {
-                _list.Add(new ProductInfo { ID = pe.StreamID, Name = e.Name });
+                _list.Add(new ProductInfo { ID = e.StreamID, Name = e.DomainEvent.Name });
             });
 
-            OnEvent<ProductDeleted>((pe, e) =>
+            OnEvent<ProductDeleted>(e =>
             {
-                _list.RemoveAll(i => i.ID == pe.StreamID);
+                _list.RemoveAll(i => i.ID == e.StreamID);
             });
         }
 
-        protected override void OnReceiveEvent(IProjectionEvent e)
+        protected override Task OnReceiveEvent(IProjectionEvent e)
         {
             Console.WriteLine($"Projection Received Event {e.ProjectionStreamSequence}: {e.EventType}");
+            return Task.CompletedTask;
         }
 
         protected override void OnReady()

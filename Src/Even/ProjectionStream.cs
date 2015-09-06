@@ -227,10 +227,10 @@ namespace Even
             }
         }
 
-        private bool EventMatches(IPersistedEvent streamEvent)
+        private bool EventMatches(IPersistedEvent @event)
         {
             foreach (var p in _predicates)
-                if (p.EventMatches(streamEvent))
+                if (p.EventMatches(@event))
                     return true;
 
             return false;

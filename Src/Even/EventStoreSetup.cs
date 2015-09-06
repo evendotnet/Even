@@ -37,6 +37,18 @@ namespace Even
             return this;
         }
 
+        public EventStoreSetup AddProjection<T>(string name = null)
+            where T : Projection
+        {
+            _eventProcessors.Add(new EventProcessorEntry
+            {
+                Type = typeof(T),
+                Name = name
+            });
+
+            return this;
+        }
+
         public EventStoreSetup AddEventProcessor<T>(string name = null)
             where T : EventProcessor
         {

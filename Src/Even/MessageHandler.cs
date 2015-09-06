@@ -9,13 +9,12 @@ namespace Even
 {
     public class MessageHandler<TMessage>
     {
-        public MessageHandler(Func<TMessage, Type> typeMapper)
+        public MessageHandler(Func<TMessage, object> mapper)
         {
-            Contract.Requires(typeMapper != null);
-            _typeMapper = typeMapper;
+            _mapper = mapper;
         }
 
-        Func<TMessage, Type> _typeMapper;
+        Func<TMessage, object> _mapper;
         class HandlerList : LinkedList<Func<TMessage, Task>> { }
 
         Dictionary<Type, HandlerList> _handlers = new Dictionary<Type, HandlerList>();
@@ -25,10 +24,19 @@ namespace Even
             if (message == null)
                 return;
 
-            var type = _typeMapper(message);
+            Type type;
 
-            if (type == null)
-                return;
+            if (_mapper != null)
+            {
+                type = _mapper(message)?.GetType();
+
+                if (type == null)
+                    return;
+            }
+            else
+            {
+                type = typeof(TMessage);
+            }
 
             HandlerList list;
 
@@ -65,7 +73,14 @@ namespace Even
     public class PersistedEventHandler : MessageHandler<IPersistedEvent>
     {
         public PersistedEventHandler()
-            : base(e => e.DomainEvent?.GetType())
+            : base(e => e.DomainEvent)
+        { }
+    }
+
+    public class ProjectionEventHandler : MessageHandler<IProjectionEvent>
+    {
+        public ProjectionEventHandler()
+            : base(e => e.DomainEvent)
         { }
     }
 }

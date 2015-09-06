@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="DefaultDataSerializer.cs" />
     <Compile Include="EvenStorageFormatAttribute.cs" />
+    <Compile Include="EventProcessor.cs" />
     <Compile Include="EventRegistry.cs" />
     <Compile Include="IndexSequenceEntry.cs" />
     <Compile Include="MessageHandler.cs" />
@@ -68,7 +69,7 @@
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\InMemoryStorage.cs" />
-    <Compile Include="EventProcessor.cs" />
+    <Compile Include="Projection.cs" />
     <Compile Include="ISerializer.cs" />
     <Compile Include="EventStore.cs" />
     <Compile Include="EventStoreConfig.cs" />

@@ -24,8 +24,10 @@ namespace Even.Sample
                 var gateway = await actorSystem
                     .SetupEventStore()
                     .UseStore(memoryStore)
-                    .AddEventProcessor<ActiveProducts>()
+                    .AddProjection<ActiveProducts>()
                     .Start();
+
+                await Task.Delay(500);
 
                 await Task.WhenAll(
                     gateway.SendCommandAsync<Product>(1, new CreateProduct { Name = "Product 1" }),

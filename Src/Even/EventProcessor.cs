@@ -1,207 +1,35 @@
 ﻿using Akka.Actor;
 using Akka.Event;
-using Even.Messages;
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Even
 {
-    public class EventProcessor : ReceiveActor, IWithUnboundedStash
+    public class EventProcessor : ReceiveActor
     {
-        public IStash Stash { get; set; }
-        protected int CurrentSequence { get; private set; }
-        protected string CurrentStreamID { get; private set; }
-
-        Dictionary<Type, Func<IProjectionEvent, Task>> _eventProcessors = new Dictionary<Type, Func<IProjectionEvent, Task>>();
-
-        ILoggingAdapter Log = Context.GetLogger();
-
-        IActorRef _streams;
-        Guid _replayId;
-        string _projectionId;
+        PersistedEventHandler _handlers = new PersistedEventHandler();
 
         public EventProcessor()
         {
-            Become(Uninitialized);
-        }
-
-        #region Actor States
-
-        private void Uninitialized()
-        {
-            Receive<InitializeEventProcessor>(async ini =>
+            Receive<IPersistedEvent>(async e =>
             {
-                _streams = ini.ProjectionStreamSupervisor;
-
-                var query = BuildQuery();
-                CurrentStreamID = query.ProjectionStreamID;
-
-                if (query == null)
-                {
-                    Log.Error("The projection can't start because the query is not defined.");
-                    Context.Stop(Self);
-                    return;
-                }
-
-                _projectionId = query.ProjectionStreamID;
-
-                var knownState = await GetLastKnownState();
-
-                // if the projection is new or id is changed, the projection need to be rebuilt
-                if (knownState == null || !query.ProjectionStreamID.Equals(knownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
-                    await PrepareToRebuild();
-
-                _replayId = Guid.NewGuid();
-
-                _streams.Tell(new ProjectionSubscriptionRequest
-                {
-                    ReplayID = _replayId,
-                    Query = query,
-                    LastKnownSequence = knownState?.ProjectionSequence ?? 0
-                });
-
-                Become(Replaying);
+                await _handlers.Handle(e);
             });
         }
 
-        private void Replaying()
+        protected void OnEvent<T>(Func<IPersistedEvent<T>, Task> handler)
         {
-            Log.Debug("{0}: Starting Projection Replay", GetType().Name);
-
-            Receive<ProjectionReplayEvent>(async e =>
-            {
-                Contract.Assert(e.Event.ProjectionStreamSequence == CurrentSequence + 1);
-
-                CurrentSequence++;
-                await ProcessEventInternal(e.Event);
-
-            }, e => e.ReplayID == _replayId);
-
-            Receive<ProjectionReplayCompleted>(e =>
-            {
-                Log.Debug("{0}: Projection Replay Completed", GetType().Name);
-
-                Contract.Assert(e.LastSeenProjectionStreamSequence == CurrentSequence);
-
-                Become(Ready);
-
-            }, e => e.ReplayID == _replayId);
-
-            Receive<ReplayAborted>(e =>
-            {
-                throw new Exception("Replay Aborted");
-            },
-            e => e.ReplayID == _replayId);
-
-            Receive<ReplayCancelled>(e =>
-            {
-                throw new Exception("Replay Aborted");
-            },
-            e => e.ReplayID == _replayId);  
+            Context.System.EventStream.Subscribe<IPersistedEvent<T>>(Self);
+            _handlers.AddHandler<T>(e => handler((IPersistedEvent<T>) e));
         }
 
-        void Ready()
+        protected void OnEvent<T>(Action<IPersistedEvent<T>> handler)
         {
-            // receive projection events
-            Receive<IProjectionEvent>(async e =>
-            {
-                Contract.Assert(e.ProjectionStreamSequence == CurrentSequence + 1);
-
-                CurrentSequence++;
-                await ProcessEventInternal(e);
-
-            }, e => e.ProjectionStreamID == _projectionId);
-
-            OnReady();
+            Context.System.EventStream.Subscribe<IPersistedEvent<T>>(Self);
+            _handlers.AddHandler<T>(e => handler((IPersistedEvent<T>)e));
         }
-
-        #endregion
-
-        async Task ProcessEventInternal(IProjectionEvent e)
-        {
-            OnReceiveEvent(e);
-
-            Func<IProjectionEvent, Task> processor;
-
-            if (_eventProcessors.TryGetValue(e.DomainEvent.GetType(), out processor))
-                await processor(e);
-        }
-
-        /// <summary>
-        /// Returns the lask known state for the projection.
-        /// If you're storing the state in an external store, you should
-        /// override this method and read the state from there.
-        /// </summary>
-        protected virtual Task<ProjectionState> GetLastKnownState()
-        {
-            return Task.FromResult<ProjectionState>(null);
-        }
-
-        private ProjectionStreamQuery BuildQuery()
-        {
-            var predicates = _eventProcessors.Keys.Select(t => new DomainEventPredicate(t)).ToList();
-
-            return new ProjectionStreamQuery(predicates);
-        }
-
-        /// <summary>
-        /// Runs when the projection is ready (finished rebuilding/replaying).
-        /// You may use this to register receive handlers to the projection.
-        /// </summary>
-        protected virtual void OnReady()
-        { }
-
-        protected virtual void OnReceiveEvent(IProjectionEvent e)
-        { }
-
-        /// <summary>
-        /// Signals the projection to prepare for rebuild.
-        /// </summary>
-        protected virtual Task PrepareToRebuild()
-        {
-            return Task.CompletedTask;
-        }
-
-        #region Event Processor Registration
-
-        protected void OnEvent<T>(Func<IProjectionEvent, Task> processor)
-        {
-            _eventProcessors.Add(typeof(T), e => processor(e));
-        }
-
-        protected void OnEvent<T>(Func<IProjectionEvent, T, Task> processor)
-        {
-            _eventProcessors.Add(typeof(T), e => processor(e, (T)e.DomainEvent));
-        }
-
-        protected void OnEvent<T>(Action<IProjectionEvent> processor)
-        {
-            _eventProcessors.Add(typeof(T), e =>
-            {
-                processor(e);
-                return Task.CompletedTask;
-            });
-        }
-
-        protected void OnEvent<T>(Action<IProjectionEvent, T> processor)
-        {
-            _eventProcessors.Add(typeof(T), e =>
-            {
-                processor(e, (T)e.DomainEvent);
-                return Task.CompletedTask;
-            });
-        }
-
-        #endregion
-    }
-
-    public class ProjectionReplayState
-    {
-        public int? LastSeenCheckpoint { get; set; }
-        public int LastSeenSequence { get; set; }
-        public int LastSeenHash { get; set; }
     }
 }
