@@ -73,19 +73,10 @@ namespace Even
 
             Receive<ProjectionReplayEvent>(async e =>
             {
-                var expected = CurrentSequence + 1;
-                var received = e.Event.ProjectionStreamSequence;
-                
-                if (received == expected)
-                {
-                    CurrentSequence = received;
-                    await ProcessEventInternal(e.Event);
-                    Stash.UnstashAll();
-                    return;
-                }
+                Contract.Assert(e.Event.ProjectionStreamSequence == CurrentSequence + 1);
 
-                if (received > expected)
-                    Stash.Stash();
+                CurrentSequence++;
+                await ProcessEventInternal(e.Event);
 
             }, e => e.ReplayID == _replayId);
 
@@ -93,20 +84,9 @@ namespace Even
             {
                 Log.Debug("{0}: Projection Replay Completed", GetType().Name);
 
-                var expected = CurrentSequence;
-                var received = e.LastSeenProjectionStreamSequence;
+                Contract.Assert(e.LastSeenProjectionStreamSequence == CurrentSequence);
 
-                if (received == expected)
-                {
-                    Become(Ready);
-                    return;
-                }
-
-                if (expected > received)
-                {
-                    Stash.Stash();
-                    return;
-                }
+                Become(Ready);
 
             }, e => e.ReplayID == _replayId);
 
@@ -128,22 +108,10 @@ namespace Even
             // receive projection events
             Receive<IProjectionEvent>(async e =>
             {
-                var expected = CurrentSequence + 1;
-                var received = e.ProjectionStreamSequence;
+                Contract.Assert(e.ProjectionStreamSequence == CurrentSequence + 1);
 
-                if (received == expected)
-                {
-                    CurrentSequence++;
-                    await ProcessEventInternal(e);
-                    Stash.UnstashAll();
-                    return;
-                }
-
-                if (received > expected)
-                {
-                    Stash.Stash();
-                    return;
-                }
+                CurrentSequence++;
+                await ProcessEventInternal(e);
 
             }, e => e.ProjectionStreamID == _projectionId);
 
