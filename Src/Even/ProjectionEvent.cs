@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Even
 {
@@ -13,14 +10,20 @@ namespace Even
         int ProjectionStreamSequence { get; }
     }
 
+    public interface IProjectionEvent<T> : IProjectionEvent
+    {
+        new T DomainEvent { get; }
+    }
+
     public static class ProjectionEventFactory
     {
         public static IProjectionEvent Create(string projectionStreamId, int projectionStreamSequence, IPersistedEvent persistedEvent)
         {
-            return new EmbeddedProjectionEvent(projectionStreamId, projectionStreamSequence, persistedEvent);
+            var t = typeof(EmbeddedProjectionEvent<>).MakeGenericType(persistedEvent.DomainEvent.GetType());
+            return (IProjectionEvent)Activator.CreateInstance(t, projectionStreamId, projectionStreamSequence, persistedEvent);
         }
 
-        class EmbeddedProjectionEvent : IProjectionEvent
+        class EmbeddedProjectionEvent<T> : IProjectionEvent<T>
         {
             public EmbeddedProjectionEvent(string projectionStreamId, int projectionStreamSequence, IPersistedEvent persistedEvent)
             {
@@ -39,9 +42,11 @@ namespace Even
             public string StreamID => _e.StreamID;
             public int StreamSequence => _e.StreamSequence;
             public string EventType => _e.EventType;
-            public object DomainEvent => _e.DomainEvent;
+            public T DomainEvent => (T) _e.DomainEvent;
             public IReadOnlyDictionary<string, object> Metadata => _e.Metadata;
             public DateTime UtcTimestamp => _e.UtcTimestamp;
+
+            object IPersistedEvent.DomainEvent => _e.DomainEvent;
         }
     }
 }
