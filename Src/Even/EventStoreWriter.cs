@@ -77,7 +77,7 @@ namespace Even
                     var metadata = _serializer.SerializeMetadata(e.Metadata);
                     var payload = _serializer.SerializeEvent(e.DomainEvent, format);
 
-                    var re = new UnpersistedRawEvent(e.EventID, e.UtcTimestamp, e.EventType, metadata, payload, format);
+                    var re = new UnpersistedRawEvent(e.EventID, streamId, e.EventType, e.UtcTimestamp, metadata, payload, format);
 
                     return re;
                 }).ToList();
@@ -86,14 +86,16 @@ namespace Even
                 await _writer.WriteEventsAsync(streamId, expectedStreamSequence, rawEvents);
 
                 // ensure the sequences were set
-                Contract.Assert(rawEvents.All(e => e.SequencesWereSet), "Some or all sequences were not set after write.");
+                Contract.Assert(rawEvents.All(e => e.SequenceWasSet), "Some or all sequences were not set after write.");
 
                 // publishes the events in the order they were sent
-                int i = 0;
+                var i = 0;
+                var sequence = expectedStreamSequence + 1;
+
                 foreach (var e in events)
                 {
                     var rawEvent = rawEvents[i++];
-                    var persistedEvent = PersistedEventFactory.Create(rawEvent.GlobalSequence, streamId, rawEvent.StreamSequence, e);
+                    var persistedEvent = PersistedEventFactory.Create(rawEvent.GlobalSequence, streamId, sequence++, e);
 
                     // notify the sender
                     Sender.Tell(persistedEvent);

@@ -15,7 +15,7 @@ namespace Even
         protected int CurrentSequence { get; private set; }
         protected string CurrentStreamID { get; private set; }
 
-        ProjectionEventHandler _handlers = new ProjectionEventHandler();
+        PersistedEventHandler _handlers = new PersistedEventHandler();
         LinkedList<Type> _eventTypes = new LinkedList<Type>();
 
         ILoggingAdapter Log = Context.GetLogger();
@@ -74,9 +74,9 @@ namespace Even
         {
             Log.Debug("{0}: Starting Projection Replay", GetType().Name);
 
-            Receive<ProjectionReplayEvent>(async e =>
+            Receive<ReplayEvent>(async e =>
             {
-                Contract.Assert(e.Event.ProjectionStreamSequence == CurrentSequence + 1);
+                Contract.Assert(e.Event.StreamSequence == CurrentSequence + 1);
 
                 CurrentSequence++;
                 await ProcessEventInternal(e.Event);
@@ -109,21 +109,21 @@ namespace Even
         void Ready()
         {
             // receive projection events
-            Receive<IProjectionEvent>(async e =>
+            Receive<IPersistedEvent>(async e =>
             {
-                Contract.Assert(e.ProjectionStreamSequence == CurrentSequence + 1);
+                Contract.Assert(e.StreamSequence == CurrentSequence + 1);
 
                 CurrentSequence++;
                 await ProcessEventInternal(e);
 
-            }, e => e.ProjectionStreamID == _projectionId);
+            }, e => e.StreamID == _projectionId);
 
             OnReady();
         }
 
         #endregion
 
-        async Task ProcessEventInternal(IProjectionEvent e)
+        async Task ProcessEventInternal(IPersistedEvent e)
         {
             await OnReceiveEvent(e);
             await _handlers.Handle(e);
@@ -158,7 +158,7 @@ namespace Even
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnReceiveEvent(IProjectionEvent e)
+        protected virtual Task OnReceiveEvent(IPersistedEvent e)
         {
             return Task.CompletedTask;
         }
@@ -173,24 +173,24 @@ namespace Even
 
         #region Event Subscriptions
 
-        protected void OnEvent<T>(Func<IProjectionEvent<T>, Task> handler)
+        protected void OnEvent<T>(Func<IPersistedEvent<T>, Task> handler)
         {
             var t = typeof(T);
 
             if (!_eventTypes.Contains(t))
                 _eventTypes.AddLast(t);
 
-            _handlers.AddHandler<T>(e => handler((IProjectionEvent<T>) e));
+            _handlers.AddHandler<T>(e => handler((IPersistedEvent<T>) e));
         }
 
-        protected void OnEvent<T>(Action<IProjectionEvent<T>> handler)
+        protected void OnEvent<T>(Action<IPersistedEvent<T>> handler)
         {
             var t = typeof(T);
 
             if (!_eventTypes.Contains(t))
                 _eventTypes.AddLast(t);
 
-            _handlers.AddHandler<T>(e => handler((IProjectionEvent<T>)e));
+            _handlers.AddHandler<T>(e => handler((IPersistedEvent<T>)e));
         }
 
         #endregion

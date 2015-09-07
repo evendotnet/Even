@@ -63,7 +63,7 @@ namespace Even
                 _eventReader.Tell(new ProjectionStreamReplayRequest
                 {
                     ReplayID = _replayId,
-                    ProjectionID = _projectionStreamId,
+                    ProjectionStreamID = _projectionStreamId,
                     MaxCheckpoint = Int64.MaxValue,
                     SendIndexedEvents = false
                 });
@@ -241,7 +241,7 @@ namespace Even
             if (!_isReplaying)
             {
                 // tell the subscribers
-                var projectionEvent = ProjectionEventFactory.Create(_projectionStreamId, _projectionStreamSequence, @event);
+                var projectionEvent = PersistedEventFactory.Create(_projectionStreamId, _projectionStreamSequence, @event);
 
                 foreach (var s in _subscribers)
                     s.Tell(projectionEvent);
@@ -305,7 +305,7 @@ namespace Even
                     ini.EventReader.Tell(new ProjectionStreamReplayRequest
                     {
                         ReplayID = _replayId,
-                        ProjectionID = ini.ProjectionID,
+                        ProjectionStreamID = ini.ProjectionID,
                         InitialSequence = ini.InitialSequence,
                         MaxCheckpoint = ini.Checkpoint,
                         SendIndexedEvents = true
@@ -326,14 +326,14 @@ namespace Even
                 SetReceiveTimeout(_replayTimeout);
 
                 // matches events read from stream
-                Receive<ProjectionReplayEvent>(e =>
+                Receive<ReplayEvent>(e =>
                 {
-                    Contract.Assert(e.Event.ProjectionStreamSequence == _projectionStreamSequence + 1);
+                    Contract.Assert(e.Event.StreamSequence == _projectionStreamSequence + 1);
 
                     _projectionStreamSequence++;
                     _globalSequence = e.Event.GlobalSequence;
 
-                    _subscriber.Tell(new ProjectionReplayEvent
+                    _subscriber.Tell(new ReplayEvent
                     {
                         ReplayID = _subscriberReplayId,
                         Event = e.Event
@@ -375,10 +375,10 @@ namespace Even
                     {
                         _projectionStreamSequence++;
 
-                        var replayEvent = new ProjectionReplayEvent
+                        var replayEvent = new ReplayEvent
                         {
                             ReplayID = _subscriberReplayId,
-                            Event = ProjectionEventFactory.Create(_projectionStreamId, _projectionStreamSequence, e.Event)
+                            Event = PersistedEventFactory.Create(_projectionStreamId, _projectionStreamSequence, e.Event)
                         };
                             
                         _subscriber.Tell(replayEvent);

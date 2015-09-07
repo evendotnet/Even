@@ -5,40 +5,44 @@ namespace Even
 {
     public class UnpersistedRawEvent
     {
-        public UnpersistedRawEvent(Guid eventId, DateTime utcTimestamp, string eventType, byte[] metadata, byte[] payload, int payloadFormat)
+        public UnpersistedRawEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
         {
+            Contract.Requires(eventId != Guid.Empty);
+            Contract.Requires(!String.IsNullOrEmpty(streamId));
+            Contract.Requires(!String.IsNullOrEmpty(eventType));
+            Contract.Requires(utcTimestamp != default(DateTime));
+            Contract.Requires(payload != null);
+
             EventID = eventId;
-            UtcTimestamp = utcTimestamp;
+            StreamID = streamId;
             EventType = eventType;
+            UtcTimestamp = utcTimestamp;
             Metadata = metadata;
             Payload = payload;
             PayloadFormat = payloadFormat;
         }
 
+        public long GlobalSequence { get; private set; }
         public Guid EventID { get; }
-        public DateTime UtcTimestamp { get; }
+        public string StreamID { get; }
         public string EventType { get; }
+        public DateTime UtcTimestamp { get; }
         public byte[] Metadata { get; }
         public byte[] Payload { get; }
         public int PayloadFormat { get; }
 
-        public long GlobalSequence { get; private set; }
-        public int StreamSequence { get; private set; }
+        public bool SequenceWasSet { get; private set; }
 
-        public bool SequencesWereSet { get; private set; }
-
-        public void SetSequences(long globalSequence, int streamSequence)
+        public void SetGlobalSequence(long globalSequence)
         {
             Contract.Requires(globalSequence > 0);
-            Contract.Requires(streamSequence > 0);
 
-            if (SequencesWereSet)
+            if (SequenceWasSet)
                 throw new InvalidOperationException("Sequences should be set only once.");
 
             GlobalSequence = globalSequence;
-            StreamSequence = streamSequence;
 
-            SequencesWereSet = true;
+            SequenceWasSet = true;
         }
     }
 }

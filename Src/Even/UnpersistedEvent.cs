@@ -7,70 +7,71 @@ using System.Runtime.CompilerServices;
 
 namespace Even
 {
-    /// <summary>
-    /// Represents an unpersisted event.
-    /// </summary>
-    public class UnpersistedEvent
+    public class UnpersistedEvent : UnpersistedEventBase
     {
-        private static readonly string AnonymousEventType = "$AnonymousEvent";
-
         public UnpersistedEvent(object domainEvent)
-            : this(domainEvent, GetEventType(domainEvent), null, Guid.NewGuid(), DateTime.UtcNow)
-        { }
-
-        public UnpersistedEvent(object domainEvent, string eventType)
-            : this(domainEvent, eventType, null, Guid.NewGuid(), DateTime.UtcNow)
+            : base(domainEvent, null, null)
         { }
 
         public UnpersistedEvent(object domainEvent, string eventType, Dictionary<string, object> metaData)
-            : this(domainEvent, eventType, metaData, Guid.NewGuid(), DateTime.UtcNow)
+            : base(domainEvent, eventType, metaData)
+        { }
+    }
+
+    public class UnpersistedStreamEvent : UnpersistedEventBase
+    {
+        public UnpersistedStreamEvent(string streamId, object domainEvent)
+            : this(streamId, domainEvent, null, null)
         { }
 
-        public UnpersistedEvent(object domainEvent, string eventType, Dictionary<string, object> metaData, Guid eventId, DateTime utcTimestamp)
+        public UnpersistedStreamEvent(string streamId, object domainEvent, string eventType, Dictionary<string, object> metaData)
+            : base(domainEvent, eventType, metaData)
         {
-            Contract.Requires(domainEvent != null);
-            Contract.Requires(!String.IsNullOrEmpty(eventType));
-            Contract.Requires(eventId != Guid.Empty);
-            Contract.Requires(utcTimestamp > DateTime.MinValue);
+            Contract.Requires(!String.IsNullOrWhiteSpace(streamId));
 
-            this.EventID = eventId;
-            this.UtcTimestamp = utcTimestamp;
-            this.EventType = eventType;
-            this.DomainEvent = domainEvent;
-
-            if (eventType != AnonymousEventType)
-            {
-                metaData = metaData ?? new Dictionary<string, object>();
-                metaData["$CLRType"] = GetUnversionedQualifiedName(domainEvent.GetType());
-            }
-
-            this.Metadata = metaData;
+            this.StreamID = streamId;
         }
 
-        public Guid EventID { get; }
-        public DateTime UtcTimestamp { get; }
+        public string StreamID { get; }
+    }
+
+    public abstract class UnpersistedEventBase
+    {
+        public UnpersistedEventBase(object domainEvent, string eventType, Dictionary<string, object> metadata)
+        {
+            Contract.Requires(domainEvent != null);
+
+            this.DomainEvent = domainEvent;
+            this.EventType = eventType ?? GetEventType(domainEvent);
+
+            if (eventType != Constants.AnonymousEventType)
+            {
+                metadata = metadata ?? new Dictionary<string, object>(1);
+                metadata[Constants.ClrTypeMetadataKey] = GetUnversionedQualifiedName(domainEvent.GetType());
+            }
+
+            this.Metadata = metadata;
+        }
+
+        public Guid EventID { get; } = Guid.NewGuid();
+        public DateTime UtcTimestamp { get; } = DateTime.UtcNow;
         public string EventType { get; }
         public object DomainEvent { get; }
         public IReadOnlyDictionary<string, object> Metadata { get; }
 
         private static string GetEventType(object o)
         {
-            if (o != null)
-            {
-                var type = o.GetType();
+            var type = o.GetType();
 
-                var esEvent = type.GetCustomAttributes(typeof(ESEventAttribute), false).FirstOrDefault() as ESEventAttribute;
+            var esEvent = type.GetCustomAttributes(typeof(ESEventAttribute), false).FirstOrDefault() as ESEventAttribute;
 
-                if (esEvent != null)
-                    return esEvent.EventType;
+            if (esEvent != null)
+                return esEvent.EventType;
 
-                if (IsAnonymousType(type))
-                    return AnonymousEventType;
+            if (IsAnonymousType(type))
+                return Constants.AnonymousEventType;
 
-                return type.Name;
-            }
-
-            return null;
+            return type.Name;
         }
 
         private static bool IsAnonymousType(Type type)

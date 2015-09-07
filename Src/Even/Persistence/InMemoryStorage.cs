@@ -23,32 +23,59 @@ namespace Even.Persistence
 
         #region StreamStore
 
+        public Task WriteEventsAsync(IReadOnlyCollection<UnpersistedRawEvent> events)
+        {
+            lock (_events)
+            {
+                var globalSequence = _events.Count + 1;
+
+                foreach (var e in events)
+                {
+                    e.SetGlobalSequence(globalSequence++);
+
+                    var p = new PersistedRawEvent
+                    {
+                        GlobalSequence = e.GlobalSequence,
+                        EventID = e.EventID,
+                        StreamID = e.StreamID,
+                        EventType = e.EventType,
+                        UtcTimestamp = e.UtcTimestamp,
+                        Metadata = e.Metadata,
+                        Payload = e.Payload
+                    };
+
+                    _events.Add(p);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task WriteEventsAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
         {
             lock (_events)
             {
-                var streamEvents = _events
+                var streamCount = _events
                     .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
-                    .Select(e => e.StreamSequence);
+                    .Count();
 
-                var lastStreamSequence = streamEvents.Any() ? streamEvents.Max() : 0;
-
-                if (expectedSequence >= 0 && expectedSequence != lastStreamSequence)
-                    throw new UnexpectedStreamSequenceException();
+                if (expectedSequence >= 0)
+                {
+                    if (expectedSequence != streamCount)
+                        throw new UnexpectedStreamSequenceException();
+                }
 
                 var globalSequence = _events.Count + 1;
-                var streamSequence = lastStreamSequence + 1;
 
                 foreach (var e in events)
                 {
-                    e.SetSequences(globalSequence++, streamSequence++);
+                    e.SetGlobalSequence(globalSequence++);
 
                     var p = new PersistedRawEvent
                     {
                         GlobalSequence = e.GlobalSequence,
                         EventID = e.EventID,
                         StreamID = streamId,
-                        StreamSequence = e.StreamSequence,
                         EventType = e.EventType,
                         UtcTimestamp = e.UtcTimestamp,
                         Metadata = e.Metadata,
@@ -74,11 +101,11 @@ namespace Even.Persistence
         {
             lock (_events)
             {
-                var streamEvents = _events
+                var count = _events
                     .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
-                    .Select(e => e.StreamSequence);
+                    .Count();
 
-                return Task.FromResult(streamEvents.Any() ? streamEvents.Max() : 0);
+                return Task.FromResult(count);
             }
         }
 
@@ -99,7 +126,7 @@ namespace Even.Persistence
             {
                 var streamEvents = _events
                     .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
-                    .OrderBy(e => e.StreamSequence);
+                    .OrderBy(e => e.GlobalSequence);
 
                 foreach (var e in streamEvents.Skip(initialSequence).Take(maxEvents))
                     readCallback(e);

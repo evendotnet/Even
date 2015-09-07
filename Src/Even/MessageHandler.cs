@@ -76,11 +76,4 @@ namespace Even
             : base(e => e.DomainEvent)
         { }
     }
-
-    public class ProjectionEventHandler : MessageHandler<IProjectionEvent>
-    {
-        public ProjectionEventHandler()
-            : base(e => e.DomainEvent)
-        { }
-    }
 }

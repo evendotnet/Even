@@ -33,7 +33,7 @@ namespace Even
             Receive<ReplayAggregateRequest>(request =>
             {
                 var props = PropsFactory
-                    .Create<AggregateReplayWorker>(_storeReader, (Func<IPersistedRawEvent, IPersistedEvent>)DeserializeEvent)
+                    .Create<AggregateReplayWorker>(_storeReader, (Deserializer)DeserializeEvent)
                     .WithSupervisorStrategy(new OneForOneStrategy(e => Directive.Stop));
 
                 var actor = Context.ActorOf(props);
@@ -43,7 +43,7 @@ namespace Even
             Receive<ProjectionStreamReplayRequest>(request =>
             {
                 var props = PropsFactory
-                    .Create<ProjectionStreamReplayWorker>(_storeReader, (Func<IPersistedRawEvent, IPersistedEvent>)DeserializeEvent)
+                    .Create<ProjectionStreamReplayWorker>(_storeReader, (Deserializer)DeserializeEvent)
                     .WithSupervisorStrategy(new OneForOneStrategy(e => Directive.Stop));
 
                 var actor = Context.ActorOf(props);
@@ -51,7 +51,9 @@ namespace Even
             });
         }
 
-        IPersistedEvent DeserializeEvent(IPersistedRawEvent rawEvent)
+        delegate IPersistedEvent Deserializer(string streamId, int streamSequence, IPersistedRawEvent rawEvent);
+
+        IPersistedEvent DeserializeEvent(string streamId, int sequence, IPersistedRawEvent rawEvent)
         {
             var metadata = _serializer.DeserializeMetadata(rawEvent.Metadata);
 
@@ -78,8 +80,8 @@ namespace Even
             return PersistedEventFactory.Create(
                 rawEvent.GlobalSequence,
                 rawEvent.EventID,
-                rawEvent.StreamID,
-                rawEvent.StreamSequence,
+                streamId,
+                sequence,
                 rawEvent.EventType,
                 rawEvent.UtcTimestamp,
                 metadata,
@@ -151,7 +153,7 @@ namespace Even
         /// </summary>
         class AggregateReplayWorker : WorkerBase
         {
-            public AggregateReplayWorker(IStreamStoreReader reader, Func<IPersistedRawEvent, IPersistedEvent> deserializer)
+            public AggregateReplayWorker(IStreamStoreReader reader, Deserializer deserialize)
             {
                 ReceiveReplayRequest<ReplayAggregateRequest>(request =>
                 {
@@ -164,15 +166,17 @@ namespace Even
                             return;
 
                         var globalSequence = 0L;
+                        var sequence = 0;
 
                         await reader.ReadStreamAsync(request.StreamID, request.InitialSequence, Int32.MaxValue, e =>
                         {
                             if (IsReplayCancelled)
                                 return;
 
+                            sequence++;
                             globalSequence = e.GlobalSequence;
 
-                            var @event = deserializer(e);
+                            var @event = deserialize(request.StreamID, sequence, e);
 
                             sender.Tell(new ReplayEvent
                             {
@@ -196,7 +200,7 @@ namespace Even
 
         class ProjectionStreamReplayWorker : WorkerBase
         {
-            public ProjectionStreamReplayWorker(IStreamStoreReader reader, Func<IPersistedRawEvent, IPersistedEvent> deserializer)
+            public ProjectionStreamReplayWorker(IStreamStoreReader reader, Deserializer deserializer)
             {
                 ReceiveReplayRequest<ProjectionStreamReplayRequest>(request =>
                 {
@@ -210,7 +214,7 @@ namespace Even
 
                         var projectionStreamCheckpoint = 0L;
                         var indexedGlobalSequence = 0L;
-                        var projectionStreamSequence = 0;
+                        var sequence = request.InitialSequence;
 
                         // check if the store supports projection indexes
                         var projectionStore = reader as IProjectionStoreReader;
@@ -218,36 +222,33 @@ namespace Even
                         if (projectionStore != null)
                         {
                             // grab whatever is the checkpoint for the projection
-                            projectionStreamCheckpoint = await projectionStore.ReadProjectionCheckpointAsync(request.ProjectionID);
+                            projectionStreamCheckpoint = await projectionStore.ReadProjectionCheckpointAsync(request.ProjectionStreamID);
 
                             // if we need to send indexed events, read the events
                             if (request.SendIndexedEvents)
                             {
-                                await projectionStore.ReadIndexedProjectionStreamAsync(request.ProjectionID, request.InitialSequence, request.MaxEvents, e =>
+                                await projectionStore.ReadIndexedProjectionStreamAsync(request.ProjectionStreamID, request.InitialSequence, request.MaxEvents, e =>
                                 {
                                     if (IsReplayCancelled)
                                         return;
 
-                                    indexedGlobalSequence = e.GlobalSequence;
-                                    projectionStreamSequence = e.ProjectionStreamSequence;
+                                    var persistedEvent = deserializer(request.ProjectionStreamID, sequence, e);
 
-                                    var persistedEvent = deserializer(e);
-                                    var projectionEvent = ProjectionEventFactory.Create(e.ProjectionStreamID, e.ProjectionStreamSequence, persistedEvent);
-
-                                    var replayEvent = new ProjectionReplayEvent
+                                    sender.Tell(new ReplayEvent
                                     {
                                         ReplayID = request.ReplayID,
-                                        Event = projectionEvent
-                                    };
+                                        Event = persistedEvent
+                                    }, self);
 
-                                    sender.Tell(replayEvent, self);
+                                    sequence++;
+                                    indexedGlobalSequence = e.GlobalSequence;
 
                                 }, ReplayCancelToken);
                             }
                             // otherwise we need to find out at least the highest sequence
                             else
                             {
-                                projectionStreamSequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.ProjectionID);
+                                sequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.ProjectionStreamID);
                             }
                         }
 
@@ -262,11 +263,11 @@ namespace Even
                         {
                             ReplayID = request.ReplayID,
                             LastSeenGlobalSequence = globalSequence,
-                            LastSeenProjectionStreamSequence = projectionStreamSequence
+                            LastSeenProjectionStreamSequence = sequence
                         }, self);
 
                         // try reading additional events from the global event stream that weren't emitted yet 
-                        var maxEvents = request.MaxEvents == Int32.MaxValue ? request.MaxEvents : request.MaxEvents - projectionStreamSequence;
+                        var maxEvents = request.MaxEvents == Int32.MaxValue ? request.MaxEvents : request.MaxEvents - sequence;
 
                         if (maxEvents > 0)
                         {
@@ -275,9 +276,7 @@ namespace Even
                                 if (IsReplayCancelled)
                                     return;
 
-                                globalSequence = e.GlobalSequence;
-
-                                var @event = deserializer(e);
+                                var @event = deserializer(request.ProjectionStreamID, sequence, e);
 
                                 sender.Tell(new ReplayEvent
                                 {
@@ -285,6 +284,9 @@ namespace Even
                                     Event = @event
 
                                 }, self);
+
+                                sequence++;
+                                globalSequence = e.GlobalSequence;
 
                             }, ReplayCancelToken);
                         }

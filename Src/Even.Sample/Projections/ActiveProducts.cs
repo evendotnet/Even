@@ -25,9 +25,9 @@ namespace Even.Sample.Projections
             });
         }
 
-        protected override Task OnReceiveEvent(IProjectionEvent e)
+        protected override Task OnReceiveEvent(IPersistedEvent e)
         {
-            Console.WriteLine($"Projection Received Event {e.ProjectionStreamSequence}: {e.EventType}");
+            Console.WriteLine($"Projection Received Event {e.StreamSequence}: {e.EventType}");
             return Task.CompletedTask;
         }
 

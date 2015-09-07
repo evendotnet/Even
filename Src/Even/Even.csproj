@@ -48,7 +48,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="DefaultDataSerializer.cs" />
+    <Compile Include="Constants.cs" />
+    <Compile Include="DefaultSerializer.cs" />
     <Compile Include="EvenStorageFormatAttribute.cs" />
     <Compile Include="EventProcessor.cs" />
     <Compile Include="EventRegistry.cs" />
@@ -72,10 +73,7 @@
     <Compile Include="Projection.cs" />
     <Compile Include="ISerializer.cs" />
     <Compile Include="EventStore.cs" />
-    <Compile Include="EventStoreConfig.cs" />
     <Compile Include="EventStoreContext.cs" />
-    <Compile Include="ProjectionEvent.cs" />
-    <Compile Include="ProjectionRawEvent.cs" />
     <Compile Include="ProjectionStreamQuery.cs" />
     <Compile Include="EventStoreReader.cs" />
     <Compile Include="EventStoreSettings.cs" />
