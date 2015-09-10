@@ -94,7 +94,7 @@ namespace Even.Messages
 
     public class ProjectionStreamReplayRequest : ReplayRequest
     {
-        public string ProjectionStreamID { get; set; }
+        public string StreamID { get; set; }
         public int InitialSequence { get; set; }
         public bool SendIndexedEvents { get; set; }
         public long MaxCheckpoint { get; set; } = Int64.MaxValue;

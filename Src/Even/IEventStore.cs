@@ -8,10 +8,7 @@ namespace Even
     // stores should implement at least IStreamStore, and optionally IProjectionStore
     // stores should implement all interfaces in the same type
 
-    public interface IStreamStore : IStreamStoreWriter, IStreamStoreReader
-    { }
-
-    public interface IProjectionStore : IProjectionStoreWriter, IProjectionStoreReader
+    public interface IEventStore : IStreamStoreWriter, IProjectionStoreWriter, IStreamStoreReader, IProjectionStoreReader
     { }
 
     // the following interfaces exist only for internal use
@@ -24,21 +21,21 @@ namespace Even
 
     public interface IStreamStoreReader
     {
-        Task ReadAsync(long initialCheckpoint, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadAsync(long initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
         Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
     
     public interface IProjectionStoreWriter
     {
-        Task WriteProjectionIndexAsync(string projectionStreamId, IReadOnlyCollection<IndexSequenceEntry> entries);
-        Task WriteProjectionCheckpointAsync(string projectionStreamId, long globalSequence);
+        Task WriteProjectionIndexAsync(string streamId, IReadOnlyCollection<long> globalSequences);
+        Task WriteProjectionCheckpointAsync(string streamId, long globalSequence);
     }
 
     public interface IProjectionStoreReader
     {
-        Task<long> ReadProjectionCheckpointAsync(string projectionStreamId);
-        Task<int> ReadHighestProjectionStreamSequenceAsync(string projectionStreamId);
+        Task<long> ReadProjectionCheckpointAsync(string streamId);
+        Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId);
 
-        Task ReadIndexedProjectionStreamAsync(string projectionStreamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
 }

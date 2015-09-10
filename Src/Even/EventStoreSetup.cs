@@ -22,7 +22,7 @@ namespace Even
             this._system = system;
         }
 
-        public EventStoreSetup UseStore(IStreamStore store)
+        public EventStoreSetup UseStore(IEventStore store)
         {
             Contract.Requires(store != null);
             _settings.Store = store;

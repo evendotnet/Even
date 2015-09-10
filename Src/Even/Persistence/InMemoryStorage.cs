@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Even.Persistence
 {
-    public class InMemoryStore : IStreamStore
+    public class InMemoryStore : IEventStore
     {
         List<PersistedRawEvent> _events = new List<PersistedRawEvent>();
         Dictionary<string, List<PersistedRawEvent>> _projections = new Dictionary<string, List<PersistedRawEvent>>(StringComparer.OrdinalIgnoreCase);
@@ -132,6 +132,31 @@ namespace Even.Persistence
                     readCallback(e);
             }
 
+            return Task.CompletedTask;
+        }
+
+        public Task WriteProjectionIndexAsync(string streamId, IReadOnlyCollection<long> globalSequences)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task WriteProjectionCheckpointAsync(string streamId, long globalSequence)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<long> ReadProjectionCheckpointAsync(string streamId)
+        {
+            return Task.FromResult(0L);
+        }
+
+        public Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        {
             return Task.CompletedTask;
         }
 

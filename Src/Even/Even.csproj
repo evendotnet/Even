@@ -30,8 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Akka, Version=1.0.4.12, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Akka.1.0.4\lib\net45\Akka.dll</HintPath>
+    <Reference Include="DBHelpers, Version=0.9.10.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DBHelpers.0.9.10.0\lib\net45\DBHelpers.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -62,14 +62,17 @@
     <Compile Include="EventProcessorEntry.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Messages\Initialization\InitializeEventStore.cs" />
-    <Compile Include="IStreamStore.cs" />
+    <Compile Include="IEventStore.cs" />
     <Compile Include="Messages\Persistence.cs" />
     <Compile Include="Messages\Subscriptions.cs" />
     <Compile Include="Aggregate.cs" />
     <Compile Include="CommandProcessorSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="PersistedEvent.cs" />
+    <Compile Include="Persistence\BaseSqlStore.cs" />
+    <Compile Include="Persistence\BatchStringBuilder.cs" />
     <Compile Include="Persistence\InMemoryStorage.cs" />
+    <Compile Include="Persistence\MySqlStore.cs" />
     <Compile Include="Projection.cs" />
     <Compile Include="ISerializer.cs" />
     <Compile Include="EventStore.cs" />
@@ -92,6 +95,7 @@
     <Compile Include="EventStoreSetup.cs" />
     <Compile Include="ESEventAttribute.cs" />
     <Compile Include="PersistedRawEvent.cs" />
+    <Compile Include="StreamHash.cs" />
     <Compile Include="UnpersistedEvent.cs" />
     <Compile Include="UnpersistedRawEvent.cs" />
   </ItemGroup>
@@ -99,7 +103,12 @@
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\oss\akka.net\src\core\Akka\Akka.csproj">
+      <Project>{5deddf90-37f0-48d3-a0b0-a5cbd8a7e377}</Project>
+      <Name>Akka</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

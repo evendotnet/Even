@@ -94,9 +94,15 @@ namespace Even
             public Exception Exception { get; set; }
         }
 
+        class WorkerReplayTaskComplete
+        {
+            public long LastSeenGlobalSequence { get; set; }
+        }
+
         // base class for query and aggregate readers
         class WorkerBase : ReceiveActor
         {
+            protected IActorRef OriginalSender { get; private set; }
             protected Guid ReplayID { get; private set; }
             protected ILoggingAdapter Log { get; } = Context.GetLogger();
 
@@ -112,27 +118,26 @@ namespace Even
                 Receive<T>(request =>
                 {
                     ReplayID = request.ReplayID;
+                    OriginalSender = Sender;
+
+                    handler(request);
+
                     Become(ReplayStarted);
-
-                    try
-                    {
-                        handler(request);
-                    }
-                    catch (Exception ex)
-                    {
-                        Sender.Tell(new ReplayAborted { ReplayID = ReplayID, Exception = ex });
-                    }
-
-                    Context.Stop(Self);
                 });
             }
 
             protected void ReplayStarted()
             {
+                Receive<WorkerReplayTaskComplete>(c =>
+                {
+                    OriginalSender.Tell(new ReplayCompleted { ReplayID = ReplayID, LastSeenGlobalSequence = c.LastSeenGlobalSequence });
+                    Context.Stop(Self);
+                });
+
                 Receive<CancelReplayRequest>(request =>
                 {
                     _cts.Cancel();
-                    Sender.Tell(new ReplayCancelled { ReplayID = ReplayID });
+                    OriginalSender.Tell(new ReplayCancelled { ReplayID = ReplayID });
                     Context.Stop(Self);
 
                 }, request => request.ReplayID == ReplayID);
@@ -141,7 +146,7 @@ namespace Even
                 {
                     Context.GetLogger().Error(wf.Exception, "Unexpected Exception on " + this.GetType().Name);
                     _cts.Cancel();
-                    Sender.Tell(new ReplayAborted { ReplayID = ReplayID, Exception = wf.Exception });
+                    OriginalSender.Tell(new ReplayAborted { ReplayID = ReplayID, Exception = wf.Exception });
                     Context.Stop(Self);
 
                 }, _ => Self.Equals(Sender));
@@ -164,11 +169,15 @@ namespace Even
                     {
                         if (IsReplayCancelled)
                             return;
-
+                        
                         var globalSequence = 0L;
                         var sequence = 0;
 
-                        await reader.ReadStreamAsync(request.StreamID, request.InitialSequence, Int32.MaxValue, e =>
+                        // normalize the query values
+                        var initialSequence = request.InitialSequence > 0 ? request.InitialSequence : 1;
+                        var maxEvents = -1;
+
+                        await reader.ReadStreamAsync(request.StreamID, initialSequence, maxEvents, e =>
                         {
                             if (IsReplayCancelled)
                                 return;
@@ -186,8 +195,7 @@ namespace Even
 
                         }, ReplayCancelToken);
 
-                        sender.Tell(new ReplayCompleted { ReplayID = ReplayID, LastSeenGlobalSequence = globalSequence }, self);
-
+                        self.Tell(new WorkerReplayTaskComplete { LastSeenGlobalSequence = globalSequence }, self);
                     })
                     .ContinueWith(t =>
                     {
@@ -222,17 +230,17 @@ namespace Even
                         if (projectionStore != null)
                         {
                             // grab whatever is the checkpoint for the projection
-                            projectionStreamCheckpoint = await projectionStore.ReadProjectionCheckpointAsync(request.ProjectionStreamID);
+                            projectionStreamCheckpoint = await projectionStore.ReadProjectionCheckpointAsync(request.StreamID);
 
                             // if we need to send indexed events, read the events
                             if (request.SendIndexedEvents)
                             {
-                                await projectionStore.ReadIndexedProjectionStreamAsync(request.ProjectionStreamID, request.InitialSequence, request.MaxEvents, e =>
+                                await projectionStore.ReadIndexedProjectionStreamAsync(request.StreamID, request.InitialSequence, request.MaxEvents, e =>
                                 {
                                     if (IsReplayCancelled)
                                         return;
 
-                                    var persistedEvent = deserializer(request.ProjectionStreamID, sequence, e);
+                                    var persistedEvent = deserializer(request.StreamID, sequence, e);
 
                                     sender.Tell(new ReplayEvent
                                     {
@@ -248,7 +256,7 @@ namespace Even
                             // otherwise we need to find out at least the highest sequence
                             else
                             {
-                                sequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.ProjectionStreamID);
+                                sequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.StreamID);
                             }
                         }
 
@@ -276,7 +284,7 @@ namespace Even
                                 if (IsReplayCancelled)
                                     return;
 
-                                var @event = deserializer(request.ProjectionStreamID, sequence, e);
+                                var @event = deserializer(request.StreamID, sequence, e);
 
                                 sender.Tell(new ReplayEvent
                                 {
@@ -291,14 +299,14 @@ namespace Even
                             }, ReplayCancelToken);
                         }
 
-                        sender.Tell(new ReplayCompleted { ReplayID = ReplayID, LastSeenGlobalSequence = globalSequence }, self);
-
+                        self.Tell(new WorkerReplayTaskComplete { LastSeenGlobalSequence = globalSequence }, self);
                     })
-                    .ContinueWith(t =>
-                    {
-                        self.Tell(new WorkerFailure { Exception = t.Exception }, self);
+                    .PipeTo(Self);
+                    //.ContinueWith(t =>
+                    //{
+                    //    self.Tell(new WorkerFailure { Exception = t.Exception }, self);
 
-                    }, TaskContinuationOptions.NotOnRanToCompletion);
+                    //}, TaskContinuationOptions.NotOnRanToCompletion);
                 });
             }
         }

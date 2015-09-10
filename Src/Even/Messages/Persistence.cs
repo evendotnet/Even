@@ -72,6 +72,6 @@ namespace Even.Messages
     public class ProjectionIndexPersistenceRequest
     {
         public string ProjectionStreamID { get; set; }
-        public IndexSequenceEntry Entry { get; set; }
+        public long GlobalSequence { get; set; }
     }
 }

@@ -14,7 +14,7 @@ namespace Even
     public class EventStore : ReceiveActor
     {
         EventStoreSettings _settings;
-        IStreamStore _store;
+        IEventStore _store;
 
         IActorRef _reader;
         IActorRef _writer;

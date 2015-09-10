@@ -10,7 +10,7 @@ namespace Even
     public class EventStoreSettings
     {
         public string EventStoreID { get; set; }
-        public IStreamStore Store { get; set; }
+        public IEventStore Store { get; set; }
         public ISerializer Serializer { get; set; } = new DefaultSerializer();
     }
 }

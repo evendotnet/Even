@@ -32,17 +32,7 @@ namespace Even
                 .OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
 
             var str = String.Concat(items);
-            var bytes = Encoding.UTF8.GetBytes(str);
-
-            var ha = new System.Security.Cryptography.SHA1CryptoServiceProvider();
-            var hash = ha.ComputeHash(bytes, 0, bytes.Length);
-
-            var sb = new StringBuilder(bytes.Length * 2);
-
-            foreach (var b in hash)
-                sb.Append(b.ToString("x2"));
-
-            return sb.ToString().ToLowerInvariant();
+            return StreamHash.AsHashString(str);
         }
     }
 }

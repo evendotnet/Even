@@ -63,7 +63,7 @@ namespace Even
                 _eventReader.Tell(new ProjectionStreamReplayRequest
                 {
                     ReplayID = _replayId,
-                    ProjectionStreamID = _projectionStreamId,
+                    StreamID = _projectionStreamId,
                     MaxCheckpoint = Int64.MaxValue,
                     SendIndexedEvents = false
                 });
@@ -253,11 +253,7 @@ namespace Even
                 _writer.Tell(new ProjectionIndexPersistenceRequest
                 {
                     ProjectionStreamID = _projectionStreamId,
-                    Entry = new IndexSequenceEntry
-                    {
-                        GlobalSequence = _globalSequence,
-                        ProjectionStreamSequence = _projectionStreamSequence
-                    }
+                    GlobalSequence = _globalSequence
                 });
             }
         }
@@ -305,7 +301,7 @@ namespace Even
                     ini.EventReader.Tell(new ProjectionStreamReplayRequest
                     {
                         ReplayID = _replayId,
-                        ProjectionStreamID = ini.ProjectionID,
+                        StreamID = ini.ProjectionID,
                         InitialSequence = ini.InitialSequence,
                         MaxCheckpoint = ini.Checkpoint,
                         SendIndexedEvents = true

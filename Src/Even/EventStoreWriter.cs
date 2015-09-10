@@ -169,7 +169,7 @@ namespace Even
                          select new
                          {
                              ProjectionStreamID = g.Key,
-                             Entries = g.Select(e => e.Entry).ToList()
+                             Entries = g.Select(o => o.GlobalSequence).ToList()
                          };
 
                 foreach (var o in re)

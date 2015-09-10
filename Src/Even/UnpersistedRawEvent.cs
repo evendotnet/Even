@@ -8,7 +8,7 @@ namespace Even
         public UnpersistedRawEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
         {
             Contract.Requires(eventId != Guid.Empty);
-            Contract.Requires(!String.IsNullOrEmpty(streamId));
+            Contract.Requires(streamId != null);
             Contract.Requires(!String.IsNullOrEmpty(eventType));
             Contract.Requires(utcTimestamp != default(DateTime));
             Contract.Requires(payload != null);
