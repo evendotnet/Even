@@ -63,7 +63,7 @@ namespace Even
                 {
                     ReplayID = _replayId,
                     Query = query,
-                    LastKnownSequence = knownState?.ProjectionSequence ?? 0
+                    LastKnownSequence = CurrentSequence = knownState?.ProjectionSequence ?? 0
                 });
 
                 Become(Replaying);
