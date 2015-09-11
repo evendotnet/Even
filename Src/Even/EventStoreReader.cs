@@ -283,7 +283,7 @@ namespace Even
                         // try reading additional events from the global event stream that weren't emitted yet 
                         maxEvents = maxEvents == -1 ? -1 : request.MaxEvents - sequence;
 
-                        if (maxEvents > 0)
+                        if (maxEvents == -1 || maxEvents > 0)
                         {
                             await reader.ReadAsync(globalSequence + 1, maxEvents, e =>
                             {
