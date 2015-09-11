@@ -111,7 +111,7 @@ namespace Even.Persistence
         public async Task WriteProjectionIndexAsync(string streamId, IReadOnlyCollection<long> globalSequences)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var maxIndexSequenceQuery = String.Format(SqlFormat_SelectMaxIndexSequence, ProjectionIndexTable, streamHash);
+            var maxIndexSequenceQuery = String.Format(SqlFormat_SelectMaxIndexedGlobalSequence, ProjectionIndexTable, streamHash);
 
             using (var cn = DB.CreateConnection())
             {
@@ -218,6 +218,14 @@ namespace Even.Persistence
             return DB.ExecuteScalarAsync<long>(query);
         }
 
+        public Task<long> ReadHighestProjectionGlobalSequenceAsync(string streamId)
+        {
+            var streamHash = Format(StreamHash.AsHashBytes(streamId));
+            var query = String.Format(SqlFormat_SelectMaxIndexedGlobalSequence, ProjectionIndexTable, streamHash);
+
+            return DB.ExecuteScalarAsync<long>(query);
+        }
+
         public Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
@@ -286,13 +294,13 @@ namespace Even.Persistence
 
         protected virtual string SqlFormat_InsertIndexPrefix { get; } = "INSERT INTO {0} (ProjectionStreamID, GlobalSequence) VALUES ";
         protected virtual string SqlFormat_InsertIndexValues { get; } = "({0}, {1}), ";
-        protected virtual string SqlFormat_SelectMaxIndexSequence { get; } = "SELECT MAX(GlobalSequence) FROM {0} WHERE ProjectionStreamID = {1}";
+        protected virtual string SqlFormat_SelectMaxIndexedGlobalSequence { get; } = "SELECT MAX(GlobalSequence) FROM {0} WHERE ProjectionStreamID = {1}";
+        protected virtual string SqlFormat_SelectCountProjectionStream { get; } = "SELECT COUNT(*) FROM {0} WHERE ProjectionStreamID = {1}";
 
         protected virtual string SqlFormat_InsertCheckpoint { get; } = "INSERT INTO {0} (StreamID, LastGlobalSequence) VALUES({1}, {2})";
         protected virtual string SqlFormat_UpdateCheckpoint { get; } = "UPDATE {0} SET LastGlobalSequence = {2} WHERE ProjectionStreamID = {1}";
         protected virtual string SqlFormat_SelectCheckpoint { get; } = "SELECT LastGlobalSequence FROM {0} WHERE ProjectionStreamID = {1}";
 
-        protected virtual string SqlFormat_SelectCountProjectionStream { get; } = "SELECT COUNT(*) FROM {0} WHERE ProjectionStreamID = {1}";
 
         protected string SelectFields = "GlobalSequence, EventID, OriginalStreamID, EventType, UtcTimestamp, Metadata, Payload, PayloadFormat";
 

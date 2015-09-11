@@ -65,7 +65,7 @@ namespace Even
             {
                 object clrTypeName;
 
-                if (metadata.TryGetValue("$CLRType", out clrTypeName))
+                if (metadata.TryGetValue(Constants.ClrTypeMetadataKey, out clrTypeName))
                 {
                     var s = clrTypeName as string;
 
@@ -220,25 +220,30 @@ namespace Even
                         if (IsReplayCancelled)
                             return;
 
+                        // normalize request values
+                        var initialSequence = request.InitialSequence > 0 ? request.InitialSequence : 1;
+                        var maxEvents = request.MaxEvents > 0 && request.MaxEvents < Int32.MaxValue ? request.MaxEvents : -1;
+
+                        // work values
                         var projectionStreamCheckpoint = 0L;
                         var indexedGlobalSequence = 0L;
-                        var sequence = request.InitialSequence;
+                        var sequence = initialSequence - 1;
 
                         // check if the store supports projection indexes
                         var projectionStore = reader as IProjectionStoreReader;
 
                         if (projectionStore != null)
                         {
-                            // grab whatever is the checkpoint for the projection
-                            projectionStreamCheckpoint = await projectionStore.ReadProjectionCheckpointAsync(request.StreamID);
-
                             // if we need to send indexed events, read the events
                             if (request.SendIndexedEvents)
                             {
-                                await projectionStore.ReadIndexedProjectionStreamAsync(request.StreamID, request.InitialSequence, request.MaxEvents, e =>
+                                await projectionStore.ReadIndexedProjectionStreamAsync(request.StreamID, initialSequence, maxEvents, e =>
                                 {
                                     if (IsReplayCancelled)
                                         return;
+
+                                    sequence++;
+                                    indexedGlobalSequence = e.GlobalSequence;
 
                                     var persistedEvent = deserializer(request.StreamID, sequence, e);
 
@@ -248,16 +253,17 @@ namespace Even
                                         Event = persistedEvent
                                     }, self);
 
-                                    sequence++;
-                                    indexedGlobalSequence = e.GlobalSequence;
-
                                 }, ReplayCancelToken);
                             }
-                            // otherwise we need to find out at least the highest sequence
+                            // otherwise we need to find out at least the highest sequences
                             else
                             {
                                 sequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.StreamID);
+                                indexedGlobalSequence = await projectionStore.ReadHighestProjectionGlobalSequenceAsync(request.StreamID);
                             }
+
+                            // grab whatever is the checkpoint for the projection
+                            projectionStreamCheckpoint = await projectionStore.ReadProjectionCheckpointAsync(request.StreamID);
                         }
 
                         if (IsReplayCancelled)
@@ -275,7 +281,7 @@ namespace Even
                         }, self);
 
                         // try reading additional events from the global event stream that weren't emitted yet 
-                        var maxEvents = request.MaxEvents == Int32.MaxValue ? request.MaxEvents : request.MaxEvents - sequence;
+                        maxEvents = maxEvents == -1 ? -1 : request.MaxEvents - sequence;
 
                         if (maxEvents > 0)
                         {

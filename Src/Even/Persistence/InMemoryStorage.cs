@@ -150,6 +150,11 @@ namespace Even.Persistence
             return Task.FromResult(0L);
         }
 
+        public Task<long> ReadHighestProjectionGlobalSequenceAsync(string streamId)
+        {
+            return Task.FromResult(0L);
+        }
+
         public Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId)
         {
             return Task.FromResult(0);

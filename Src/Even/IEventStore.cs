@@ -34,6 +34,7 @@ namespace Even
     public interface IProjectionStoreReader
     {
         Task<long> ReadProjectionCheckpointAsync(string streamId);
+        Task<long> ReadHighestProjectionGlobalSequenceAsync(string streamId);
         Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId);
 
         Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
