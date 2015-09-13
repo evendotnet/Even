@@ -5,37 +5,40 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    // stores should implement at least IStreamStore, and optionally IProjectionStore
+    // stores should implement at least IEventStore, and optionally IProjectionStore
     // stores should implement all interfaces in the same type
 
-    public interface IEventStore : IStreamStoreWriter, IProjectionStoreWriter, IStreamStoreReader, IProjectionStoreReader
+    public interface IEventStore : IEventStoreReader, IEventStoreWriter
+    { }
+
+    public interface IProjectionStore : IProjectionStoreWriter, IProjectionStoreReader
     { }
 
     // the following interfaces exist only for internal use
 
-    public interface IStreamStoreWriter
+    public interface IEventStoreReader
     {
-        Task WriteEventsAsync(IReadOnlyCollection<UnpersistedRawEvent> events);
-        Task WriteEventsAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events);
+        Task WriteAsync(IReadOnlyCollection<UnpersistedRawEvent> events);
+        Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events);
     }
 
-    public interface IStreamStoreReader
+    public interface IEventStoreWriter
     {
-        Task ReadAsync(long initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
-        Task ReadStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadAsync(long start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadStreamAsync(string streamId, int start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
     
     public interface IProjectionStoreWriter
     {
-        Task WriteProjectionIndexAsync(string streamId, IReadOnlyCollection<long> globalSequences);
+        Task WriteProjectionIndexAsync(string streamId, int expectedSequence, IReadOnlyCollection<long> globalSequences);
         Task WriteProjectionCheckpointAsync(string streamId, long globalSequence);
     }
 
     public interface IProjectionStoreReader
     {
         Task<long> ReadProjectionCheckpointAsync(string streamId);
-        Task<long> ReadHighestProjectionGlobalSequenceAsync(string streamId);
-        Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId);
+        Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(string streamId);
+        Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(string streamId);
 
         Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
