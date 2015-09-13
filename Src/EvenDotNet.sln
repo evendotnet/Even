@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even", "Even\Even.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Sample", "Even.Sample\Even.Sample.csproj", "{B1ED1024-1B1A-408D-8D3D-75AA007ED3D0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Tests", "Even.Tests\Even.Tests.csproj", "{998D145B-1238-47D1-BCD5-7EECA1E8A301}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{B1ED1024-1B1A-408D-8D3D-75AA007ED3D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B1ED1024-1B1A-408D-8D3D-75AA007ED3D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B1ED1024-1B1A-408D-8D3D-75AA007ED3D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{998D145B-1238-47D1-BCD5-7EECA1E8A301}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{998D145B-1238-47D1-BCD5-7EECA1E8A301}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{998D145B-1238-47D1-BCD5-7EECA1E8A301}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{998D145B-1238-47D1-BCD5-7EECA1E8A301}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

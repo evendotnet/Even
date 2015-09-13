@@ -11,7 +11,7 @@ namespace Even
 {
     public class EventStoreWriter : ReceiveActor
     {
-        IStreamStoreWriter _writer;
+        IEventStoreReader _writer;
         ISerializer _serializer;
 
         IActorRef _eventWriter;
@@ -56,10 +56,10 @@ namespace Even
 
         abstract class BaseWriter : ReceiveActor
         {
-            IStreamStoreWriter _writer;
+            IEventStoreReader _writer;
             ISerializer _serializer;
 
-            public BaseWriter(IStreamStoreWriter writer, ISerializer serializer)
+            public BaseWriter(IEventStoreReader writer, ISerializer serializer)
             {
                 Contract.Requires(writer != null);
                 Contract.Requires(serializer != null);
@@ -77,13 +77,13 @@ namespace Even
                     var metadata = _serializer.SerializeMetadata(e.Metadata);
                     var payload = _serializer.SerializeEvent(e.DomainEvent, format);
 
-                    var re = new UnpersistedRawEvent(e.EventID, streamId, e.EventType, e.UtcTimestamp, metadata, payload, format);
+                    var re = new UnpersistedRawStreamEvent(e.EventID, streamId, e.EventType, e.UtcTimestamp, metadata, payload, format);
 
                     return re;
                 }).ToList();
 
                 // writes all events to the store
-                await _writer.WriteEventsAsync(streamId, expectedStreamSequence, rawEvents);
+                await _writer.WriteStreamAsync(streamId, expectedStreamSequence, rawEvents);
 
                 // ensure the sequences were set
                 Contract.Assert(rawEvents.All(e => e.SequenceWasSet), "Some or all sequences were not set after write.");
@@ -108,7 +108,7 @@ namespace Even
 
         class SerialEventWriter : BaseWriter
         {
-            public SerialEventWriter(IStreamStoreWriter writer, ISerializer serializer)
+            public SerialEventWriter(IEventStoreReader writer, ISerializer serializer)
                 : base(writer, serializer)
             {
                 Receive<PersistenceRequest>(async request =>
@@ -171,9 +171,9 @@ namespace Even
                              ProjectionStreamID = g.Key,
                              Entries = g.Select(o => o.GlobalSequence).ToList()
                          };
-
-                foreach (var o in re)
-                    await _writer.WriteProjectionIndexAsync(o.ProjectionStreamID, o.Entries);
+                // TODO: take into account the projection sequence
+                //foreach (var o in re)
+                //    await _writer.WriteProjectionIndexAsync(o.ProjectionStreamID, o.Entries);
 
                 _buffer.Clear();
             }

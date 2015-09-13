@@ -11,7 +11,7 @@ namespace Even
 {
     public class EventStoreReader : ReceiveActor
     {
-        IStreamStoreReader _storeReader;
+        IEventStoreWriter _storeReader;
         ISerializer _serializer;
         ILoggingAdapter _log = Context.GetLogger();
         EventRegistry _eventRegistry;
@@ -158,7 +158,7 @@ namespace Even
         /// </summary>
         class AggregateReplayWorker : WorkerBase
         {
-            public AggregateReplayWorker(IStreamStoreReader reader, Deserializer deserialize)
+            public AggregateReplayWorker(IEventStoreWriter reader, Deserializer deserialize)
             {
                 ReceiveReplayRequest<ReplayAggregateRequest>(request =>
                 {
@@ -208,7 +208,7 @@ namespace Even
 
         class ProjectionStreamReplayWorker : WorkerBase
         {
-            public ProjectionStreamReplayWorker(IStreamStoreReader reader, Deserializer deserializer)
+            public ProjectionStreamReplayWorker(IEventStoreWriter reader, Deserializer deserializer)
             {
                 ReceiveReplayRequest<ProjectionStreamReplayRequest>(request =>
                 {
@@ -258,8 +258,8 @@ namespace Even
                             // otherwise we need to find out at least the highest sequences
                             else
                             {
-                                sequence = await projectionStore.ReadHighestProjectionStreamSequenceAsync(request.StreamID);
-                                indexedGlobalSequence = await projectionStore.ReadHighestProjectionGlobalSequenceAsync(request.StreamID);
+                                sequence = await projectionStore.ReadHighestIndexedProjectionStreamSequenceAsync(request.StreamID);
+                                indexedGlobalSequence = await projectionStore.ReadHighestIndexedProjectionGlobalSequenceAsync(request.StreamID);
                             }
 
                             // grab whatever is the checkpoint for the projection

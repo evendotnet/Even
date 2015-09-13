@@ -15,6 +15,12 @@ namespace Even
     public class UnexpectedStreamSequenceException : EvenException
     { }
 
+    public class DuplicatedEventException : EvenException
+    { }
+
+    public class DuplicatedSequenceException : EvenException
+    { }
+
     public class DeserializationException : EvenException
     { }
 }

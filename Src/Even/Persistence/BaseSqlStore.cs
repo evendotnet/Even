@@ -10,22 +10,26 @@ using System.Diagnostics.Contracts;
 
 namespace Even.Persistence
 {
-    public abstract class BaseSqlStore : IEventStore
+    public abstract class BaseSqlStore : IEventStore, IEventStoreInitializer
     {
         public BaseSqlStore(DbProviderFactory providerFactory, string connectionString, string tablePrefix)
         {
             DB = new DBHelper(providerFactory, connectionString);
 
-            EventsTable = EscapeIdentifier(tablePrefix + "Events");
-            ProjectionIndexTable = EscapeIdentifier(tablePrefix + "ProjectionIndex");
-            ProjectionCheckpointTable = EscapeIdentifier(tablePrefix + "ProjectionCheckpoint");
+            EventsTable = tablePrefix + "Events";
+            ProjectionIndexTable = tablePrefix + "ProjectionIndex";
+            ProjectionCheckpointTable = tablePrefix + "ProjectionCheckpoint";
+
+            EventsTableEscaped = EscapeIdentifier(EventsTable);
+            ProjectionIndexTableEscaped = EscapeIdentifier(ProjectionIndexTable);
+            ProjectionCheckpointTableEscaped = EscapeIdentifier(ProjectionCheckpointTable);
         }
 
         DBHelper DB;
 
-        public async Task WriteEventsAsync(IReadOnlyCollection<UnpersistedRawEvent> events)
+        public async Task WriteAsync(IReadOnlyCollection<UnpersistedRawStreamEvent> events)
         {
-            var globalSequenceQuery = String.Format(SqlFormat_SelectMaxGlobalSequence, EventsTable);
+            var globalSequenceQuery = String.Format(SqlFormat_SelectMaxGlobalSequence, EventsTableEscaped);
 
             using (var cn = DB.CreateConnection())
             {
@@ -44,9 +48,10 @@ namespace Even.Persistence
 
                     tr.Commit();
                 }
-                catch
+                catch (Exception ex)
                 {
                     tr.Rollback();
+                    HandleInsertException(ex);
                     throw;
                 }
 
@@ -58,11 +63,11 @@ namespace Even.Persistence
             }
         }
 
-        public async Task WriteEventsAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
+        public async Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var streamCountQuery = String.Format(SqlFormat_SelectStreamCount, EventsTable, streamHash);
-            var globalSequenceQuery = String.Format(SqlFormat_SelectMaxGlobalSequence, EventsTable);
+            var streamCountQuery = String.Format(SqlFormat_SelectStreamCount, EventsTableEscaped, streamHash);
+            var globalSequenceQuery = String.Format(SqlFormat_SelectMaxGlobalSequence, EventsTableEscaped);
 
             using (var cn = DB.CreateConnection())
             {
@@ -70,13 +75,11 @@ namespace Even.Persistence
 
                 var tr = cn.BeginTransaction();
 
-                if (expectedSequence >= 0)
+                if (expectedSequence != ExpectedSequence.Any)
                 {
-                    // since the table doesn't keep track of sequences,
-                    // the current sequence = # of records in the stream
                     var streamCount = await DB.ExecuteScalarAsync<int>(streamCountQuery, cn);
 
-                    if (streamCount != expectedSequence)
+                    if (expectedSequence != streamCount)
                     {
                         tr.Rollback();
                         throw new UnexpectedStreamSequenceException();
@@ -108,10 +111,13 @@ namespace Even.Persistence
             }
         }
 
-        public async Task WriteProjectionIndexAsync(string streamId, IReadOnlyCollection<long> globalSequences)
+        public async Task WriteProjectionIndexAsync(string streamId, int expectedSequence, IReadOnlyCollection<long> globalSequences)
         {
+            if (expectedSequence < 0)
+                throw new UnexpectedStreamSequenceException();
+
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var maxIndexSequenceQuery = String.Format(SqlFormat_SelectMaxIndexedGlobalSequence, ProjectionIndexTable, streamHash);
+            var maxProjectionSequenceQuery = String.Format(SqlFormat_SelectMaxIndexedStreamSequence, ProjectionIndexTableEscaped, streamHash);
 
             using (var cn = DB.CreateConnection())
             {
@@ -119,12 +125,19 @@ namespace Even.Persistence
 
                 var tr = cn.BeginTransaction();
 
-                var lastGlobalSequence = await DB.ExecuteScalarAsync<long>(maxIndexSequenceQuery, cn);
-                var newEntries = globalSequences.Where(s => s > lastGlobalSequence);
+                var lastStreamSequence = await DB.ExecuteScalarAsync<int>(maxProjectionSequenceQuery);
+
+                if (expectedSequence != lastStreamSequence)
+                {
+                    tr.Rollback();
+                    throw new UnexpectedStreamSequenceException();
+                }
+
+                var streamSequence = lastStreamSequence + 1;
 
                 var batches = BatchStringBuilder.Build(globalSequences, MaxIndexBatchCount, MaxIndexBatchLength,
-                    sb => sb.AppendFormat(SqlFormat_InsertIndexPrefix, ProjectionIndexTable),
-                    (sb, s) => sb.AppendFormat(SqlFormat_InsertIndexValues, streamHash, s),
+                    sb => sb.AppendFormat(SqlFormat_InsertIndexPrefix, ProjectionIndexTableEscaped),
+                    (sb, s) => sb.AppendFormat(SqlFormat_InsertIndexValues, streamHash, streamSequence++, s),
                     sb => sb.Length -= 2
                 );
 
@@ -138,6 +151,7 @@ namespace Even.Persistence
                 catch (Exception ex)
                 {
                     tr.Rollback();
+                    HandleInsertException(ex);
                     throw;
                 }
             }
@@ -146,20 +160,27 @@ namespace Even.Persistence
         public async Task WriteProjectionCheckpointAsync(string streamId, long globalSequence)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var update = String.Format(SqlFormat_UpdateCheckpoint, ProjectionCheckpointTable, streamHash, globalSequence);
+            var update = String.Format(SqlFormat_UpdateCheckpoint, ProjectionCheckpointTableEscaped, streamHash, globalSequence);
 
             var affected = await DB.ExecuteNonQueryAsync(update);
 
             if (affected == 0)
             {
-                var insert = String.Format(SqlFormat_InsertCheckpoint, ProjectionCheckpointTable, streamHash, globalSequence);
+                var insert = String.Format(SqlFormat_InsertCheckpoint, ProjectionCheckpointTableEscaped, streamHash, globalSequence);
                 await DB.ExecuteNonQueryAsync(insert);
             }
         }
 
-        public async Task ReadAsync(long initialSequence, int maxEvents, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        public async Task ClearProjectionIndexAsync(string streamId)
         {
-            var query = BuildReadQuery(initialSequence, maxEvents);
+            var streamHash = Format(StreamHash.AsHashBytes(streamId));
+            var query = String.Format(SqlFormat_ClearIndex, ProjectionIndexTableEscaped, ProjectionCheckpointTableEscaped, streamHash);
+            await DB.ExecuteNonQueryAsync(query);
+        }
+
+        public async Task ReadAsync(long start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        {
+            var query = BuildReadQuery(start, count);
 
             using (var reader = await DB.ExecuteReaderAsync(query))
             {
@@ -213,23 +234,23 @@ namespace Even.Persistence
         public Task<long> ReadProjectionCheckpointAsync(string streamId)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var query = String.Format(SqlFormat_SelectCheckpoint, ProjectionCheckpointTable, streamHash);
+            var query = String.Format(SqlFormat_SelectCheckpoint, ProjectionCheckpointTableEscaped, streamHash);
 
             return DB.ExecuteScalarAsync<long>(query);
         }
 
-        public Task<long> ReadHighestProjectionGlobalSequenceAsync(string streamId)
+        public Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(string streamId)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var query = String.Format(SqlFormat_SelectMaxIndexedGlobalSequence, ProjectionIndexTable, streamHash);
+            var query = String.Format(SqlFormat_SelectMaxIndexedGlobalSequence, ProjectionIndexTableEscaped, streamHash);
 
             return DB.ExecuteScalarAsync<long>(query);
         }
 
-        public Task<int> ReadHighestProjectionStreamSequenceAsync(string streamId)
+        public Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(string streamId)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
-            var query = String.Format(SqlFormat_SelectCountProjectionStream, ProjectionIndexTable, streamHash);
+            var query = String.Format(SqlFormat_SelectMaxIndexedStreamSequence, ProjectionIndexTableEscaped, streamHash);
 
             return DB.ExecuteScalarAsync<int>(query);
         }
@@ -239,14 +260,14 @@ namespace Even.Persistence
             var batches = BatchStringBuilder.Build<UnpersistedRawEvent>(events,
                 MaxEventBatchCount,
                 MaxEventBatchLength,
-                sb => sb.AppendFormat(SqlFormat_InsertEventPrefix, EventsTable),
+                sb => sb.AppendFormat(SqlFormat_InsertEventPrefix, EventsTableEscaped),
                 (sb, e) =>
                 {
                     sb.AppendFormat(SqlFormat_InsertEventValues,
                         initialSequence++,
                         Format(e.EventID),
-                        streamHash ?? Format(StreamHash.AsHashBytes(e.StreamID)),
-                        EscapeString(e.StreamID),
+                        e is UnpersistedRawStreamEvent ? Format(StreamHash.AsHashBytes(((UnpersistedRawStreamEvent) e).StreamID)) : streamHash,
+                        e is UnpersistedRawStreamEvent ? EscapeString(((UnpersistedRawStreamEvent)e).StreamID) : null,
                         EscapeString(e.EventType),
                         Format(e.UtcTimestamp),
                         Format(e.Metadata),
@@ -280,6 +301,7 @@ namespace Even.Persistence
         protected abstract string Format(byte[] bytes);
         protected abstract string Format(Guid guid);
         protected abstract string MaxLimitValue { get; }
+        protected abstract string SqlFormat_Initialization { get; }
 
         protected virtual int MaxEventBatchCount { get; } = 50;
         protected virtual int MaxEventBatchLength { get; } = 262144; // 256kb
@@ -292,46 +314,47 @@ namespace Even.Persistence
         protected virtual string SqlFormat_SelectMaxGlobalSequence { get; } = "SELECT MAX(GlobalSequence) FROM {0}";
         protected virtual string SqlFormat_SelectStreamCount { get; } = "SELECT COUNT(*) FROM {0} WHERE StreamID = {1}";
 
-        protected virtual string SqlFormat_InsertIndexPrefix { get; } = "INSERT INTO {0} (ProjectionStreamID, GlobalSequence) VALUES ";
-        protected virtual string SqlFormat_InsertIndexValues { get; } = "({0}, {1}), ";
+        protected virtual string SqlFormat_InsertIndexPrefix { get; } = "INSERT INTO {0} (ProjectionStreamID, ProjectionStreamSequence, GlobalSequence) VALUES ";
+        protected virtual string SqlFormat_InsertIndexValues { get; } = "({0}, {1}, {2}), ";
         protected virtual string SqlFormat_SelectMaxIndexedGlobalSequence { get; } = "SELECT MAX(GlobalSequence) FROM {0} WHERE ProjectionStreamID = {1}";
-        protected virtual string SqlFormat_SelectCountProjectionStream { get; } = "SELECT COUNT(*) FROM {0} WHERE ProjectionStreamID = {1}";
+        protected virtual string SqlFormat_SelectMaxIndexedStreamSequence { get; } = "SELECT MAX(ProjectionStreamSequence) FROM {0} WHERE ProjectionStreamID = {1}";
+        protected virtual string SqlFormat_ClearIndex { get; } = "DELETE FROM {0} WHERE ProjectionStreamID = {2}; DELETE FROM {1} WHERE ProjectionStreamID = {2};";
 
-        protected virtual string SqlFormat_InsertCheckpoint { get; } = "INSERT INTO {0} (StreamID, LastGlobalSequence) VALUES({1}, {2})";
+        protected virtual string SqlFormat_InsertCheckpoint { get; } = "INSERT INTO {0} (ProjectionStreamID, LastGlobalSequence) VALUES({1}, {2})";
         protected virtual string SqlFormat_UpdateCheckpoint { get; } = "UPDATE {0} SET LastGlobalSequence = {2} WHERE ProjectionStreamID = {1}";
         protected virtual string SqlFormat_SelectCheckpoint { get; } = "SELECT LastGlobalSequence FROM {0} WHERE ProjectionStreamID = {1}";
 
 
         protected string SelectFields = "GlobalSequence, EventID, OriginalStreamID, EventType, UtcTimestamp, Metadata, Payload, PayloadFormat";
 
-        protected virtual string BuildReadQuery(long initialSequence, int maxEvents)
+        protected virtual string BuildReadQuery(long start, int count)
         {
-            var limit = (maxEvents > 0) ? " LIMIT " + maxEvents : String.Empty;
-            var query = $"SELECT {SelectFields} FROM {EventsTable} WHERE GlobalSequence >= {initialSequence} ORDER BY GlobalSequence{limit}";
+            var limit = (count >= 0) ? " LIMIT " + count : String.Empty;
+            var query = $"SELECT {SelectFields} FROM {EventsTableEscaped} WHERE GlobalSequence >= {start + 1} ORDER BY GlobalSequence{limit}";
 
             return query;
         }
 
-        protected virtual string BuildReadStreamsQuery(byte[] streamId, int initialSequence, int maxEvents)
+        protected virtual string BuildReadStreamsQuery(byte[] streamId, int start, int count)
         {
-            var limit = BuildLimitClause(initialSequence, maxEvents);
-            var query = $"SELECT {SelectFields} FROM {EventsTable} WHERE StreamID = {Format(streamId)} ORDER BY GlobalSequence{limit}";
+            var limit = BuildLimitClause(start, count);
+            var query = $"SELECT {SelectFields} FROM {EventsTableEscaped} WHERE StreamID = {Format(streamId)} ORDER BY GlobalSequence{limit}";
 
             return query;
         }
 
-        protected virtual string BuildReadIndexedProjectionStreamQuery(byte[] streamId, int initialSequence, int maxEvents)
+        protected virtual string BuildReadIndexedProjectionStreamQuery(byte[] streamId, int start, int count)
         {
-            var limit = BuildLimitClause(initialSequence, maxEvents);
-            var query = $"SELECT e.{SelectFields} FROM {EventsTable} e INNER JOIN {ProjectionIndexTable} p ON e.GlobalSequence = p.GlobalSequence WHERE p.ProjectionStreamID = {Format(streamId)} ORDER BY p.GlobalSequence{limit}";
+            var limit = BuildLimitClause(start, count);
+            var query = $"SELECT e.{SelectFields} FROM {EventsTableEscaped} e INNER JOIN {ProjectionIndexTableEscaped} p ON e.GlobalSequence = p.GlobalSequence WHERE p.ProjectionStreamID = {Format(streamId)} ORDER BY p.GlobalSequence{limit}";
 
             return query;
         }
 
-        protected virtual string BuildLimitClause(int initialSequence, int maxEvents)
+        protected virtual string BuildLimitClause(int start, int count)
         {
-            var limit = maxEvents > 0 ? " LIMIT " + maxEvents : null;
-            var offset = initialSequence > 1 ? " OFFSET " + (initialSequence - 1) : null;
+            var limit = count >= 0 ? " LIMIT " + count : null;
+            var offset = start > 0 ? " OFFSET " + start : null;
 
             if (limit != null && offset != null)
                 return limit + offset;
@@ -345,9 +368,13 @@ namespace Even.Persistence
             return null;
         }
 
-        protected string EventsTable { get; }
-        protected string ProjectionIndexTable { get; }
-        protected string ProjectionCheckpointTable { get; }
+        public string EventsTable { get; }
+        public string ProjectionIndexTable { get; }
+        public string ProjectionCheckpointTable { get; }
+
+        protected string EventsTableEscaped { get; }
+        protected string ProjectionIndexTableEscaped { get; }
+        protected string ProjectionCheckpointTableEscaped { get; }
 
         protected string FormatBytesInternal(byte[] bytes, string prefix, string suffix)
         {
@@ -366,6 +393,14 @@ namespace Even.Persistence
             sb.Append(suffix);
 
             return sb.ToString();
+        }
+
+        protected abstract void HandleInsertException(Exception ex);
+
+        public virtual Task InitializeStore()
+        {
+            var script = String.Format(SqlFormat_Initialization, EventsTable, ProjectionIndexTable, ProjectionCheckpointTable);
+            return DB.ExecuteNonQueryAsync(script);
         }
     }
 }

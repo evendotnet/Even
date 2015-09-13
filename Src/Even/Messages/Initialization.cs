@@ -12,13 +12,13 @@ namespace Even.Messages
     {
         public EventRegistry EventRegistry { get; set; }
         public ISerializer Serializer { get; set; }
-        public IStreamStoreReader StoreReader { get; set; }
+        public IEventStoreWriter StoreReader { get; set; }
     }
 
     public class InitializeEventStoreWriter
     {
         public ISerializer Serializer { get; set; }
-        public IStreamStoreWriter StoreWriter { get; set; }
+        public IEventStoreReader StoreWriter { get; set; }
     }
 
     public class InitializeCommandProcessorSupervisor

@@ -5,16 +5,14 @@ namespace Even
 {
     public class UnpersistedRawEvent
     {
-        public UnpersistedRawEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
+        public UnpersistedRawEvent(Guid eventId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
         {
             Contract.Requires(eventId != Guid.Empty);
-            Contract.Requires(streamId != null);
             Contract.Requires(!String.IsNullOrEmpty(eventType));
             Contract.Requires(utcTimestamp != default(DateTime));
             Contract.Requires(payload != null);
 
             EventID = eventId;
-            StreamID = streamId;
             EventType = eventType;
             UtcTimestamp = utcTimestamp;
             Metadata = metadata;
@@ -24,7 +22,6 @@ namespace Even
 
         public long GlobalSequence { get; private set; }
         public Guid EventID { get; }
-        public string StreamID { get; }
         public string EventType { get; }
         public DateTime UtcTimestamp { get; }
         public byte[] Metadata { get; }
@@ -44,5 +41,17 @@ namespace Even
 
             SequenceWasSet = true;
         }
+    }
+
+    public class UnpersistedRawStreamEvent : UnpersistedRawEvent
+    {
+        public UnpersistedRawStreamEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
+            : base(eventId, eventType, utcTimestamp, metadata, payload, payloadFormat)
+        {
+            Contract.Requires(streamId != null);
+            StreamID = streamId;
+        }
+
+        public string StreamID { get; }
     }
 }
