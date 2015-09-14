@@ -46,8 +46,8 @@
       <HintPath>..\packages\Akka.TestKit.Xunit2.1.0.4\lib\net45\Akka.TestKit.Xunit2.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="DBHelpers, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DBHelpers.1.0.0.0\lib\net45\DBHelpers.dll</HintPath>
+    <Reference Include="DBHelpers, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DBHelpers.1.1.0.0\lib\net45\DBHelpers.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="MySql.Data, Version=6.9.7.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
@@ -83,7 +83,7 @@
     <Compile Include="Persistence\EventStoreTests.cs" />
     <Compile Include="Persistence\InMemoryEventStoreTests.cs" />
     <Compile Include="Persistence\MySqlEventStoreTests.cs" />
-    <Compile Include="Persistence\StoreTestHelper.cs" />
+    <Compile Include="Persistence\SqlServer2012StoreTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

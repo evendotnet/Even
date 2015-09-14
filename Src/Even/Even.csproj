@@ -30,8 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DBHelpers, Version=0.9.10.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\DBHelpers.0.9.10.0\lib\net45\DBHelpers.dll</HintPath>
+    <Reference Include="DBHelpers, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\DBHelpers.1.1.0.0\lib\net45\DBHelpers.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -76,6 +76,7 @@
     <Compile Include="Persistence\BatchStringBuilder.cs" />
     <Compile Include="Persistence\InMemoryStore.cs" />
     <Compile Include="Persistence\MySqlStore.cs" />
+    <Compile Include="Persistence\SqlServer2012Store.cs" />
     <Compile Include="Projection.cs" />
     <Compile Include="ISerializer.cs" />
     <Compile Include="EventStore.cs" />
