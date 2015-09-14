@@ -34,17 +34,17 @@ namespace Even.Persistence
             using (var cn = DB.CreateConnection())
             {
                 await cn.OpenAsync();
-
+                
                 var tr = cn.BeginTransaction();
 
-                var globalSequence = await DB.ExecuteScalarAsync<long>(globalSequenceQuery, cn);
+                var globalSequence = await DB.ExecuteScalarAsync<long>(globalSequenceQuery, tr);
 
                 var batches = BuildInsertEventBatches(globalSequence + 1, events);
 
                 try
                 {
                     foreach (var sql in batches)
-                        await DB.ExecuteNonQueryAsync(sql, cn);
+                        await DB.ExecuteNonQueryAsync(sql, tr);
 
                     tr.Commit();
                 }
@@ -77,7 +77,7 @@ namespace Even.Persistence
 
                 if (expectedSequence != ExpectedSequence.Any)
                 {
-                    var streamCount = await DB.ExecuteScalarAsync<int>(streamCountQuery, cn);
+                    var streamCount = await DB.ExecuteScalarAsync<int>(streamCountQuery, tr);
 
                     if (expectedSequence != streamCount)
                     {
@@ -86,14 +86,14 @@ namespace Even.Persistence
                     }
                 }
 
-                var globalSequence = await DB.ExecuteScalarAsync<long>(globalSequenceQuery, cn);
+                var globalSequence = await DB.ExecuteScalarAsync<long>(globalSequenceQuery, tr);
 
                 var batches = BuildInsertEventBatches(globalSequence + 1, events, streamHash);
 
                 try
                 {
                     foreach (var sql in batches)
-                        await DB.ExecuteNonQueryAsync(sql, cn);
+                        await DB.ExecuteNonQueryAsync(sql, tr);
 
                     tr.Commit();
                 }
@@ -125,7 +125,7 @@ namespace Even.Persistence
 
                 var tr = cn.BeginTransaction();
 
-                var lastStreamSequence = await DB.ExecuteScalarAsync<int>(maxProjectionSequenceQuery);
+                var lastStreamSequence = await DB.ExecuteScalarAsync<int>(maxProjectionSequenceQuery, tr);
 
                 if (expectedSequence != lastStreamSequence)
                 {
@@ -144,7 +144,7 @@ namespace Even.Persistence
                 try
                 {
                     foreach (var sql in batches)
-                        await DB.ExecuteNonQueryAsync(sql, cn);
+                        await DB.ExecuteNonQueryAsync(sql, tr);
 
                     tr.Commit();
                 }
@@ -329,8 +329,8 @@ namespace Even.Persistence
 
         protected virtual string BuildReadQuery(long start, int count)
         {
-            var limit = (count >= 0) ? " LIMIT " + count : String.Empty;
-            var query = $"SELECT {SelectFields} FROM {EventsTableEscaped} WHERE GlobalSequence >= {start + 1} ORDER BY GlobalSequence{limit}";
+            var limit = BuildLimitClause(start, count);
+            var query = $"SELECT {SelectFields} FROM {EventsTableEscaped} ORDER BY GlobalSequence{limit}";
 
             return query;
         }
@@ -351,7 +351,7 @@ namespace Even.Persistence
             return query;
         }
 
-        protected virtual string BuildLimitClause(int start, int count)
+        protected virtual string BuildLimitClause(long start, int count)
         {
             var limit = count >= 0 ? " LIMIT " + count : null;
             var offset = start > 0 ? " OFFSET " + start : null;
