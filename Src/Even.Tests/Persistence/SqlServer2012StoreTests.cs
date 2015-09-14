@@ -28,7 +28,7 @@ truncate table [{store.EventsTable}];
 truncate table [{store.ProjectionIndexTable}];
 truncate table [{store.ProjectionCheckpointTable}];";
 
-            db.ExecuteNonQueryAsync(truncateSql);
+            db.ExecuteNonQuery(truncateSql);
 
             return store;
         }
