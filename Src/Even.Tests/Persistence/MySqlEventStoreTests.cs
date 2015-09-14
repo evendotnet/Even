@@ -18,9 +18,9 @@ namespace Even.Tests.Persistence
             store.InitializeStore();
 
             var truncateSql = $@"
-truncate table {dbName}.`{store.EventsTable}`;
-truncate table {dbName}.`{store.ProjectionIndexTable}`;
-truncate table {dbName}.`{store.ProjectionCheckpointTable}`;";
+DELETE FROM {dbName}.`{store.EventsTable}`;
+DELETE FROM {dbName}.`{store.ProjectionIndexTable}`;
+DELETE FROM {dbName}.`{store.ProjectionCheckpointTable}`;";
 
             db.ExecuteNonQuery(truncateSql);
 
