@@ -353,6 +353,14 @@ namespace Even.Tests.Persistence
         }
 
         [Fact]
+        public async Task ReadIndexedProjectionStreamAsync_Zero_Count_Should_Read_No_Events()
+        {
+            await WriteAndProjectTestEvents(1, "a", new long[] { 1 });
+
+            await Store.ReadIndexedProjectionStreamAsync("a", 0, 0, e => { throw new Exception(); }, CancellationToken.None);
+        }
+
+        [Fact]
         public async Task ReadIndexedProjectionStreamAsync_Stops_Reading_If_Cancellation_Is_Requested()
         {
             await WriteAndProjectTestEvents(2, "a", new long[] { 1, 2 });
