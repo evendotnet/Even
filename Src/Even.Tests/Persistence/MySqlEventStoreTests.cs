@@ -20,7 +20,7 @@ namespace Even.Tests.Persistence
             var truncateSql = $@"
 truncate table {dbName}.`{store.EventsTable}`;
 truncate table {dbName}.`{store.ProjectionIndexTable}`;
-truncate table {dbName}{store.ProjectionCheckpointTable}`;";
+truncate table {dbName}.`{store.ProjectionCheckpointTable}`;";
 
             db.ExecuteNonQueryAsync(truncateSql);
 
