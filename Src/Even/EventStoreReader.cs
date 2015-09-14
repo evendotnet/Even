@@ -11,7 +11,7 @@ namespace Even
 {
     public class EventStoreReader : ReceiveActor
     {
-        IEventStoreWriter _storeReader;
+        IEventStoreReader _storeReader;
         ISerializer _serializer;
         ILoggingAdapter _log = Context.GetLogger();
         EventRegistry _eventRegistry;
@@ -158,7 +158,7 @@ namespace Even
         /// </summary>
         class AggregateReplayWorker : WorkerBase
         {
-            public AggregateReplayWorker(IEventStoreWriter reader, Deserializer deserialize)
+            public AggregateReplayWorker(IEventStoreReader reader, Deserializer deserialize)
             {
                 ReceiveReplayRequest<ReplayAggregateRequest>(request =>
                 {
@@ -208,7 +208,7 @@ namespace Even
 
         class ProjectionStreamReplayWorker : WorkerBase
         {
-            public ProjectionStreamReplayWorker(IEventStoreWriter reader, Deserializer deserializer)
+            public ProjectionStreamReplayWorker(IEventStoreReader reader, Deserializer deserializer)
             {
                 ReceiveReplayRequest<ProjectionStreamReplayRequest>(request =>
                 {

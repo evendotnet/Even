@@ -11,7 +11,7 @@ namespace Even
 {
     public class EventStoreWriter : ReceiveActor
     {
-        IEventStoreReader _writer;
+        IEventStoreWriter _writer;
         ISerializer _serializer;
 
         IActorRef _eventWriter;
@@ -56,10 +56,10 @@ namespace Even
 
         abstract class BaseWriter : ReceiveActor
         {
-            IEventStoreReader _writer;
+            IEventStoreWriter _writer;
             ISerializer _serializer;
 
-            public BaseWriter(IEventStoreReader writer, ISerializer serializer)
+            public BaseWriter(IEventStoreWriter writer, ISerializer serializer)
             {
                 Contract.Requires(writer != null);
                 Contract.Requires(serializer != null);
@@ -108,7 +108,7 @@ namespace Even
 
         class SerialEventWriter : BaseWriter
         {
-            public SerialEventWriter(IEventStoreReader writer, ISerializer serializer)
+            public SerialEventWriter(IEventStoreWriter writer, ISerializer serializer)
                 : base(writer, serializer)
             {
                 Receive<PersistenceRequest>(async request =>

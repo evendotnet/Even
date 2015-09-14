@@ -8,7 +8,7 @@ namespace Even
     // stores should implement at least IEventStore, and optionally IProjectionStore
     // stores should implement all interfaces in the same type
 
-    public interface IEventStore : IEventStoreReader, IEventStoreWriter, IProjectionStoreWriter, IProjectionStoreReader
+    public interface IEventStore : IEventStoreWriter, IEventStoreReader, IProjectionStoreWriter, IProjectionStoreReader
     { }
 
     public interface IEventStoreInitializer
@@ -18,13 +18,13 @@ namespace Even
 
     // the following interfaces exist only for internal use
 
-    public interface IEventStoreReader
+    public interface IEventStoreWriter
     {
         Task WriteAsync(IReadOnlyCollection<UnpersistedRawStreamEvent> events);
         Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events);
     }
 
-    public interface IEventStoreWriter
+    public interface IEventStoreReader
     {
         Task ReadAsync(long start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
         Task ReadStreamAsync(string streamId, int start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
