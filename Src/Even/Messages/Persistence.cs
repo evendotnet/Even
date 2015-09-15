@@ -22,14 +22,12 @@ namespace Even.Messages
             this.StreamID = streamId;
             this.ExpectedStreamSequence = expectedStreamSequence;
             this.Events = events.ToList();
-            this.UseWriteBuffer = allowBuffering && expectedStreamSequence == 0;
         }
 
         public Guid PersistenceID { get; }
         public string StreamID { get; }
         public int ExpectedStreamSequence { get; }
         public IReadOnlyCollection<UnpersistedEvent> Events { get; }
-        public bool UseWriteBuffer { get; }
     }
 
     public abstract class PersistenceResponse
@@ -65,6 +63,13 @@ namespace Even.Messages
     public class UnexpectedStreamSequence : PersistenceResponse
     {
         public UnexpectedStreamSequence(Guid persistenceId)
+            : base(persistenceId)
+        { }
+    }
+
+    public class DuplicatedEvent : PersistenceResponse
+    {
+        public DuplicatedEvent(Guid persistenceId)
             : base(persistenceId)
         { }
     }

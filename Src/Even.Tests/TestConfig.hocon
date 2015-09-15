@@ -1,0 +1,15 @@
+﻿akka {
+	test.single-expect-default = 3s
+	log-config-on-start = off
+	stdout-loglevel = INFO
+	loglevel = ERROR
+	actor {
+		debug {
+			receive = on
+			autoreceive = on
+			lifecycle = on
+			event-stream = on
+			unhandled = on
+		}
+	}          
+}
