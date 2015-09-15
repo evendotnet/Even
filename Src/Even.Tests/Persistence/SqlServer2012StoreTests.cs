@@ -9,7 +9,10 @@ using System.Threading.Tasks;
 
 namespace Even.Tests.Persistence
 {
-    public class SqlServer2012StoreTests : EventStoreTests
+    #if SQL2012
+    public
+    #endif
+    class SqlServer2012StoreTests : EventStoreTests
     {
         protected override IEventStore InitializeStore()
         {

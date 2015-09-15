@@ -4,7 +4,10 @@ using MySql.Data.MySqlClient;
 
 namespace Even.Tests.Persistence
 {
-    public class MySqlEventStoreTests : EventStoreTests
+    #if MYSQL
+    public
+    #endif
+    class MySqlEventStoreTests : EventStoreTests
     {
         protected override IEventStore InitializeStore()
         {
