@@ -84,7 +84,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseEventWriterTests.cs" />
+    <Compile Include="SerialEventStreamWriterTests.cs" />
     <Compile Include="EvenTestKit.cs" />
     <Compile Include="MockEventStore.cs" />
     <Compile Include="MockSerializer.cs" />
@@ -97,7 +97,9 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
-    <None Include="TestConfig.hocon" />
+    <None Include="TestConfig.hocon">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Even\Even.csproj">
