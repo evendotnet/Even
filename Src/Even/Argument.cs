@@ -8,6 +8,11 @@ namespace Even
 {
     internal static class Argument
     {
+        public static void Requires(bool condition, string paramName = null, string message = null)
+        {
+            Requires<ArgumentException>(condition, paramName, message);
+        }
+
         public static void Requires<TException>(bool condition, string paramName)
             where TException : Exception, new()
         {

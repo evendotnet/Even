@@ -7,40 +7,18 @@ using System.Runtime.CompilerServices;
 
 namespace Even
 {
-    public class UnpersistedEvent : UnpersistedEventBase
+    public class UnpersistedEvent
     {
-        public UnpersistedEvent(object domainEvent)
-            : base(domainEvent, null, null)
-        { }
-
-        public UnpersistedEvent(object domainEvent, string eventType, Dictionary<string, object> metaData)
-            : base(domainEvent, eventType, metaData)
-        { }
-    }
-
-    public class UnpersistedStreamEvent : UnpersistedEventBase
-    {
-        public UnpersistedStreamEvent(string streamId, object domainEvent)
+        public UnpersistedEvent(string streamId, object domainEvent)
             : this(streamId, domainEvent, null, null)
         { }
 
-        public UnpersistedStreamEvent(string streamId, object domainEvent, string eventType, Dictionary<string, object> metaData)
-            : base(domainEvent, eventType, metaData)
+        public UnpersistedEvent(string streamId, object domainEvent, string eventType, Dictionary<string, object> metadata)
         {
-            Contract.Requires(!String.IsNullOrWhiteSpace(streamId));
+            Argument.Requires<ArgumentException>(streamId != null, nameof(streamId));
+            Argument.Requires<ArgumentException>(domainEvent != null, nameof(domainEvent));
 
             this.StreamID = streamId;
-        }
-
-        public string StreamID { get; }
-    }
-
-    public abstract class UnpersistedEventBase
-    {
-        public UnpersistedEventBase(object domainEvent, string eventType, Dictionary<string, object> metadata)
-        {
-            Contract.Requires(domainEvent != null);
-
             this.DomainEvent = domainEvent;
             this.EventType = eventType ?? GetEventType(domainEvent);
 
@@ -55,6 +33,7 @@ namespace Even
 
         public Guid EventID { get; } = Guid.NewGuid();
         public DateTime UtcTimestamp { get; } = DateTime.UtcNow;
+        public string StreamID { get; }
         public string EventType { get; }
         public object DomainEvent { get; }
         public IReadOnlyDictionary<string, object> Metadata { get; }

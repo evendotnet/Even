@@ -224,7 +224,7 @@ namespace Even
         protected void Persist(object domainEvent)
         {
             Contract.Requires(domainEvent != null);
-            _unpersistedEvents.AddLast(new UnpersistedEvent(domainEvent));
+            _unpersistedEvents.AddLast(new UnpersistedEvent(StreamID, domainEvent));
         }
 
         #endregion
@@ -234,7 +234,7 @@ namespace Even
             if (_unpersistedEvents.Count == 0)
                 return false;
 
-            var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList(), false);
+            var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList());
 
             _persistenceRequest = request;
 

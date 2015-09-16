@@ -11,7 +11,7 @@ namespace Even
 {
     public class CommandProcessor : CommandProcessorBase
     {
-        LinkedList<UnpersistedStreamEvent> _unpersistedEvents = new LinkedList<UnpersistedStreamEvent>();
+        LinkedList<UnpersistedEvent> _unpersistedEvents = new LinkedList<UnpersistedEvent>();
         IActorRef _writer;
 
         private IActorRef _supervisor;
@@ -70,9 +70,7 @@ namespace Even
         /// </summary>
         protected void Persist(string streamId, object domainEvent)
         {
-            Contract.Requires(streamId != null);
-            Contract.Requires(domainEvent != null);
-            _unpersistedEvents.AddLast(new UnpersistedStreamEvent(streamId, domainEvent));
+            _unpersistedEvents.AddLast(new UnpersistedEvent(streamId, domainEvent));
         }
 
         /// <summary>
@@ -118,20 +116,6 @@ namespace Even
 
                 //TODO: add some timeout from settings to stop the worker
             }
-        }
-
-
-        private class UnpersistedStreamEvent : UnpersistedEvent
-        {
-            public UnpersistedStreamEvent(string streamId, object domainEvent)
-                : base(domainEvent)
-            {
-                Contract.Requires(!String.IsNullOrEmpty(streamId));
-
-                StreamID = streamId;
-            }
-
-            public string StreamID { get; }
         }
 
         /// <summary>

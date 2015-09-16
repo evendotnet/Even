@@ -22,7 +22,7 @@ namespace Even.Tests
             var list = new List<UnpersistedEvent>();
 
             for (var i = 0; i < eventCount; i++)
-                list.Add(new UnpersistedEvent(new SampleEvent1()));
+                list.Add(new UnpersistedEvent(streamId, new SampleEvent1()));
 
             return new PersistenceRequest(streamId, expectedSequence, list);
         }
@@ -33,10 +33,10 @@ namespace Even.Tests
             var props = Props.Create<SerialEventStreamWriter>(MockStore.Default(), new DefaultSerializer());
             var writer = Sys.ActorOf(props);
 
-            var request = new PersistenceRequest("a", ExpectedSequence.Any, new[] {
-                new UnpersistedEvent(new SampleEvent3()),
-                new UnpersistedEvent(new SampleEvent1()),
-                new UnpersistedEvent(new SampleEvent2())
+            var request = new PersistenceRequest(new[] {
+                new UnpersistedEvent("a", new SampleEvent3()),
+                new UnpersistedEvent("a", new SampleEvent1()),
+                new UnpersistedEvent("a", new SampleEvent2())
             });
 
             writer.Tell(request);
@@ -53,10 +53,10 @@ namespace Even.Tests
             var props = Props.Create<SerialEventStreamWriter>(MockStore.Default(), new DefaultSerializer());
             var writer = Sys.ActorOf(props);
 
-            var request = new PersistenceRequest("a", ExpectedSequence.Any, new[] {
-                new UnpersistedEvent(new SampleEvent3()),
-                new UnpersistedEvent(new SampleEvent1()),
-                new UnpersistedEvent(new SampleEvent2())
+            var request = new PersistenceRequest(new[] {
+                new UnpersistedEvent("a", new SampleEvent3()),
+                new UnpersistedEvent("a", new SampleEvent1()),
+                new UnpersistedEvent("a", new SampleEvent2())
             });
 
             var probe = CreateTestProbe();

@@ -12,21 +12,27 @@ namespace Even.Messages
     /// </summary>
     public class PersistenceRequest
     {
-        public PersistenceRequest(string streamId, int expectedStreamSequence, IEnumerable<UnpersistedEvent> events, bool allowBuffering = false)
+        public PersistenceRequest(IReadOnlyCollection<UnpersistedEvent> events)
         {
-            Contract.Requires(!String.IsNullOrEmpty(streamId));
-            Contract.Requires(expectedStreamSequence >= 0);
-            Contract.Requires(events != null && events.Any());
+            Argument.Requires(events != null && events.Any(), nameof(events), "The argument must contain at least one event.");
 
-            this.PersistenceID = Guid.NewGuid();
-            this.StreamID = streamId;
-            this.ExpectedStreamSequence = expectedStreamSequence;
             this.Events = events.ToList();
         }
 
-        public Guid PersistenceID { get; }
+        public PersistenceRequest(string streamId, int expectedStreamSequence, IReadOnlyCollection<UnpersistedEvent> events)
+            : this(events)
+        {
+            Argument.Requires(!String.IsNullOrEmpty(streamId), nameof(streamId));
+            Argument.Requires(expectedStreamSequence >= 0 || expectedStreamSequence == ExpectedSequence.Any, nameof(expectedStreamSequence));
+            Argument.Requires(events.All(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase)), nameof(events), $"All events must belong to the stream '{streamId}'");
+
+            this.StreamID = streamId;
+            this.ExpectedStreamSequence = expectedStreamSequence;
+        }
+
+        public Guid PersistenceID { get; } = Guid.NewGuid();
         public string StreamID { get; }
-        public int ExpectedStreamSequence { get; }
+        public int ExpectedStreamSequence { get; } = ExpectedSequence.Any;
         public IReadOnlyCollection<UnpersistedEvent> Events { get; }
     }
 
