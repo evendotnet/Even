@@ -17,6 +17,7 @@ namespace Even.Tests.Persistence
         }
 
         protected IEventStore Store { get; }
+        public object ConcurentBag { get; private set; }
 
         /// <summary>
         /// Must return an empty event store each time it is called.
@@ -25,14 +26,14 @@ namespace Even.Tests.Persistence
 
         #region Helpers
 
-        static UnpersistedRawStreamEvent CreateEvent(string streamId, string eventType)
+        static IUnpersistedRawStreamEvent CreateEvent(string streamId, string eventType)
         {
-            return new UnpersistedRawStreamEvent(Guid.NewGuid(), streamId, eventType, DateTime.UtcNow, null, new byte[0], 0);
+            return new UnpersistedRawEvent(Guid.NewGuid(), streamId, eventType, DateTime.UtcNow, null, new byte[0], 0);
         }
 
-        static IReadOnlyCollection<UnpersistedRawStreamEvent> GenerateEvents(int count, string streamId = null)
+        static IReadOnlyCollection<IUnpersistedRawStreamEvent> GenerateEvents(int count, string streamId = null)
         {
-            var list = new List<UnpersistedRawStreamEvent>(count);
+            var list = new List<IUnpersistedRawStreamEvent>(count);
 
             for (var i = 0; i < count; i++)
                 list.Add(CreateEvent(streamId ?? "SomeStream", "SomeEvent"));
@@ -182,9 +183,9 @@ namespace Even.Tests.Persistence
         #region Event Writes
 
         [Fact]
-        public async Task WriteAsync_Writes_Multiple_Streams()
+        public async Task WriteAsync_Writes_Different_Streams()
         {
-            var events = new List<UnpersistedRawStreamEvent>();
+            var events = new List<IUnpersistedRawStreamEvent>();
 
             events.AddRange(GenerateEvents(1, "a"));
             events.AddRange(GenerateEvents(2, "b"));
@@ -251,9 +252,39 @@ namespace Even.Tests.Persistence
 
             await Store.WriteAsync(new[] { e });
 
-            await Assert.ThrowsAsync<DuplicatedEventException>(() =>
+            await Assert.ThrowsAsync<DuplicatedEntryException>(() =>
                 Store.WriteAsync(new[] { e })
             );
+        }
+
+        [Fact]
+        public async Task WriteAsync_can_write_concurrently()
+        {
+            var taskCount = 20;
+            var eventCount = 5;
+
+            var tasks = new List<Task<long[]>>();
+            var events = Enumerable.Range(0, taskCount).Select(_ => GenerateEvents(eventCount)).ToList();
+
+            // starts 10 tasks to write 10 events each
+            for (var i = 0; i < taskCount; i++)
+            {
+                var tmp = events[i];
+
+                var t = Task.Run(async () => {
+                    await Store.WriteAsync(tmp);
+                    return tmp.Select(e => e.GlobalSequence).ToArray();
+                });
+
+                tasks.Add(t);
+            }
+
+            await Task.WhenAll(tasks);
+
+            var expected = Enumerable.Range(1, taskCount * eventCount).Select(i => (long) i).ToArray();
+            var actual = tasks.SelectMany(t => t.Result).OrderBy(i => i).ToArray();
+
+            Assert.Equal(expected, actual);
         }
 
         #endregion
@@ -291,7 +322,7 @@ namespace Even.Tests.Persistence
         {
             await Store.WriteProjectionIndexAsync("a", 0, new long[] { 1 });
 
-            await Assert.ThrowsAsync<DuplicatedEventException>(() =>
+            await Assert.ThrowsAsync<DuplicatedEntryException>(() =>
                 Store.WriteProjectionIndexAsync("a", 1, new long[] { 1 })
             );
         }

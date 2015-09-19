@@ -2,11 +2,14 @@
 using Even.Messages;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Even.Tests
 {
-    public class SerialEventStreamWriterTests : EvenTestKit
+    public class BufferedEventWriterTests : EvenTestKit
     {
         #region Helpers
 
@@ -26,7 +29,7 @@ namespace Even.Tests
             for (var i = 0; i < eventCount; i++)
                 list.Add(new UnpersistedEvent(streamId, new SampleEvent1()));
 
-            return new PersistenceRequest(streamId, expectedSequence, list);
+            return new PersistenceRequest(list);
         }
 
         protected IActorRef CreateWriter(IEventStoreWriter writer = null, ISerializer serializer = null, IActorRef dispatcher = null)
@@ -35,7 +38,7 @@ namespace Even.Tests
             serializer = serializer ?? new MockSerializer();
             dispatcher = dispatcher ?? CreateTestProbe();
 
-            var props = Props.Create<SerialEventStreamWriter>(writer, serializer, dispatcher);
+            var props = Props.Create<BufferedEventWriter>(writer, serializer, dispatcher);
             return Sys.ActorOf(props);
         }
 
@@ -83,40 +86,40 @@ namespace Even.Tests
         }
 
         [Fact]
-        public void UnexpectedStreamSequenceException_causes_unexpectedstreamsequence_message()
-        {
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite<UnexpectedStreamSequenceException>());
-
-            var request = CreatePersistenceRequest();
-            writer.Tell(request);
-
-            ExpectMsg<UnexpectedStreamSequence>(msg => msg.PersistenceID == request.PersistenceID);
-        }
-
-        [Fact]
         public void DuplicatedEventException_causes_duplicatedevent_message()
         {
             var writer = CreateWriter(writer: MockStore.ThrowsOnWrite<DuplicatedEntryException>());
             var request = CreatePersistenceRequest();
             writer.Tell(request);
 
-            ExpectMsg<DuplicatedEntry>(msg => msg.PersistenceID == request.PersistenceID);
+            ExpectMsg<DuplicatedEntry>(msg => msg.PersistenceID == request.PersistenceID, TimeSpan.FromMinutes(5));
         }
 
-        [Theory]
-        [InlineData(typeof(ArgumentException))]
-        [InlineData(typeof(TimeoutException))]
-        [InlineData(typeof(Exception))]
-        public void UnexpectedExceptions_during_write_causes_reply_with_persistencefailure(Type exceptionType)
+        [Fact]
+        public void Exception_for_some_items_still_writes_the_others()
         {
-            var exception = Activator.CreateInstance(exceptionType) as Exception;
+            // the writer will fail on the batch and on the next 3 requests
+            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite(new Exception(), new[] { 1, 2, 3, 4 }));
 
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite(exception));
+            var requests = Enumerable.Range(0, 100).Select(_ => CreatePersistenceRequest(1)).ToList();
 
-            var request = CreatePersistenceRequest();
-            writer.Tell(request);
+            foreach (var r in requests)
+                writer.Tell(r);
 
-            ExpectMsg<PersistenceFailure>(msg => msg.PersistenceID == request.PersistenceID && msg.Exception == exception);
+            var list = new List<object>();
+
+            for (var i = 0; i < requests.Count; i++)
+            {
+                var request = requests[i];
+
+                if (i <= 2)
+                    ExpectMsg<PersistenceFailure>(msg => msg.PersistenceID == request.PersistenceID);
+                else
+                {
+                    ExpectMsg<IPersistedEvent>();
+                    ExpectMsg<PersistenceSuccess>(msg => msg.PersistenceID == request.PersistenceID);
+                }
+            }
         }
     }
 }

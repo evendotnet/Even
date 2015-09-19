@@ -1,17 +1,37 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Even
 {
-    public class UnpersistedRawEvent
+    public interface IUnpersistedRawEvent
     {
-        public UnpersistedRawEvent(Guid eventId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
-        {
-            Contract.Requires(eventId != Guid.Empty);
-            Contract.Requires(!String.IsNullOrEmpty(eventType));
-            Contract.Requires(utcTimestamp != default(DateTime));
-            Contract.Requires(payload != null);
+        long GlobalSequence { get; set; }
+        Guid EventID { get; }
+        string EventType { get; }
+        DateTime UtcTimestamp { get; }
+        byte[] Metadata { get; }
+        byte[] Payload { get; }
+        int PayloadFormat { get; }
+    }
 
+    public interface IUnpersistedRawStreamEvent : IUnpersistedRawEvent
+    {
+        string StreamID { get; }
+    }
+
+    public class UnpersistedRawEvent : IUnpersistedRawStreamEvent
+    {
+        public UnpersistedRawEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
+        {
+            Argument.Requires(eventId != Guid.Empty);
+            Argument.Requires(!String.IsNullOrEmpty(streamId), nameof(streamId));
+            Argument.Requires(!String.IsNullOrEmpty(eventType));
+            Argument.Requires(utcTimestamp != default(DateTime));
+            Argument.Requires(payload != null);
+
+            StreamID = streamId;
             EventID = eventId;
             EventType = eventType;
             UtcTimestamp = utcTimestamp;
@@ -20,7 +40,8 @@ namespace Even
             PayloadFormat = payloadFormat;
         }
 
-        public long GlobalSequence { get; private set; }
+        public long GlobalSequence { get; set; }
+        public string StreamID { get; }
         public Guid EventID { get; }
         public string EventType { get; }
         public DateTime UtcTimestamp { get; }
@@ -28,30 +49,21 @@ namespace Even
         public byte[] Payload { get; }
         public int PayloadFormat { get; }
 
-        public bool SequenceWasSet { get; private set; }
-
-        public void SetGlobalSequence(long globalSequence)
+        public static List<UnpersistedRawEvent> FromUnpersistedEvents(IEnumerable<UnpersistedEvent> events, ISerializer serializer)
         {
-            Contract.Requires(globalSequence > 0);
+            Argument.Requires(events != null);
+            Argument.Requires(serializer != null);
 
-            if (SequenceWasSet)
-                throw new InvalidOperationException("Sequences should be set only once.");
+            return events.Select(e =>
+            {
+                var format = EvenStorageFormatAttribute.GetStorageFormat(e.DomainEvent.GetType());
+                var metadata = serializer.SerializeMetadata(e.Metadata);
+                var payload = serializer.SerializeEvent(e.DomainEvent, format);
 
-            GlobalSequence = globalSequence;
+                var re = new UnpersistedRawEvent(e.EventID, e.StreamID, e.EventType, e.UtcTimestamp, metadata, payload, format);
 
-            SequenceWasSet = true;
+                return re;
+            }).ToList();
         }
-    }
-
-    public class UnpersistedRawStreamEvent : UnpersistedRawEvent
-    {
-        public UnpersistedRawStreamEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
-            : base(eventId, eventType, utcTimestamp, metadata, payload, payloadFormat)
-        {
-            Contract.Requires(streamId != null);
-            StreamID = streamId;
-        }
-
-        public string StreamID { get; }
     }
 }

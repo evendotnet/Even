@@ -92,7 +92,7 @@ END;
             if (sqlEx != null)
             {
                 if (sqlEx.Number == 2601)
-                    throw new DuplicatedEventException();
+                    throw new DuplicatedEntryException(sqlEx);
             }
         }
 

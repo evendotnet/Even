@@ -20,8 +20,8 @@ namespace Even
 
     public interface IEventStoreWriter
     {
-        Task WriteAsync(IReadOnlyCollection<UnpersistedRawStreamEvent> events);
-        Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events);
+        Task WriteAsync(IReadOnlyCollection<IUnpersistedRawStreamEvent> events);
+        Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events);
     }
 
     public interface IEventStoreReader

@@ -109,7 +109,7 @@ namespace Even
         void Ready()
         {
             // receive projection events
-            Receive<IPersistedEvent>(async e =>
+            Receive<IPersistedStreamEvent>(async e =>
             {
                 Contract.Assert(e.StreamSequence == CurrentSequence + 1);
 
@@ -123,7 +123,7 @@ namespace Even
 
         #endregion
 
-        async Task ProcessEventInternal(IPersistedEvent e)
+        async Task ProcessEventInternal(IPersistedStreamEvent e)
         {
             await OnReceiveEvent(e);
             await _handlers.Handle(e);
@@ -158,7 +158,7 @@ namespace Even
             return Task.CompletedTask;
         }
 
-        protected virtual Task OnReceiveEvent(IPersistedEvent e)
+        protected virtual Task OnReceiveEvent(IPersistedStreamEvent e)
         {
             return Task.CompletedTask;
         }

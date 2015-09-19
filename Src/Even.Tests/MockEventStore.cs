@@ -9,47 +9,65 @@ namespace Even.Tests
 {
     public static class MockStore
     {
-        public static IEventStoreWriter Default()
+        public static IEventStoreWriter DefaultWriter()
         {
             var store = Substitute.For<IEventStoreWriter>();
 
-            store.WriteStreamAsync(null, 0, Arg.Do<IReadOnlyCollection<UnpersistedRawEvent>>(events =>
+            store.WriteStreamAsync(null, 0, Arg.Do<IReadOnlyCollection<IUnpersistedRawEvent>>(events =>
             {
                 int i = 1;
 
                 foreach (var e in events)
-                    e.SetGlobalSequence(i++);
+                    e.GlobalSequence = i++;
 
             })).ReturnsForAnyArgs(Task.CompletedTask);
 
 
-            store.WriteAsync(Arg.Do<IReadOnlyCollection<UnpersistedRawStreamEvent>>(events =>
+            store.WriteAsync(Arg.Do<IReadOnlyCollection<IUnpersistedRawStreamEvent>>(events =>
             {
                 int i = 1;
 
                 foreach (var e in events)
-                    e.SetGlobalSequence(i++);
+                    e.GlobalSequence = i++;
 
             })).ReturnsForAnyArgs(Task.CompletedTask);
 
             return store;
         }
 
-        public static IEventStoreWriter ThrowsOnWrite<T>()
+        public static IEventStoreWriter ThrowsOnWrite<T>(int[] throwOnCalls = null)
             where T : Exception, new()
         {
-            return ThrowsOnWrite(new T());
+            return ThrowsOnWrite(new T(), throwOnCalls);
         }
 
-        public static IEventStoreWriter ThrowsOnWrite(Exception exception)
+        public static IEventStoreWriter ThrowsOnWrite(Exception exception, int[] throwOnCalls = null)
         {
+            throwOnCalls = throwOnCalls ?? new[] { 1 };
+
             var store = Substitute.For<IEventStoreWriter>();
 
-            store.WriteAsync(null).ReturnsForAnyArgs(t => { throw exception; });
-            store.WriteStreamAsync(null, 0, null).ReturnsForAnyArgs(t => { throw exception; });
+            var writeCount = 0;
+
+            store.WriteAsync(null).ReturnsForAnyArgs(t => {
+
+                if (throwOnCalls.Contains(++writeCount))
+                    throw exception;
+
+                return Task.CompletedTask;
+            });
+
+            var writeStreamCount = 0;
+
+            store.WriteStreamAsync(null, 0, null).ReturnsForAnyArgs(t => {
+
+                if (throwOnCalls.Contains(++writeStreamCount))
+                    throw exception;
+
+                return Task.CompletedTask;
+            });
 
             return store;
         }
     }
-
 }

@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Argument.cs" />
+    <Compile Include="BufferedEventWriter.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="DefaultSerializer.cs" />
     <Compile Include="EvenStorageFormatAttribute.cs" />
@@ -77,7 +78,7 @@
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\BaseSqlStore.cs" />
-    <Compile Include="Persistence\BatchStringBuilder.cs" />
+    <Compile Include="Utils\BatchStringBuilder.cs" />
     <Compile Include="Persistence\InMemoryStore.cs" />
     <Compile Include="Persistence\MySqlStore.cs" />
     <Compile Include="Persistence\SqlServer2012Store.cs" />
@@ -103,6 +104,7 @@
     <Compile Include="EventStoreSetup.cs" />
     <Compile Include="ESEventAttribute.cs" />
     <Compile Include="PersistedRawEvent.cs" />
+    <Compile Include="SerialEventStreamWriter.cs" />
     <Compile Include="StreamHash.cs" />
     <Compile Include="UnpersistedEvent.cs" />
     <Compile Include="UnpersistedRawEvent.cs" />

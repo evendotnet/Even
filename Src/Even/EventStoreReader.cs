@@ -51,9 +51,9 @@ namespace Even
             });
         }
 
-        delegate IPersistedEvent Deserializer(string streamId, int streamSequence, IPersistedRawEvent rawEvent);
+        delegate IPersistedStreamEvent Deserializer(string streamId, int streamSequence, IPersistedRawEvent rawEvent);
 
-        IPersistedEvent DeserializeEvent(string streamId, int sequence, IPersistedRawEvent rawEvent)
+        IPersistedStreamEvent DeserializeEvent(string streamId, int sequence, IPersistedRawEvent rawEvent)
         {
             var metadata = _serializer.DeserializeMetadata(rawEvent.Metadata);
 

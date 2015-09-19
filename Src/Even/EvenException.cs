@@ -7,7 +7,14 @@ using System.Threading.Tasks;
 namespace Even
 {
     public class EvenException : Exception
-    { }
+    {
+        public EvenException()
+        { }
+
+        public EvenException(string message, Exception innerException)
+            : base(message, innerException)
+        { }
+    }
 
     /// <summary>
     /// This exception is thrown by the store when the expected sequence does not match the store.
@@ -15,8 +22,15 @@ namespace Even
     public class UnexpectedStreamSequenceException : EvenException
     { }
 
-    public class DuplicatedEventException : EvenException
-    { }
+    public class DuplicatedEntryException : EvenException
+    {
+        public DuplicatedEntryException()
+        { }
+
+        public DuplicatedEntryException(Exception innerException)
+            : base("A duplicated entry was detected.", innerException)
+        { }
+    }
 
     public class DuplicatedSequenceException : EvenException
     { }

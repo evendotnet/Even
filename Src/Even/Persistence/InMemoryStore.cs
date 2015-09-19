@@ -24,7 +24,7 @@ namespace Even.Persistence
 
         #region Events
 
-        public Task WriteAsync(IReadOnlyCollection<UnpersistedRawStreamEvent> events)
+        public Task WriteAsync(IReadOnlyCollection<IUnpersistedRawStreamEvent> events)
         {
             lock (_events)
             {
@@ -33,11 +33,11 @@ namespace Even.Persistence
                 var existingEvents = _events.Select(e => e.EventID);
 
                 if (existingEvents.Intersect(events.Select(e => e.EventID)).Any())
-                    throw new DuplicatedEventException();
+                    throw new DuplicatedEntryException();
 
                 foreach (var e in events)
                 {
-                    e.SetGlobalSequence(globalSequence++);
+                    e.GlobalSequence = globalSequence++;
 
                     var p = new PersistedRawEvent
                     {
@@ -57,7 +57,7 @@ namespace Even.Persistence
             return Task.CompletedTask;
         }
 
-        public Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
+        public Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events)
         {
             lock (_events)
             {
@@ -78,7 +78,7 @@ namespace Even.Persistence
 
                 foreach (var e in events)
                 {
-                    e.SetGlobalSequence(globalSequence++);
+                    e.GlobalSequence = globalSequence++;
 
                     var p = new PersistedRawEvent
                     {
@@ -206,7 +206,7 @@ namespace Even.Persistence
                     throw new UnexpectedStreamSequenceException();
 
                 if (globalSequences.Intersect(projection).Any())
-                    throw new DuplicatedEventException();
+                    throw new DuplicatedEntryException();
 
                 lock (_events)
                 {

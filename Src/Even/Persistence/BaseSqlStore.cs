@@ -1,4 +1,5 @@
 ﻿using DBHelpers;
+using Even.Utils;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -27,7 +28,7 @@ namespace Even.Persistence
 
         DBHelper DB;
 
-        public async Task WriteAsync(IReadOnlyCollection<UnpersistedRawStreamEvent> events)
+        public async Task WriteAsync(IReadOnlyCollection<IUnpersistedRawStreamEvent> events)
         {
             var globalSequenceQuery = String.Format(SqlFormat_SelectMaxGlobalSequence, EventsTableEscaped);
 
@@ -43,8 +44,8 @@ namespace Even.Persistence
 
                 try
                 {
-                    foreach (var sql in batches)
-                        await DB.ExecuteNonQueryAsync(sql, tr);
+                    foreach (var o in batches)
+                        await DB.ExecuteNonQueryAsync(o.String, tr);
 
                     tr.Commit();
                 }
@@ -59,11 +60,11 @@ namespace Even.Persistence
                 var sequence = globalSequence + 1;
 
                 foreach (var e in events)
-                    e.SetGlobalSequence(sequence++);
+                    e.GlobalSequence = sequence++;
             }
         }
 
-        public async Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<UnpersistedRawEvent> events)
+        public async Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events)
         {
             var streamHash = Format(StreamHash.AsHashBytes(streamId));
             var streamCountQuery = String.Format(SqlFormat_SelectStreamCount, EventsTableEscaped, streamHash);
@@ -92,8 +93,8 @@ namespace Even.Persistence
 
                 try
                 {
-                    foreach (var sql in batches)
-                        await DB.ExecuteNonQueryAsync(sql, tr);
+                    foreach (var o in batches)
+                        await DB.ExecuteNonQueryAsync(o.String, tr);
 
                     tr.Commit();
                 }
@@ -107,7 +108,7 @@ namespace Even.Persistence
                 var sequence = globalSequence + 1;
 
                 foreach (var e in events)
-                    e.SetGlobalSequence(sequence++);
+                    e.GlobalSequence = sequence++;
             }
         }
 
@@ -143,8 +144,8 @@ namespace Even.Persistence
 
                 try
                 {
-                    foreach (var sql in batches)
-                        await DB.ExecuteNonQueryAsync(sql, tr);
+                    foreach (var o in batches)
+                        await DB.ExecuteNonQueryAsync(o.String, tr);
 
                     tr.Commit();
                 }
@@ -255,9 +256,9 @@ namespace Even.Persistence
             return DB.ExecuteScalarAsync<int>(query);
         }
 
-        private IEnumerable<string> BuildInsertEventBatches(long initialSequence, IEnumerable<UnpersistedRawEvent> events, string streamHash = null)
+        private IEnumerable<BatchStringBuilderOutput<IUnpersistedRawEvent>> BuildInsertEventBatches(long initialSequence, IEnumerable<IUnpersistedRawEvent> events, string streamHash = null)
         {
-            var batches = BatchStringBuilder.Build<UnpersistedRawEvent>(events,
+            var batches = BatchStringBuilder.Build(events,
                 MaxEventBatchCount,
                 MaxEventBatchLength,
                 sb => sb.AppendFormat(SqlFormat_InsertEventPrefix, EventsTableEscaped),
@@ -266,8 +267,8 @@ namespace Even.Persistence
                     sb.AppendFormat(SqlFormat_InsertEventValues,
                         initialSequence++,
                         Format(e.EventID),
-                        e is UnpersistedRawStreamEvent ? Format(StreamHash.AsHashBytes(((UnpersistedRawStreamEvent) e).StreamID)) : streamHash,
-                        e is UnpersistedRawStreamEvent ? EscapeString(((UnpersistedRawStreamEvent)e).StreamID) : null,
+                        e is IUnpersistedRawStreamEvent ? Format(StreamHash.AsHashBytes(((IUnpersistedRawStreamEvent) e).StreamID)) : streamHash,
+                        e is IUnpersistedRawStreamEvent ? EscapeString(((IUnpersistedRawStreamEvent)e).StreamID) : null,
                         EscapeString(e.EventType),
                         Format(e.UtcTimestamp),
                         Format(e.Metadata),
@@ -275,7 +276,12 @@ namespace Even.Persistence
                         e.PayloadFormat
                     );
                 },
-                sb => sb.Length -= 2
+                sb =>
+                {
+                    sb.Length -= 2;
+                    sb.Append(";");
+
+                }
             );
             return batches;
         }

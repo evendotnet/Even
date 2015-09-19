@@ -30,7 +30,7 @@ namespace Even.Messages
     /// </summary>
     public class ReplayEvent : ReplayResponse
     {
-        public IPersistedEvent Event { get; set; }
+        public IPersistedStreamEvent Event { get; set; }
     }
 
     /// <summary>

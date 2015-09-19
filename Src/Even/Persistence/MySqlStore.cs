@@ -17,7 +17,7 @@ namespace Even.Persistence
 
         protected override string SqlFormat_Initialization => @"
 create table if not exists `{0}` (
-  GlobalSequence bigint not null primary key,
+  GlobalSequence bigint not null primary key auto_increment,
   EventID binary(16) not null,
   StreamID binary(20) not null,
   OriginalStreamID varchar(200) not null,
@@ -78,7 +78,7 @@ create table if not exists `{2}` (
         protected override void HandleInsertException(Exception ex)
         {
             if (ex.Message.IndexOf("duplicate", StringComparison.InvariantCultureIgnoreCase) >= 0)
-                throw new DuplicatedEventException();
+                throw new DuplicatedEntryException(ex);
         }
     }
 }

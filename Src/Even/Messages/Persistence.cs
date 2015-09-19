@@ -55,14 +55,15 @@ namespace Even.Messages
 
     public class PersistenceFailure : PersistenceResponse
     {
-        public PersistenceFailure(Guid persistenceId, string message, Exception ex)
+        public PersistenceFailure(Guid persistenceId, Exception ex, string reason = null)
             : base(persistenceId)
         {
-            Message = message;
             Exception = ex;
+            _message = reason;
         }
 
-        public string Message { get; private set; }
+        string _message;
+        public string Reason => _message ?? Exception?.Message;
         public Exception Exception { get; private set; }
     }
 
@@ -73,9 +74,9 @@ namespace Even.Messages
         { }
     }
 
-    public class DuplicatedEvent : PersistenceResponse
+    public class DuplicatedEntry : PersistenceResponse
     {
-        public DuplicatedEvent(Guid persistenceId)
+        public DuplicatedEntry(Guid persistenceId)
             : base(persistenceId)
         { }
     }
