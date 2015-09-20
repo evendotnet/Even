@@ -17,11 +17,14 @@ namespace Even
     }
 
     /// <summary>
-    /// This exception is thrown by the store when the expected sequence does not match the store.
+    /// Thrown by the store when a write fails due to the stream not being in a specific sequence.
     /// </summary>
     public class UnexpectedStreamSequenceException : EvenException
     { }
 
+    /// <summary>
+    /// Thrown by the store when a write fails due to a duplicated entry.
+    /// </summary>
     public class DuplicatedEntryException : EvenException
     {
         public DuplicatedEntryException()
@@ -32,9 +35,6 @@ namespace Even
         { }
     }
 
-    public class DuplicatedSequenceException : EvenException
-    { }
-
-    public class DeserializationException : EvenException
+    public class MissingIndexEntryException : EvenException
     { }
 }

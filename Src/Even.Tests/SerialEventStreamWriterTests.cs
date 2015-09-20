@@ -1,5 +1,6 @@
 ﻿using Akka.Actor;
 using Even.Messages;
+using Even.Tests.Mocks;
 using System;
 using System.Collections.Generic;
 using Xunit;
@@ -31,7 +32,7 @@ namespace Even.Tests
 
         protected IActorRef CreateWriter(IEventStoreWriter writer = null, ISerializer serializer = null, IActorRef dispatcher = null)
         {
-            writer = writer ?? MockStore.DefaultWriter();
+            writer = writer ?? MockEventStore.SuccessfulWriter();
             serializer = serializer ?? new MockSerializer();
             dispatcher = dispatcher ?? CreateTestProbe();
 
@@ -44,8 +45,8 @@ namespace Even.Tests
         [Fact]
         public void Writer_replies_persistedevents_in_request_order()
         {
-            var writer = CreateWriter(writer: MockStore.DefaultWriter());
-
+            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter());
+            
             var request = new PersistenceRequest(new[] {
                 new UnpersistedEvent("a", new SampleEvent3()),
                 new UnpersistedEvent("a", new SampleEvent1()),
@@ -64,7 +65,7 @@ namespace Even.Tests
         public void Writer_tells_persistedevents_to_dispatcher_in_order()
         {
             var probe = CreateTestProbe();
-            var writer = CreateWriter(writer: MockStore.DefaultWriter(), dispatcher: probe);
+            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter(), dispatcher: probe);
 
             var request = new PersistenceRequest(new[] {
                 new UnpersistedEvent("a", new SampleEvent3()),
@@ -85,7 +86,7 @@ namespace Even.Tests
         [Fact]
         public void UnexpectedStreamSequenceException_causes_unexpectedstreamsequence_message()
         {
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite<UnexpectedStreamSequenceException>());
+            var writer = CreateWriter(writer: MockEventStore.ThrowsOnWrite<UnexpectedStreamSequenceException>());
 
             var request = CreatePersistenceRequest();
             writer.Tell(request);
@@ -96,7 +97,7 @@ namespace Even.Tests
         [Fact]
         public void DuplicatedEventException_causes_duplicatedevent_message()
         {
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite<DuplicatedEntryException>());
+            var writer = CreateWriter(writer: MockEventStore.ThrowsOnWrite<DuplicatedEntryException>());
             var request = CreatePersistenceRequest();
             writer.Tell(request);
 
@@ -111,7 +112,7 @@ namespace Even.Tests
         {
             var exception = Activator.CreateInstance(exceptionType) as Exception;
 
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite(exception));
+            var writer = CreateWriter(writer: MockEventStore.ThrowsOnWrite(exception));
 
             var request = CreatePersistenceRequest();
             writer.Tell(request);

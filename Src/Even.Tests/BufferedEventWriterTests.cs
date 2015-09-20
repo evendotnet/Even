@@ -1,5 +1,6 @@
 ﻿using Akka.Actor;
 using Even.Messages;
+using Even.Tests.Mocks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,7 +35,7 @@ namespace Even.Tests
 
         protected IActorRef CreateWriter(IEventStoreWriter writer = null, ISerializer serializer = null, IActorRef dispatcher = null)
         {
-            writer = writer ?? MockStore.DefaultWriter();
+            writer = writer ?? MockEventStore.SuccessfulWriter();
             serializer = serializer ?? new MockSerializer();
             dispatcher = dispatcher ?? CreateTestProbe();
 
@@ -47,7 +48,7 @@ namespace Even.Tests
         [Fact]
         public void Writer_replies_persistedevents_in_request_order()
         {
-            var writer = CreateWriter(writer: MockStore.DefaultWriter());
+            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter());
 
             var request = new PersistenceRequest(new[] {
                 new UnpersistedEvent("a", new SampleEvent3()),
@@ -67,7 +68,7 @@ namespace Even.Tests
         public void Writer_tells_persistedevents_to_dispatcher_in_order()
         {
             var probe = CreateTestProbe();
-            var writer = CreateWriter(writer: MockStore.DefaultWriter(), dispatcher: probe);
+            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter(), dispatcher: probe);
 
             var request = new PersistenceRequest(new[] {
                 new UnpersistedEvent("a", new SampleEvent3()),
@@ -88,7 +89,7 @@ namespace Even.Tests
         [Fact]
         public void DuplicatedEventException_causes_duplicatedevent_message()
         {
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite<DuplicatedEntryException>());
+            var writer = CreateWriter(writer: MockEventStore.ThrowsOnWrite<DuplicatedEntryException>());
             var request = CreatePersistenceRequest();
             writer.Tell(request);
 
@@ -99,7 +100,7 @@ namespace Even.Tests
         public void Exception_for_some_items_still_writes_the_others()
         {
             // the writer will fail on the batch and on the next 3 requests
-            var writer = CreateWriter(writer: MockStore.ThrowsOnWrite(new Exception(), new[] { 1, 2, 3, 4 }));
+            var writer = CreateWriter(writer: MockEventStore.ThrowsOnWrite(new Exception(), new[] { 1, 2, 3, 4 }));
 
             var requests = Enumerable.Range(0, 100).Select(_ => CreatePersistenceRequest(1)).ToList();
 

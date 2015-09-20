@@ -87,8 +87,8 @@
     <Compile Include="BufferedEventWriterTests.cs" />
     <Compile Include="SerialEventStreamWriterTests.cs" />
     <Compile Include="EvenTestKit.cs" />
-    <Compile Include="MockEventStore.cs" />
-    <Compile Include="MockSerializer.cs" />
+    <Compile Include="Mocks\MockEventStore.cs" />
+    <Compile Include="Mocks\MockSerializer.cs" />
     <Compile Include="Persistence\EventStoreTests.cs" />
     <Compile Include="Persistence\InMemoryEventStoreTests.cs" />
     <Compile Include="Persistence\MySqlEventStoreTests.cs" />
