@@ -83,8 +83,22 @@ namespace Even.Messages
 
     public class ProjectionIndexPersistenceRequest
     {
-        public string ProjectionStreamID { get; set; }
-        public int ProjectionStreamSequence { get; set; }
-        public long GlobalSequence { get; set; }
+        public ProjectionIndexPersistenceRequest(string projectionStreamId, int projectionStreamSequence, long globalSequence)
+        {
+            Argument.Requires(projectionStreamId != null, nameof(projectionStreamId));
+            Argument.Requires(projectionStreamSequence >= 0, nameof(projectionStreamSequence));
+            Argument.Requires(globalSequence >= 0, nameof(globalSequence));
+
+            this.ProjectionStreamID = projectionStreamId;
+            this.ProjectionStreamSequence = projectionStreamSequence;
+            this.GlobalSequence = globalSequence;
+        }
+
+        public string ProjectionStreamID { get; }
+        public int ProjectionStreamSequence { get; }
+        public long GlobalSequence { get; }
     }
+
+    public class ProjectionIndexInconsistencyDetected
+    { }
 }

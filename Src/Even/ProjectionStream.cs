@@ -250,11 +250,7 @@ namespace Even
             if (_projectionStreamSequence > _lastIndexedSequence)
             {
                 // index the event
-                _writer.Tell(new ProjectionIndexPersistenceRequest
-                {
-                    ProjectionStreamID = _projectionStreamId,
-                    GlobalSequence = _globalSequence
-                });
+                _writer.Tell(new ProjectionIndexPersistenceRequest(_projectionStreamId, _projectionStreamSequence, @event.GlobalSequence));
             }
         }
 
