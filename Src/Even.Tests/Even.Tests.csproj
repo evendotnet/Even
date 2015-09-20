@@ -86,6 +86,7 @@
   <ItemGroup>
     <Compile Include="BufferedEventWriterTests.cs" />
     <Compile Include="Mocks\MockProjectionStore.cs" />
+    <Compile Include="ProjectionCheckpointWriterTests.cs" />
     <Compile Include="ProjectionIndexWriterTests.cs" />
     <Compile Include="SerialEventStreamWriterTests.cs" />
     <Compile Include="EvenTestKit.cs" />

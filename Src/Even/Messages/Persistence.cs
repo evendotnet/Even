@@ -101,4 +101,19 @@ namespace Even.Messages
 
     public class ProjectionIndexInconsistencyDetected
     { }
+
+    public class ProjectionCheckpointPersistenceRequest
+    {
+        public ProjectionCheckpointPersistenceRequest(string streamId, long globalSequence)
+        {
+            Argument.Requires(streamId != null);
+            Argument.Requires(globalSequence >= 0);
+
+            this.StreamID = streamId;
+            this.GlobalSequence = globalSequence;
+        }
+
+        public string StreamID { get; }
+        public long GlobalSequence { get; }
+    }
 }
