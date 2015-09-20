@@ -26,8 +26,9 @@ namespace Even
 
     public interface IEventStoreReader
     {
-        Task ReadAsync(long start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
-        Task ReadStreamAsync(string streamId, int start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task<long> ReadHighestGlobalSequenceAsync();
+        Task ReadAsync(long initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
     
     public interface IProjectionStoreWriter

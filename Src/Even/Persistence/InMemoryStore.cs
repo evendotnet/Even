@@ -98,23 +98,11 @@ namespace Even.Persistence
             return Task.CompletedTask;
         }
 
-        public Task<long> ReadHighestGlobalSequence()
+        public Task<long> ReadHighestGlobalSequenceAsync()
         {
             lock (_events)
             {
-                return Task.FromResult((long) _events.Count);
-            }
-        }
-
-        public Task<int> ReadHighestStreamSequenceAsync(string streamId)
-        {
-            lock (_events)
-            {
-                var count = _events
-                    .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
-                    .Count();
-
-                return Task.FromResult(count);
+                return Task.FromResult((long)_events.Count);
             }
         }
 

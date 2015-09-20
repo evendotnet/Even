@@ -8,6 +8,32 @@ using System.Threading.Tasks;
 
 namespace Even.Messages
 {
+    public class InitializationResult
+    {
+        private InitializationResult()
+        { }
+
+        public bool Initialized { get; private set; }
+        public Exception Exception { get; private set; }
+
+        public static InitializationResult Successful()
+        {
+            return new InitializationResult { Initialized = true };
+        }
+
+        public static InitializationResult Failed(Exception ex)
+        {
+            return new InitializationResult { Initialized = false, Exception = ex };
+        }
+    }
+
+    public class InitializeEventDispatcher
+    {
+        public IActorRef Reader { get; set; }
+        public TimeSpan RecoveryStartTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromSeconds(10);
+    }
+
     public class InitializeEventStoreReader
     {
         public EventRegistry EventRegistry { get; set; }

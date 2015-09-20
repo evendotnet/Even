@@ -120,4 +120,21 @@ namespace Even.Messages
     }
 
     #endregion
+
+    public class GlobalSequenceRequest : ReplayRequest
+    { }
+
+    public class GlobalSequenceResponse : ReplayResponse
+    {
+        public long LastGlobalSequence { get; set; }
+    }
+
+    public class EventReplayRequest : ReplayRequest
+    {
+        public long InitialGlobalSequence { get; set; }
+        public int Count { get; set; }
+    }
+
+    public class EventReplayCompleted : ReplayResponse
+    { }
 }

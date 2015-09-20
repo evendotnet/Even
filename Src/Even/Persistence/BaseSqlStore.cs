@@ -408,5 +408,10 @@ namespace Even.Persistence
             var script = String.Format(SqlFormat_Initialization, EventsTable, ProjectionIndexTable, ProjectionCheckpointTable);
             return DB.ExecuteNonQueryAsync(script);
         }
+
+        public Task<long> ReadHighestGlobalSequenceAsync()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

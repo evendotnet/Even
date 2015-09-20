@@ -14,8 +14,11 @@ namespace Even
         IEventStoreWriter _writer;
         ISerializer _serializer;
 
-        IActorRef _eventWriter;
+        IActorRef _serialWriter;
+        IActorRef _bufferedWriter;
         IActorRef _indexWriter;
+        IActorRef _checkpointWriter;
+        IActorRef _dispatcher;
 
         public EventStoreWriter()
         {
@@ -25,7 +28,7 @@ namespace Even
                 _serializer = ini.Serializer;
 
                 var ewProps = PropsFactory.Create<SerialEventStreamWriter>(_writer, _serializer);
-                _eventWriter = Context.ActorOf(ewProps, "eventwriter");
+                _serialWriter = Context.ActorOf(ewProps, "eventwriter");
 
                 // initialize projection index writer
                 var pWriter = _writer as IProjectionStoreWriter;
@@ -44,7 +47,7 @@ namespace Even
         {
             Receive<PersistenceRequest>(request =>
             {
-                _eventWriter.Forward(request);
+                _serialWriter.Forward(request);
             });
 
             Receive<ProjectionIndexPersistenceRequest>(request =>
@@ -54,6 +57,4 @@ namespace Even
             });
         }
     }
-
-    
 }
