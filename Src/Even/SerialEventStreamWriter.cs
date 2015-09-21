@@ -73,7 +73,7 @@ namespace Even
                 Sender.Tell(persistedEvent);
 
                 // publish to the event stream
-                Context.System.EventStream.Publish(persistedEvent);
+                _dispatcher.Tell(persistedEvent);
             }
         }
     }

@@ -64,8 +64,8 @@ namespace Even.Tests
         [Fact]
         public void Writer_tells_persistedevents_to_dispatcher_in_order()
         {
-            var probe = CreateTestProbe();
-            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter(), dispatcher: probe);
+            var dispatcher = CreateTestProbe();
+            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter(), dispatcher: dispatcher);
 
             var request = new PersistenceRequest(new[] {
                 new UnpersistedEvent("a", new SampleEvent3()),
@@ -73,14 +73,12 @@ namespace Even.Tests
                 new UnpersistedEvent("a", new SampleEvent2())
             });
 
-            Sys.EventStream.Subscribe(probe, typeof(IPersistedEvent));
-
             writer.Tell(request);
 
-            probe.ExpectMsg<IPersistedEvent<SampleEvent3>>();
-            probe.ExpectMsg<IPersistedEvent<SampleEvent1>>();
-            probe.ExpectMsg<IPersistedEvent<SampleEvent2>>();
-            probe.ExpectNoMsg(50);
+            dispatcher.ExpectMsg<IPersistedEvent<SampleEvent3>>();
+            dispatcher.ExpectMsg<IPersistedEvent<SampleEvent1>>();
+            dispatcher.ExpectMsg<IPersistedEvent<SampleEvent2>>();
+            dispatcher.ExpectNoMsg(50);
         }
 
         [Fact]
@@ -118,6 +116,21 @@ namespace Even.Tests
             writer.Tell(request);
 
             ExpectMsg<PersistenceFailure>(msg => msg.PersistenceID == request.PersistenceID && msg.Exception == exception);
+        }
+
+        [Fact]
+        public void Writer_does_not_publish_to_event_stream()
+        {
+            var dispatcher = CreateTestProbe();
+            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter(), dispatcher: dispatcher);
+            var request = CreatePersistenceRequest();
+
+            var probe = CreateTestProbe();
+            Sys.EventStream.Subscribe(probe, typeof(IPersistedEvent));
+
+            writer.Tell(request);
+
+            probe.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
         }
     }
 }
