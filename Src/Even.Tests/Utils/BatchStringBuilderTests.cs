@@ -94,7 +94,7 @@ namespace Even.Tests.Utils
 
         [Theory]
         [MemberData("DesiredLengthTestData")]
-        public void Desider_length_outputs_expected_strings(IEnumerable<object> items, int desiredLEngth, string[] expected)
+        public void Desired_length_outputs_expected_strings(IEnumerable<object> items, int desiredLEngth, string[] expected)
         {
             var output = BatchStringBuilder.Build(items, desiredLength: desiredLEngth).Select(o => o.String).ToList();
 

@@ -31,7 +31,6 @@ namespace Even.Messages
     {
         public IActorRef Reader { get; set; }
         public TimeSpan RecoveryStartTimeout { get; set; } = TimeSpan.FromSeconds(5);
-        public TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromSeconds(10);
     }
 
     public class InitializeEventStoreReader
@@ -45,6 +44,7 @@ namespace Even.Messages
     {
         public ISerializer Serializer { get; set; }
         public IEventStoreWriter StoreWriter { get; set; }
+        public IActorRef Dispatcher { get; set; }
     }
 
     public class InitializeCommandProcessorSupervisor

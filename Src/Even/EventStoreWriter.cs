@@ -11,35 +11,47 @@ namespace Even
 {
     public class EventStoreWriter : ReceiveActor
     {
-        IEventStoreWriter _writer;
-        ISerializer _serializer;
-
         IActorRef _serialWriter;
         IActorRef _bufferedWriter;
         IActorRef _indexWriter;
         IActorRef _checkpointWriter;
-        IActorRef _dispatcher;
 
         public EventStoreWriter()
+            : this(null, null, null, null)
+        { }
+
+        // this constructor is for unit testing only
+        public EventStoreWriter(IActorRef serialWriter, IActorRef bufferedWriter, IActorRef indexWriter, IActorRef checkpointWriter)
         {
             Receive<InitializeEventStoreWriter>(ini =>
             {
-                _writer = ini.StoreWriter;
-                _serializer = ini.Serializer;
-
-                var ewProps = PropsFactory.Create<SerialEventStreamWriter>(_writer, _serializer);
-                _serialWriter = Context.ActorOf(ewProps, "eventwriter");
-
-                // initialize projection index writer
-                var pWriter = _writer as IProjectionStoreWriter;
-
-                if (pWriter != null)
+                try
                 {
-                    var pwProps = PropsFactory.Create<ProjectionIndexWriter>(pWriter);
-                    _indexWriter = Context.ActorOf(pwProps, "projectionwriter");
-                }
+                    Argument.Requires(ini.StoreWriter != null, "StoreWriter");
+                    Argument.Requires(ini.Serializer != null, "Serializer");
+                    Argument.Requires(ini.Dispatcher != null, "Dispatcher");
 
-                Become(Ready);
+                    var serialProps = PropsFactory.Create<SerialEventStreamWriter>(ini.StoreWriter, ini.Serializer, ini.Dispatcher);
+                    _serialWriter = serialWriter ?? Context.ActorOf(serialProps, "serial");
+
+                    var bufferedProps = PropsFactory.Create<BufferedEventWriter>(ini.StoreWriter, ini.Serializer, ini.Dispatcher);
+                    _bufferedWriter = bufferedWriter ?? Context.ActorOf(bufferedProps, "buffered");
+
+                    var indexProps = PropsFactory.Create<ProjectionIndexWriter>(ini.StoreWriter, TimeSpan.FromSeconds(2));
+                    _indexWriter = indexWriter ?? Context.ActorOf(indexProps, "index");
+
+                    var checkpointProps = PropsFactory.Create<ProjectionCheckpointWriter>(ini.StoreWriter, TimeSpan.FromSeconds(5));
+                    _checkpointWriter = checkpointWriter ?? Context.ActorOf(checkpointProps, "checkpoint");
+
+                    Become(Ready);
+
+                    Sender.Tell(InitializationResult.Successful());
+                }
+                catch (Exception ex)
+                {
+                    Sender.Tell(InitializationResult.Failed(ex));
+                    Context.Stop(Self);
+                }
             });
         }
 
@@ -47,13 +59,20 @@ namespace Even
         {
             Receive<PersistenceRequest>(request =>
             {
-                _serialWriter.Forward(request);
+                if (request.ExpectedStreamSequence == ExpectedSequence.Any)
+                    _bufferedWriter.Forward(request);
+                else
+                    _serialWriter.Forward(request);
             });
 
             Receive<ProjectionIndexPersistenceRequest>(request =>
             {
-                if (_indexWriter != null)
-                    _indexWriter.Forward(request);
+                _indexWriter.Forward(request);
+            });
+
+            Receive<ProjectionCheckpointPersistenceRequest>(request =>
+            {
+                _checkpointWriter.Forward(request);
             });
         }
     }

@@ -18,6 +18,7 @@ namespace Even
 
         IActorRef _reader;
         IActorRef _writer;
+        IActorRef _dispatcher;
         IActorRef _projectionStreams;
         IActorRef _commandProcessors;
         IActorRef _eventProcessors;
@@ -63,13 +64,21 @@ namespace Even
                 EventRegistry = _registry
             });
 
+            _dispatcher = Context.ActorOf<EventDispatcher>("dispatcher");
+
+            _dispatcher.Tell(new InitializeEventDispatcher
+            {
+                Reader = _reader
+            });
+
             // initialize writer
             _writer = Context.ActorOf<EventStoreWriter>("writer");
 
             _writer.Tell(new InitializeEventStoreWriter
             {
                 StoreWriter = _settings.Store,
-                Serializer = _settings.Serializer
+                Serializer = _settings.Serializer,
+                Dispatcher = _dispatcher
             });
             
             // initialize the projection streams supervisor
