@@ -85,7 +85,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BufferedEventWriterTests.cs" />
-    <Compile Include="EventDispatcherBasicTests.cs" />
+    <Compile Include="EventDispatcherTests.cs" />
     <Compile Include="Mocks\MockProjectionStore.cs" />
     <Compile Include="ProjectionCheckpointWriterTests.cs" />
     <Compile Include="ProjectionIndexWriterTests.cs" />

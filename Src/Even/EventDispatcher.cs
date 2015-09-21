@@ -20,7 +20,7 @@ namespace Even
         long _firstSequenceAfterGap;
         ICancelable _recovery;
         Guid _replayId;
-        ILoggingAdapter _log;
+        ILoggingAdapter _log = Context.GetLogger();
 
         public EventDispatcher()
         {
@@ -146,11 +146,14 @@ namespace Even
         {
             Receive<ReplayEvent>(e =>
             {
+                // publish to the event stream and increment the sequence
+                Context.System.EventStream.Publish(e.Event);
 
             }, e => e.ReplayID == _replayId);
 
             Receive<ReplayCompleted>(e =>
             {
+                _currentGlobalSequence = e.LastSeenGlobalSequence;
                 Stash.UnstashAll();
                 Become(Ready);
             });

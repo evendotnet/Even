@@ -62,7 +62,7 @@
     <Compile Include="EventRegistry.cs" />
     <Compile Include="ExpectedSequence.cs" />
     <Compile Include="IndexSequenceEntry.cs" />
-    <Compile Include="PersistedEventDispatcher.cs" />
+    <Compile Include="EventDispatcher.cs" />
     <Compile Include="ProjectionCheckpointWriter.cs" />
     <Compile Include="ProjectionIndexWriter.cs" />
     <Compile Include="MessageHandler.cs" />
