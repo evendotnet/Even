@@ -129,14 +129,9 @@ namespace Even
                 var initialSequence = _currentGlobalSequence + 1;
                 var count = (int) (_firstSequenceAfterGap - initialSequence);
 
-                _replayId = Guid.NewGuid();
-
-                _reader.Tell(new EventReplayRequest
-                {
-                    InitialGlobalSequence = initialSequence,
-                    Count = count,
-                    ReplayID = _replayId
-                });
+                var request = new EventReplayRequest(initialSequence, count);
+                _replayId = request.ReplayID;
+                _reader.Tell(request);
 
                 Become(Recovering);
             });

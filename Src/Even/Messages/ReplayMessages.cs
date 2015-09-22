@@ -129,8 +129,18 @@ namespace Even.Messages
         public long LastGlobalSequence { get; set; }
     }
 
-    public class EventReplayRequest : ReplayRequest
+    /// <summary>
+    /// Represents a request to replay events from the global stream.
+    /// </summary>
+    public class EventReplayRequest
     {
+        public EventReplayRequest(long initialGlobalSequence, int count)
+        {
+            InitialGlobalSequence = initialGlobalSequence;
+            Count = count;
+        }
+
+        public Guid ReplayID { get; } = Guid.NewGuid();
         public long InitialGlobalSequence { get; set; }
         public int Count { get; set; }
     }
