@@ -64,6 +64,7 @@ namespace Even
                 EventRegistry = _registry
             });
 
+            // initialize dispatcher
             _dispatcher = Context.ActorOf<EventDispatcher>("dispatcher");
 
             _dispatcher.Tell(new InitializeEventDispatcher

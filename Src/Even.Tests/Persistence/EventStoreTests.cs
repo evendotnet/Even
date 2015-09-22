@@ -94,11 +94,12 @@ namespace Even.Tests.Persistence
 
         [Theory]
         [InlineData(0, 3, new long[] { 1, 2, 3 })]
-        [InlineData(1, 3, new long[] { 2, 3, 4 })]
-        [InlineData(2, 3, new long[] { 3, 4, 5 })]
-        [InlineData(3, 3, new long[] { 4, 5 })]
-        [InlineData(4, 3, new long[] { 5 })]
-        [InlineData(5, 3, new long[0])]
+        [InlineData(1, 3, new long[] { 1, 2, 3 })]
+        [InlineData(2, 3, new long[] { 2, 3, 4 })]
+        [InlineData(3, 3, new long[] { 3, 4, 5 })]
+        [InlineData(4, 3, new long[] { 4, 5 })]
+        [InlineData(5, 3, new long[] { 5 })]
+        [InlineData(6, 3, new long[0])]
         public async Task ReadAsync_Considers_Start_And_Count_Correctly(long start, int count, long[] expectedSequences)
         {
             await WriteTestEvents(5);
@@ -111,11 +112,12 @@ namespace Even.Tests.Persistence
 
         [Theory]
         [InlineData(0, 3, new long[] { 6, 7, 8 })]
-        [InlineData(1, 3, new long[] { 7, 8, 9 })]
-        [InlineData(2, 3, new long[] { 8, 9, 10 })]
-        [InlineData(3, 3, new long[] { 9, 10 })]
-        [InlineData(4, 3, new long[] { 10 })]
-        [InlineData(5, 3, new long[0])]
+        [InlineData(1, 3, new long[] { 6, 7, 8 })]
+        [InlineData(2, 3, new long[] { 7, 8, 9 })]
+        [InlineData(3, 3, new long[] { 8, 9, 10 })]
+        [InlineData(4, 3, new long[] { 9, 10 })]
+        [InlineData(5, 3, new long[] { 10 })]
+        [InlineData(6, 3, new long[0])]
         public async Task ReadStreamAsync_Considers_Start_And_Count_Correctly(int start, int count, long[] expectedSequences)
         {
             await WriteTestEvents(5, "a");
@@ -412,11 +414,12 @@ namespace Even.Tests.Persistence
 
         [Theory]
         [InlineData(0, 3, new long[] { 1, 2, 3 })]
-        [InlineData(1, 3, new long[] { 2, 3, 4 })]
-        [InlineData(2, 3, new long[] { 3, 4, 5 })]
-        [InlineData(3, 3, new long[] { 4, 5 })]
-        [InlineData(4, 3, new long[] { 5 })]
-        [InlineData(5, 3, new long[0])]
+        [InlineData(1, 3, new long[] { 1, 2, 3 })]
+        [InlineData(2, 3, new long[] { 2, 3, 4 })]
+        [InlineData(3, 3, new long[] { 3, 4, 5 })]
+        [InlineData(4, 3, new long[] { 4, 5 })]
+        [InlineData(5, 3, new long[] { 5 })]
+        [InlineData(6, 3, new long[0])]
         public async Task ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(int start, int count, long[] expectedSequences)
         {
             await WriteAndProjectTestEvents(5, "a", new long[] { 1, 2, 3, 4, 5 });

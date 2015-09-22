@@ -44,6 +44,6 @@ namespace Even
         Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(string streamId);
         Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(string streamId);
 
-        Task ReadIndexedProjectionStreamAsync(string streamId, int start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
 }

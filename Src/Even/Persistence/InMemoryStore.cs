@@ -106,17 +106,17 @@ namespace Even.Persistence
             }
         }
 
-        public Task ReadAsync(long start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        public Task ReadAsync(long initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
-            Argument.Requires<ArgumentOutOfRangeException>(start >= 0, nameof(start));
+            Argument.Requires<ArgumentOutOfRangeException>(initialSequence >= 0, nameof(initialSequence));
             Argument.Requires<ArgumentOutOfRangeException>(count >= 0 || count == EventCount.Unlimited, nameof(count));
 
             lock (_events)
             {
                 IEnumerable<PersistedRawEvent> events = _events;
 
-                if (start > 0)
-                    events = events.Skip((int) start);
+                if (initialSequence > 0)
+                    events = events.Where(e => e.GlobalSequence >= initialSequence);
 
                 if (count >= 0)
                     events = events.Take(count);
@@ -133,22 +133,25 @@ namespace Even.Persistence
             return Task.CompletedTask;
         }
 
-        public Task ReadStreamAsync(string streamId, int start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        public Task ReadStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
-            Argument.Requires<ArgumentOutOfRangeException>(start >= 0, nameof(start));
+            Argument.Requires<ArgumentOutOfRangeException>(initialSequence >= 0, nameof(initialSequence));
             Argument.Requires<ArgumentOutOfRangeException>(count >= 0 || count == EventCount.Unlimited, nameof(count));
 
             lock (_events)
             {
-                var streamEvents = _events
+                var events = _events
                     .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
                     .OrderBy(e => e.GlobalSequence)
-                    .Skip(start);
+                    .AsEnumerable();
+
+                if (initialSequence > 0)
+                    events = events.Skip(initialSequence - 1);
 
                 if (count >= 0)
-                    streamEvents = streamEvents.Take(count);
+                    events = events.Take(count);
 
-                foreach (var e in streamEvents)
+                foreach (var e in events)
                 {
                     if (ct.IsCancellationRequested)
                         break;
@@ -254,7 +257,7 @@ namespace Even.Persistence
             return Task.FromResult(0);
         }
 
-        public Task ReadIndexedProjectionStreamAsync(string streamId, int start, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        public Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
             lock (_projectionIndexes)
             {
@@ -268,10 +271,11 @@ namespace Even.Persistence
                     {
                         events = from s in projection
                                  join e in _events on s equals e.GlobalSequence
-                                 orderby s
+                                 orderby e.GlobalSequence
                                  select e;
 
-                        events = events.Skip(start);
+                        if (initialSequence > 0)
+                            events = events.Skip(initialSequence - 1);
 
                         if (count >= 0)
                             events = events.Take(count);
