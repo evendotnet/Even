@@ -4,31 +4,7 @@ using System.Diagnostics.Contracts;
 
 namespace Even
 {
-    public interface IPersistedEvent
-    {
-        long GlobalSequence { get; }
-        Guid EventID { get; }
-        string StreamID { get; }
-        string OriginalStreamID { get; }
-        string EventType { get; }
-        DateTime UtcTimestamp { get; }
-        IReadOnlyDictionary<string, object> Metadata { get; }
-        object DomainEvent { get; }
-    }
-
-    public interface IPersistedEvent<T> : IPersistedEvent
-    {
-        new T DomainEvent { get; }
-    }
-
-    public interface IPersistedStreamEvent : IPersistedEvent
-    {
-        int StreamSequence { get; }
-    }
-
-    public interface IPersistedStreamEvent<T> : IPersistedStreamEvent, IPersistedEvent<T>
-    { }
-
+    [Obsolete]
     public static class PersistedEventFactory
     {
         public static IPersistedEvent Create(long globalSequence, UnpersistedEvent unpersistedEvent)

@@ -59,10 +59,16 @@
     <Compile Include="EvenStorageFormatAttribute.cs" />
     <Compile Include="EventCount.cs" />
     <Compile Include="EventProcessor.cs" />
+    <Compile Include="EventReader.cs" />
     <Compile Include="EventRegistry.cs" />
     <Compile Include="ExpectedSequence.cs" />
     <Compile Include="IndexSequenceEntry.cs" />
     <Compile Include="EventDispatcher.cs" />
+    <Compile Include="IPersistedEvent.cs" />
+    <Compile Include="IPersistedStreamEvent.cs" />
+    <Compile Include="Messages\EventReadMessages.cs" />
+    <Compile Include="Messages\IRequest.cs" />
+    <Compile Include="PersistedEventFactory2.cs" />
     <Compile Include="ProjectionCheckpointWriter.cs" />
     <Compile Include="ProjectionIndexWriter.cs" />
     <Compile Include="MessageHandler.cs" />
@@ -81,6 +87,7 @@
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\BaseSqlStore.cs" />
+    <Compile Include="ReadEventWorker.cs" />
     <Compile Include="Utils\BatchStringBuilder.cs" />
     <Compile Include="Persistence\InMemoryStore.cs" />
     <Compile Include="Persistence\MySqlStore.cs" />

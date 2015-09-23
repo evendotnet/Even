@@ -11,6 +11,7 @@ namespace Even
         long GlobalSequence { get; }
         Guid EventID { get; }
         string StreamID { get; }
+        string OriginalStreamID { get; }
         DateTime UtcTimestamp { get; }
         string EventType { get; }
         byte[] Metadata { get; }
@@ -23,6 +24,7 @@ namespace Even
         public long GlobalSequence { get; set; }
         public Guid EventID { get; set; }
         public string StreamID { get; set; }
+        public string OriginalStreamID { get; set; }
         public DateTime UtcTimestamp { get; set; }
         public string EventType { get; set; }
         public byte[] Metadata { get; set; }
