@@ -6,7 +6,13 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class PersistedEventFactory2
+    public interface IPersistedEventFactory
+    {
+        IPersistedEvent CreateEvent(IPersistedRawEvent rawEvent);
+        IPersistedStreamEvent CreateStreamEvent(IPersistedRawEvent rawEvent, int streamSequence);
+    }
+
+    public class PersistedEventFactory2 : IPersistedEventFactory
     {
         EventRegistry _registry;
         ISerializer _serializer;

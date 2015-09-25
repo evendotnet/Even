@@ -1,14 +1,18 @@
-﻿using NSubstitute;
+﻿using Even.Persistence;
+using NSubstitute;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Even.Tests.Mocks
 {
     public static class MockEventStore
     {
+
+
         public static IEventStoreWriter SuccessfulWriter()
         {
             var store = Substitute.For<IEventStoreWriter>();
@@ -21,7 +25,6 @@ namespace Even.Tests.Mocks
                     e.GlobalSequence = i++;
 
             })).ReturnsForAnyArgs(Task.CompletedTask);
-
 
             store.WriteAsync(Arg.Do<IReadOnlyCollection<IUnpersistedRawStreamEvent>>(events =>
             {
@@ -66,6 +69,37 @@ namespace Even.Tests.Mocks
 
                 return Task.CompletedTask;
             });
+
+            return store;
+        }
+
+        public static IEventStoreReader ThrowsOnReadStreams<T>()
+            where T : Exception, new()
+        {
+            return ThrowsOnReadStreams(new T());
+        }
+
+        public static IEventStoreReader ThrowsOnReadStreams(Exception exception)
+        {
+            var store = Substitute.For<IEventStore>();
+
+            store.ReadAsync(0, 0, null, default(CancellationToken))
+                .ReturnsForAnyArgs(t =>
+                {
+                    throw exception;
+                });
+
+            store.ReadStreamAsync(null, 0, 0, null, default(CancellationToken))
+                .ReturnsForAnyArgs(t =>
+                {
+                    throw exception;
+                });
+
+            store.ReadIndexedProjectionStreamAsync(null, 0, 0, null, default(CancellationToken))
+                .ReturnsForAnyArgs(t =>
+                {
+                    throw exception;
+                });
 
             return store;
         }

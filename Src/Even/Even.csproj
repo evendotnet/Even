@@ -62,6 +62,7 @@
     <Compile Include="EventReader.cs" />
     <Compile Include="EventRegistry.cs" />
     <Compile Include="ExpectedSequence.cs" />
+    <Compile Include="IndexedProjectionStreamReader.cs" />
     <Compile Include="IndexSequenceEntry.cs" />
     <Compile Include="EventDispatcher.cs" />
     <Compile Include="IPersistedEvent.cs" />
@@ -87,7 +88,8 @@
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\BaseSqlStore.cs" />
-    <Compile Include="ReadEventWorker.cs" />
+    <Compile Include="ReadWorkers.cs" />
+    <Compile Include="StreamEventReader.cs" />
     <Compile Include="Utils\BatchStringBuilder.cs" />
     <Compile Include="Persistence\InMemoryStore.cs" />
     <Compile Include="Persistence\MySqlStore.cs" />

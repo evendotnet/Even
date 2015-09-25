@@ -13,7 +13,7 @@ namespace Even
     {
         CancellationTokenSource _cts = new CancellationTokenSource();
 
-        public void ReceiveRequest<TRequest>(Func<TRequest, CancellationToken, Task> action) where TRequest : IRequest
+        public void ReceiveRequest<TRequest>(Func<TRequest, IActorRef, CancellationToken, Task> action) where TRequest : IRequest
         {
             Receive<TRequest>(req =>
             {
@@ -25,7 +25,7 @@ namespace Even
                 {
                     try
                     {
-                        await action(req, _cts.Token);
+                        await action(req, sender, _cts.Token);
 
                         if (!_cts.IsCancellationRequested)
                             SendFinishedMessage(sender, requestId);
@@ -43,6 +43,7 @@ namespace Even
                     Receive<CancelReadRequest>(_ =>
                     {
                         _cts.Cancel();
+                        sender.Tell(new ReadCancelled(req.RequestID));
                     }, msg => msg.RequestID == requestId);
                 });
             });
@@ -56,16 +57,14 @@ namespace Even
 
     internal class ReadWorker : ReadWorkerBase
     {
-        public ReadWorker(IEventStoreReader reader, PersistedEventFactory2 factory)
+        public ReadWorker(IEventStoreReader reader, IPersistedEventFactory factory)
         {
-            ReceiveRequest<ReadRequest>((req, ct) =>
+            ReceiveRequest<ReadRequest>((req, sender, ct) =>
             {
-                var sender = Sender;
-
                 return reader.ReadAsync(req.InitialGlobalSequence, req.Count, e =>
                 {
                     var loadedEvent = factory.CreateEvent(e);
-                    sender.Tell(new ReadEventResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
+                    sender.Tell(new ReadResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
                 }, ct);
             });
         }
@@ -73,20 +72,23 @@ namespace Even
 
     internal class ReadStreamWorker : ReadWorkerBase
     {
-        public ReadStreamWorker(IEventStoreReader reader, PersistedEventFactory2 factory)
+        public ReadStreamWorker(IEventStoreReader reader, IPersistedEventFactory factory)
         {
-            ReceiveRequest<ReadStreamRequest>((req, ct) =>
+            ReceiveRequest<ReadStreamRequest>((req, sender, ct) =>
             {
-                var sender = Sender;
-
                 var sequence = req.InitialSequence;
 
                 return reader.ReadStreamAsync(req.StreamID, req.InitialSequence, req.Count, e =>
                 {
                     var loadedEvent = factory.CreateStreamEvent(e, sequence++);
-                    sender.Tell(new ReadEventStreamResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
+                    sender.Tell(new ReadStreamResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
                 }, ct);
             });
+        }
+
+        protected override void SendFinishedMessage(IActorRef sender, Guid requestId)
+        {
+            sender.Tell(new ReadStreamFinished(requestId), ActorRefs.NoSender);
         }
     }
 
@@ -94,29 +96,28 @@ namespace Even
     {
         long _lastSeenGlobalCheckpoint;
 
-        public ReadIndexedProjectionStreamWorker(IProjectionStoreReader reader, PersistedEventFactory2 factory)
+        public ReadIndexedProjectionStreamWorker(IProjectionStoreReader reader, IPersistedEventFactory factory)
         {
-            ReceiveRequest<ReadIndexedProjectionRequest>(async (req, ct) =>
+            ReceiveRequest<ReadIndexedProjectionStreamRequest>(async (req, sender, ct) =>
             {
-                var sender = Sender;
-
                 var checkpoint = await reader.ReadProjectionCheckpointAsync(req.ProjectionStreamID);
-                var sequence = 0L;
+                var sequence = req.InitialSequence;
+                var globalSequence = 0L;
 
                 await reader.ReadIndexedProjectionStreamAsync(req.ProjectionStreamID, req.InitialSequence, req.Count, e =>
                 {
-                    sequence = e.GlobalSequence;
-                    var loadedEvent = factory.CreateEvent(e);
-                    sender.Tell(new ReadEventResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
+                    globalSequence = e.GlobalSequence;
+                    var loadedEvent = factory.CreateStreamEvent(e, sequence++);
+                    sender.Tell(new ReadIndexedProjectionStreamResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
                 }, ct);
 
-                _lastSeenGlobalCheckpoint = Math.Max(checkpoint, sequence);
+                _lastSeenGlobalCheckpoint = Math.Max(checkpoint, globalSequence);
             });
         }
 
         protected override void SendFinishedMessage(IActorRef sender, Guid requestId)
         {
-            sender.Tell(new ReadProjectionIndexFinished(requestId, _lastSeenGlobalCheckpoint), ActorRefs.NoSender);
+            sender.Tell(new ReadIndexedProjectionStreamFinished(requestId, _lastSeenGlobalCheckpoint), ActorRefs.NoSender);
         }
     }
 }
