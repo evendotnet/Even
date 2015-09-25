@@ -35,9 +35,17 @@ namespace Even.Messages
 
     public class InitializeEventStoreReader
     {
-        public EventRegistry EventRegistry { get; set; }
-        public ISerializer Serializer { get; set; }
-        public IEventStoreReader StoreReader { get; set; }
+        public InitializeEventStoreReader(IEventStore store, IPersistedEventFactory factory)
+        {
+            Argument.Requires(store != null, nameof(store));
+            Argument.Requires(factory != null, nameof(factory));
+
+            this.Store = store;
+            this.Factory = factory;
+        }
+
+        public IEventStoreReader Store { get; }
+        public IPersistedEventFactory Factory { get; }
     }
 
     public class InitializeEventStoreWriter

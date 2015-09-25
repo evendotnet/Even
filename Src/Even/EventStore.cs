@@ -56,13 +56,10 @@ namespace Even
         void InitializeChildren()
         {
             // initialize reader
-            _reader = Context.ActorOf<EventStoreReader>("reader");
+            var factory = new PersistedEventFactory2(_registry, _settings.Serializer);
 
-            _reader.Tell(new InitializeEventStoreReader {
-                StoreReader = _settings.Store,
-                Serializer = _settings.Serializer,
-                EventRegistry = _registry
-            });
+            _reader = Context.ActorOf<EventStoreReader>("reader");
+            _reader.Tell(new InitializeEventStoreReader(_store, factory));
 
             // initialize dispatcher
             _dispatcher = Context.ActorOf<EventDispatcher>("dispatcher");
