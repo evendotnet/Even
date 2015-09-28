@@ -68,9 +68,12 @@
     <Compile Include="IPersistedEvent.cs" />
     <Compile Include="IPersistedStreamEvent.cs" />
     <Compile Include="Messages\EventReadMessages.cs" />
+    <Compile Include="Messages\GenericMessages.cs" />
     <Compile Include="Messages\IRequest.cs" />
+    <Compile Include="Options.cs" />
     <Compile Include="PersistedEventFactory2.cs" />
     <Compile Include="ProjectionCheckpointWriter.cs" />
+    <Compile Include="ProjectionEvent.cs" />
     <Compile Include="ProjectionIndexWriter.cs" />
     <Compile Include="MessageHandler.cs" />
     <Compile Include="CommandProcessor.cs" />
@@ -82,7 +85,7 @@
     <Compile Include="Messages\Initialization\InitializeEventStore.cs" />
     <Compile Include="IEventStore.cs" />
     <Compile Include="Messages\Persistence.cs" />
-    <Compile Include="Messages\Subscriptions.cs" />
+    <Compile Include="Messages\ProjectionMessages.cs" />
     <Compile Include="Aggregate.cs" />
     <Compile Include="CommandProcessorSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />

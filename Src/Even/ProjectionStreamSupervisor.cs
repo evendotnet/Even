@@ -10,36 +10,35 @@ namespace Even
 {
     public class ProjectionStreams : ReceiveActor
     {
-        public ProjectionStreams()
+        public ProjectionStreams(IActorRef reader, IActorRef writer, GlobalOptions options)
         {
-            Receive<InitializeProjectionStreams>(ini =>
-            {
-                _reader = ini.Reader;
-                _indexWriter = ini.Writer;
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(writer, nameof(writer));
+            Argument.RequiresNotNull(options, nameof(options));
 
-                Become(ReceivingRequests);
-            });
+            _reader = reader;
+            _writer = writer;
+            _options = options;
+
+            Become(ReceivingRequests);
         }
 
         IActorRef _reader;
-        IActorRef _indexWriter;
+        IActorRef _writer;
+        GlobalOptions _options;
 
         private void ReceivingRequests()
         {
             Receive<ProjectionSubscriptionRequest>(ps =>
             {
-                var key = "projection-" + ps.Query.ProjectionStreamID;
+                var key = "stream-" + ps.Query.ProjectionStreamID;
                 IActorRef pRef = Context.Child(key);
 
                 // if the projection stream doesn't exist, start one
-                if (pRef == null || pRef == ActorRefs.Nobody)
+                if (pRef == ActorRefs.Nobody)
                 {
-                    pRef = Context.ActorOf<ProjectionStream>();
-                    pRef.Tell(new InitializeProjectionStream {
-                        Query = ps.Query,
-                        Reader = _reader,
-                        Writer = _indexWriter
-                    });
+                    var props = Props.Create<ProjectionStream>(ps.Query, _reader, _writer, _options);
+                    pRef = Context.ActorOf(props);
                 }
 
                 pRef.Forward(ps);

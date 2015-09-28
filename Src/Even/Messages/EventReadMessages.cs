@@ -141,6 +141,30 @@ namespace Even.Messages
 
     #endregion
 
+    public class ReadProjectionIndexCheckpointRequest : IRequest
+    {
+        public ReadProjectionIndexCheckpointRequest(string projectionStreamId)
+        {
+            Argument.RequiresNotNull(projectionStreamId, nameof(projectionStreamId));
+            this.ProjectionStreamID = projectionStreamId;
+        }
+
+        public Guid RequestID { get; } = Guid.NewGuid();
+        public string ProjectionStreamID { get; }
+    }
+
+    public class ReadProjectionIndexCheckpointResponse
+    {
+        public ReadProjectionIndexCheckpointResponse(Guid requestId, long lastSeenGlobalSequence)
+        {
+            this.RequestID = requestId;
+            this.LastSeenGlobalSequence = lastSeenGlobalSequence;
+        }
+
+        public Guid RequestID { get; }
+        public long LastSeenGlobalSequence { get; }
+    }
+
     // additional queries
 
     //public class HighestGlobalSequenceRequest : IRequest

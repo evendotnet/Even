@@ -37,4 +37,17 @@ namespace Even
 
     public class MissingIndexEntryException : EvenException
     { }
+
+    public class EventOutOfOrderException : EvenException
+    {
+        public EventOutOfOrderException(long expectedSequence, long receivedSequence, string message = null)
+            : base(message, null)
+        {
+            this.ExpectedSequence = expectedSequence;
+            this.ReceivedSequence = receivedSequence;
+        }
+
+        public long ExpectedSequence { get; }
+        public long ReceivedSequence { get; }
+    }
 }

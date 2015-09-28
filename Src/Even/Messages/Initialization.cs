@@ -114,8 +114,24 @@ namespace Even.Messages
         public Type Type { get; set; }
     }
 
+    [Obsolete]
     public class InitializeEventProcessor
     {
         public IActorRef ProjectionStreamSupervisor { get; set; }
+    }
+
+    public class InitializeProjection
+    {
+        public InitializeProjection(IActorRef projectionStreamSupervisor, IProjectionOptions options)
+        {
+            Argument.Requires(projectionStreamSupervisor != null, nameof(projectionStreamSupervisor));
+            Argument.Requires(options != null, nameof(options));
+
+            this.ProjectionStreamSupervisor = projectionStreamSupervisor;
+            this.Options = options;
+        }
+
+        public IActorRef ProjectionStreamSupervisor { get; }
+        public IProjectionOptions Options { get; }
     }
 }

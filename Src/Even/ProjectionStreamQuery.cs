@@ -10,7 +10,7 @@ namespace Even
     /// <summary>
     /// Represents a projection stream query.
     /// </summary>
-    public class ProjectionStreamQuery
+    public class ProjectionStreamQuery : IEquatable<ProjectionStreamQuery>
     {
         public ProjectionStreamQuery(IReadOnlyCollection<IProjectionStreamPredicate> predicates)
         {
@@ -33,6 +33,11 @@ namespace Even
 
             var str = String.Concat(items);
             return StreamHash.AsHashString(str);
+        }
+
+        public bool Equals(ProjectionStreamQuery other)
+        {
+            return other != null && ProjectionStreamID == other.ProjectionStreamID;
         }
     }
 }

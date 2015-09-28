@@ -15,7 +15,7 @@ namespace Even
     {
         EventStoreSettings _settings;
         IEventStore _store;
-
+        GlobalOptions _options;
         IActorRef _reader;
         IActorRef _writer;
         IActorRef _dispatcher;
@@ -78,16 +78,11 @@ namespace Even
                 Serializer = _settings.Serializer,
                 Dispatcher = _dispatcher
             });
-            
+
             // initialize the projection streams supervisor
-            _projectionStreams = Context.ActorOf<ProjectionStreams>("projectionstreams");
-
-            _projectionStreams.Tell(new InitializeProjectionStreams
-            {
-                Reader = _reader,
-                Writer = _writer
-            });
-
+            var projectionStreamsProps = Props.Create<ProjectionStreams>(_reader, _writer, _options);
+            _projectionStreams = Context.ActorOf(projectionStreamsProps, "projectionstreams");
+            
             // initialize event processor supervisor
             _eventProcessors = Context.ActorOf<EventProcessorSupervisor>("eventprocessors");
 

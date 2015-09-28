@@ -8,6 +8,11 @@ namespace Even
 {
     internal static class Argument
     {
+        public static void RequiresNotNull(object param, string paramName)
+        {
+            Requires<ArgumentNullException>(param != null, paramName);
+        }
+
         public static void Requires(bool condition, string paramName = null, string message = null)
         {
             Requires<ArgumentException>(condition, paramName, message);

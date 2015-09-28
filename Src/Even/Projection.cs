@@ -13,16 +13,14 @@ namespace Even
     {
         public IStash Stash { get; set; }
         protected int CurrentSequence { get; private set; }
-        protected string CurrentStreamID { get; private set; }
+        protected string ProjectionStreamID { get; private set; }
 
         PersistedEventHandler _handlers = new PersistedEventHandler();
         LinkedList<Type> _eventTypes = new LinkedList<Type>();
 
-        ILoggingAdapter Log = Context.GetLogger();
-
         IActorRef _streams;
-        Guid _replayId;
-        string _projectionId;
+        IProjectionOptions _options;
+        Guid _lastRequestId;
 
         public Projection()
         {
@@ -33,77 +31,89 @@ namespace Even
 
         private void Uninitialized()
         {
-            Receive<InitializeEventProcessor>(async ini =>
+            Receive<InitializeProjection>(async ini =>
             {
-                _streams = ini.ProjectionStreamSupervisor;
-
-                var query = BuildQuery();
-                CurrentStreamID = query.ProjectionStreamID;
-
-                if (query == null)
+                try
                 {
-                    Log.Error("The projection can't start because the query is not defined.");
-                    Context.Stop(Self);
-                    return;
+                    _streams = ini.ProjectionStreamSupervisor;
+                    _options = ini.Options;
+
+                    var query = BuildQuery();
+                    ProjectionStreamID = query.ProjectionStreamID;
+
+                    await OnInit();
+
+                    var lastKnownState = await GetLastKnownState();
+
+                    // if the projection is new or id is changed, the projection needs to be rebuilt
+                    if (lastKnownState == null || !ProjectionStreamID.Equals(lastKnownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
+                        await PrepareToRebuild();
+
+                    var request = new ProjectionSubscriptionRequest(query, lastKnownState?.ProjectionSequence ?? 0);
+                    _lastRequestId = request.RequestID;
+                    _streams.Tell(request);
+
+                    Become(Replaying);
+
+                    Sender.Tell(InitializationResult.Successful());
                 }
-
-                _projectionId = query.ProjectionStreamID;
-
-                await OnInit();
-
-                var knownState = await GetLastKnownState();
-
-                // if the projection is new or id is changed, the projection need to be rebuilt
-                if (knownState == null || !query.ProjectionStreamID.Equals(knownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
-                    await PrepareToRebuild();
-
-                _replayId = Guid.NewGuid();
-
-                _streams.Tell(new ProjectionSubscriptionRequest
+                catch (Exception ex)
                 {
-                    ReplayID = _replayId,
-                    Query = query,
-                    LastKnownSequence = CurrentSequence = knownState?.ProjectionSequence ?? 0
-                });
-
-                Become(Replaying);
+                    Sender.Tell(InitializationResult.Failed(ex));
+                    throw;
+                }
             });
         }
 
         private void Replaying()
         {
-            Log.Debug("{0}: Starting Projection Replay", GetType().Name);
+            SetReceiveTimeout(_options.ProjectionReplayTimeout);
 
-            Receive<ReplayEvent>(async e =>
+            Receive<ProjectionReplayEvent>(async e =>
             {
-                Contract.Assert(e.Event.StreamSequence == CurrentSequence + 1);
+                // test the request id here instead of the receive predicate,
+                // so we can discard cancelled replay messages instead of stashing them
+                if (e.RequestID != _lastRequestId)
+                    return;
+
+                var expected = CurrentSequence + 1;
+                var received = e.Event.StreamSequence;
+
+                if (expected != received)
+                {
+                    Sender.Tell(new CancelRequest(e.RequestID));
+                    throw new EventOutOfOrderException(expected, received, "Unexpected event sequence replaying projection");
+                }
 
                 CurrentSequence++;
                 await ProcessEventInternal(e.Event);
+            });
 
-            }, e => e.ReplayID == _replayId);
-
-            Receive<ProjectionReplayCompleted>(e =>
+            Receive<ProjectionReplayFinished>(e =>
             {
-                Log.Debug("{0}: Projection Replay Completed", GetType().Name);
-
-                Contract.Assert(e.LastSeenProjectionStreamSequence == CurrentSequence);
+                if (e.RequestID != _lastRequestId)
+                    return;
 
                 Become(Ready);
+            });
 
-            }, e => e.ReplayID == _replayId);
-
-            Receive<ReplayAborted>(e =>
+            Receive<Aborted>(e =>
             {
-                throw new Exception("Replay Aborted");
-            },
-            e => e.ReplayID == _replayId);
+                if (e.RequestID != _lastRequestId)
+                    return;
 
-            Receive<ReplayCancelled>(e =>
+                throw new Exception("Replay Aborted", e.Exception);
+            });
+
+            // cancelled messages can be ignored safely
+            Receive<Cancelled>(_ => { });
+
+            Receive(new Action<ReceiveTimeout>(_ =>
             {
-                throw new Exception("Replay Aborted");
-            },
-            e => e.ReplayID == _replayId);  
+                throw new TimeoutException("Timeout waiting for replay messages.");
+            }));
+
+            ReceiveAny(_ => Stash.Stash());
         }
 
         void Ready()
@@ -111,12 +121,17 @@ namespace Even
             // receive projection events
             Receive<IPersistedStreamEvent>(async e =>
             {
-                Contract.Assert(e.StreamSequence == CurrentSequence + 1);
+                // skip old messages
+                if (e.StreamSequence <= CurrentSequence)
+                    return;
+
+                if (e.StreamSequence > CurrentSequence + 1)
+                    throw new EventOutOfOrderException(CurrentSequence + 1, e.StreamSequence, "Projection received an event out of order.");
 
                 CurrentSequence++;
                 await ProcessEventInternal(e);
 
-            }, e => e.StreamID == _projectionId);
+            }, e => e.StreamID == ProjectionStreamID);
 
             OnReady();
         }
@@ -198,6 +213,7 @@ namespace Even
 
     public class ProjectionReplayState
     {
+        [Obsolete]
         public int? LastSeenCheckpoint { get; set; }
         public int LastSeenSequence { get; set; }
         public int LastSeenHash { get; set; }

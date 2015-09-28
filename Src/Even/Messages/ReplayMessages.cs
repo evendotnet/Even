@@ -92,6 +92,7 @@ namespace Even.Messages
 
     #region Projection Stream
 
+    [Obsolete]
     public class ProjectionStreamReplayRequest : ReplayRequest
     {
         public string StreamID { get; set; }
@@ -105,12 +106,14 @@ namespace Even.Messages
     /// Signals that no more events will be read from the index, and new messages
     /// will require matching.
     /// </summary>
+    [Obsolete]
     public class ProjectionStreamIndexReplayCompleted : ReplayResponse
     {
         public int LastSeenProjectionStreamSequence { get; set; }
         public long LastSeenGlobalSequence { get; set; }
     }
 
+    [Obsolete]
     public class ProjectionReplayCompleted : ReplayCompleted
     {
         /// <summary>
