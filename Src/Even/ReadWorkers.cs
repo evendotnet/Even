@@ -32,7 +32,7 @@ namespace Even
                     }
                     catch (Exception ex)
                     {
-                        sender.Tell(new ReadAborted(requestId, ex), ActorRefs.NoSender);
+                        sender.Tell(new Aborted(requestId, ex), ActorRefs.NoSender);
                     }
 
                     self.Tell(PoisonPill.Instance);
@@ -40,10 +40,10 @@ namespace Even
 
                 Become(() =>
                 {
-                    Receive<CancelReadRequest>(_ =>
+                    Receive<CancelRequest>(_ =>
                     {
                         _cts.Cancel();
-                        sender.Tell(new ReadCancelled(req.RequestID));
+                        sender.Tell(new Cancelled(req.RequestID));
                     }, msg => msg.RequestID == requestId);
                 });
             });

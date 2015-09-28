@@ -102,9 +102,9 @@ namespace Even.Tests
 
             var req = new ReadRequest(1, EventCount.Unlimited);
             reader.Tell(req);
-            reader.Tell(new CancelReadRequest(req.RequestID));
+            reader.Tell(new CancelRequest(req.RequestID));
 
-            ExpectMsgEventually<ReadCancelled>(m => m.RequestID == req.RequestID);
+            ExpectMsgEventually<Cancelled>(m => m.RequestID == req.RequestID);
         }
 
         [Fact]
@@ -120,7 +120,7 @@ namespace Even.Tests
             var req = new ReadRequest(1, EventCount.Unlimited);
             actor.Tell(req);
 
-            ExpectMsg<ReadAborted>(m => m.RequestID == req.RequestID && m.Exception == ex);
+            ExpectMsg<Aborted>(m => m.RequestID == req.RequestID && m.Exception == ex);
         }
     }
 }

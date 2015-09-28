@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Even.Messages
@@ -139,38 +140,6 @@ namespace Even.Messages
     }
 
     #endregion
-
-    public class CancelReadRequest : IRequest
-    {
-        public CancelReadRequest(Guid requestId)
-        {
-            this.RequestID = requestId;
-        }
-
-        public Guid RequestID { get; }
-    }
-
-    public class ReadCancelled
-    {
-        public ReadCancelled(Guid requestId)
-        {
-            this.RequestID = requestId;
-        }
-
-        public Guid RequestID { get; }
-    }
-
-    public class ReadAborted
-    {
-        public ReadAborted(Guid requestId, Exception exception)
-        {
-            this.RequestID = requestId;
-            this.Exception = exception;
-        }
-
-        public Guid RequestID { get; }
-        public Exception Exception { get; private set; }
-    }
 
     // additional queries
 
