@@ -128,7 +128,7 @@ namespace Even.Tests
                     return Directive.Stop;
                 });
             });
-            
+
             ExpectMsg<Exception>();
         }
 
@@ -303,6 +303,25 @@ namespace Even.Tests
             ps.Tell(Kill.Instance);
 
             ExpectMsg<ProjectionUnsubscribed>();
+        }
+
+        [Fact]
+        public void Requests_matched_events_be_written_to_index()
+        {
+            var query = new ProjectionStreamQuery(new DomainEventPredicate(typeof(TestEvent)));
+            var writer = CreateTestProbe();
+            var props = Props.Create<ProjectionStream>(query, CreateWorkingReader(), writer, new GlobalOptions());
+            var ps = Sys.ActorOf(props);
+
+            ps.Tell(MockPersistedEvent.Create(new object(), 1));
+            ps.Tell(MockPersistedEvent.Create(new TestEvent(), 2));
+            ps.Tell(MockPersistedEvent.Create(new object(), 3));
+            ps.Tell(MockPersistedEvent.Create(new TestEvent(), 4));
+            ps.Tell(MockPersistedEvent.Create(new object(), 5));
+
+            writer.ExpectMsg<ProjectionIndexPersistenceRequest>(m => m.ProjectionStreamID == query.ProjectionStreamID && m.ProjectionStreamSequence == 1 && m.GlobalSequence == 2);
+            writer.ExpectMsg<ProjectionIndexPersistenceRequest>(m => m.ProjectionStreamID == query.ProjectionStreamID && m.ProjectionStreamSequence == 2 && m.GlobalSequence == 4);
+            writer.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
         }
     }
 }
