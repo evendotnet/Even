@@ -270,8 +270,7 @@ namespace Even.Tests
         [Fact]
         public void SubscriptionRequest_with_past_sequence_starts_projection_replay_worker()
         {
-            var probe = CreateTestProbe();
-            var workerProps = Props.Create<ProbeRelay>(probe);
+            var workerProps = Props.Create<ProbeRelay>(TestActor);
 
             var reader = CreateWorkingReader(1);
             var query = new ProjectionStreamQuery(new DomainEventPredicate(typeof(TestEvent)));
@@ -282,11 +281,11 @@ namespace Even.Tests
 
             ps.Tell(new ProjectionSubscriptionRequest(query, 0), subscriber);
 
-            probe.ExpectMsg<InitializeProjectionReplayWorker>();
+            ExpectMsg<InitializeProjectionReplayWorker>();
         }
 
         [Fact]
-        public async Task Subscribers_receive_ProjectionUnsubscribed_when_projection_stream_restart()
+        public async Task Sends_ProjectionUnsubscribed_to_subscribers_on_restart()
         {
             var query = new ProjectionStreamQuery();
             var reader = CreateWorkingReader();
