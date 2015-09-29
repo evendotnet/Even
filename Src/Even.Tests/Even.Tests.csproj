@@ -88,11 +88,13 @@
     <Compile Include="EventDispatcherTests.cs" />
     <Compile Include="EventStoreReaderTests.cs" />
     <Compile Include="EventStoreWriterTests.cs" />
+    <Compile Include="Mocks\MockPersistedEvent.cs" />
     <Compile Include="Mocks\MockPersistedEventFactory.cs" />
     <Compile Include="Mocks\MockProjectionStore.cs" />
     <Compile Include="Mocks\TestStore.cs" />
     <Compile Include="ProjectionCheckpointWriterTests.cs" />
     <Compile Include="ProjectionIndexWriterTests.cs" />
+    <Compile Include="ProjectionStreamTests.cs" />
     <Compile Include="ReadIndexedProjectionStreamWorkerTests.cs" />
     <Compile Include="ReadStreamWorkerTests.cs" />
     <Compile Include="ReadWorkerTests.cs" />

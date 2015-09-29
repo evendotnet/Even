@@ -21,18 +21,18 @@ namespace Even
         /// <summary>
         /// The maximum number of events per read request.
         /// </summary>
-        public int EventsPerReadRequest { get; } = 10000;
+        public int EventsPerReadRequest { get; set; } = 10000;
 
         /// <summary>
         /// The default timeout for reveiving read responses.
         /// </summary>
-        public TimeSpan ReadRequestTimeout { get; } = TimeSpan.FromSeconds(15);
+        public TimeSpan ReadRequestTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
         /// <summary>
         /// The amount of time the projection will wait before starting to replay;
         /// </summary>
-        public TimeSpan ProjectionReplayDelay { get; } = TimeSpan.FromSeconds(1);
+        public TimeSpan ProjectionReplayDelay { get; set; } = TimeSpan.FromSeconds(1);
 
-        public TimeSpan ProjectionReplayRetryInterval { get; } = TimeSpan.FromSeconds(1);
+        public TimeSpan ProjectionReplayRetryInterval { get; set; } = TimeSpan.FromSeconds(1);
     }
 }

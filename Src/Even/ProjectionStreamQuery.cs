@@ -12,27 +12,43 @@ namespace Even
     /// </summary>
     public class ProjectionStreamQuery : IEquatable<ProjectionStreamQuery>
     {
-        public ProjectionStreamQuery(IReadOnlyCollection<IProjectionStreamPredicate> predicates)
+        public ProjectionStreamQuery(params IProjectionStreamPredicate[] predicates)
         {
-            this.Predicates = predicates ?? new IProjectionStreamPredicate[0];
+            _predicates = predicates ?? new IProjectionStreamPredicate[0];
         }
 
+        public ProjectionStreamQuery(IEnumerable<IProjectionStreamPredicate> predicates)
+            : this(predicates.ToArray())
+        { }
+
         private string _id;
+        private IProjectionStreamPredicate[] _predicates;
 
         /// <summary>
         /// A deterministic ID that will always be the same for the same query.
         /// </summary>
         public string ProjectionStreamID => _id ?? (_id = GenerateID());
-        public IReadOnlyCollection<IProjectionStreamPredicate> Predicates { get; }
+
+        [Obsolete]
+        public IReadOnlyCollection<IProjectionStreamPredicate> Predicates => _predicates;
 
         private string GenerateID()
         {
-            var items = Predicates
+            var items = _predicates
                 .Select(q => JsonConvert.SerializeObject(q.GetDeterministicHashSource()))
                 .OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
 
             var str = String.Concat(items);
             return StreamHash.AsHashString(str);
+        }
+
+        public bool EventMatches(IPersistedEvent e)
+        {
+            foreach (var p in _predicates)
+                if (p.EventMatches(e))
+                    return true;
+
+            return false;
         }
 
         public bool Equals(ProjectionStreamQuery other)

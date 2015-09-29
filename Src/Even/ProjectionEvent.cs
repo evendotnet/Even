@@ -19,7 +19,7 @@ namespace Even
 
         class ProjectionEvent<T> : IPersistedStreamEvent<T>
         {
-            private ProjectionEvent(string streamId, int streamSequence, IPersistedEvent<T> persistedEvent)
+            public ProjectionEvent(string streamId, int streamSequence, IPersistedEvent<T> persistedEvent)
             {
                 StreamID = streamId;
                 StreamSequence = streamSequence;

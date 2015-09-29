@@ -43,4 +43,10 @@ namespace Even.Messages
 
         public Guid RequestID { get; }
     }
+
+    public class RebuildProjection
+    { }
+
+    public class ProjectionUnsubscribed
+    { }
 }

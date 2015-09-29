@@ -21,8 +21,10 @@ namespace Even
         ProjectionStreamQuery _query;
         IActorRef _reader;
         IActorRef _writer;
-        LinkedList<IActorRef> _subscribers = new LinkedList<IActorRef>();
         GlobalOptions _options;
+        Props _replayWorkerProps;
+
+        LinkedList<IActorRef> _subscribers = new LinkedList<IActorRef>();
 
         // used during replay
         Guid _lastRequestId;
@@ -32,14 +34,25 @@ namespace Even
         long _globalSequence;
         int _currentSequence;
 
+
         public IStash Stash { get; set; }
 
         public ProjectionStream(ProjectionStreamQuery query, IActorRef reader, IActorRef writer, GlobalOptions options)
+            : this(query, reader, writer, options, null)
+        { }
+
+        public ProjectionStream(ProjectionStreamQuery query, IActorRef reader, IActorRef writer, GlobalOptions options, Props replayWorkerProps)
         {
             Argument.RequiresNotNull(query, nameof(query));
             Argument.RequiresNotNull(reader, nameof(reader));
             Argument.RequiresNotNull(writer, nameof(writer));
             Argument.RequiresNotNull(options, nameof(options));
+
+            _query = query;
+            _reader = reader;
+            _writer = writer;
+            _options = options;
+            _replayWorkerProps = replayWorkerProps ?? Props.Create<ProjectionReplayWorker>();
 
             // subscribe to events in the stream
             Context.System.EventStream.Subscribe(Self, typeof(IPersistedEvent));
@@ -133,6 +146,12 @@ namespace Even
             // receive subscription requests
             Receive<ProjectionSubscriptionRequest>(ps =>
             {
+                if (ps.LastKnownSequence > _currentSequence)
+                {
+                    Sender.Tell(new RebuildProjection());
+                    return;
+                }
+
                 _subscribers.AddLast(Sender);
                 Context.Watch(Sender);
 
@@ -141,7 +160,7 @@ namespace Even
                 // events will be forwarded automatically
                 if (ps.LastKnownSequence < _currentSequence)
                 {
-                    StartProjectionReplay(ps);
+                    StartProjectionReplayWorker(ps);
                 }
                 // otherwise just send a completed message to the projection
                 // with the current state
@@ -185,7 +204,7 @@ namespace Even
         private void ReceiveEventInternal(IPersistedEvent e, bool tellSubscribers)
         {
             // and the event matches the query, emit it
-            if (EventMatches(e))
+            if (_query.EventMatches(e))
             {
                 // increment the sequence
                 _currentSequence++;
@@ -204,23 +223,42 @@ namespace Even
             }
         }
 
-        private bool EventMatches(IPersistedEvent @event)
+        private void StartProjectionReplayWorker(ProjectionSubscriptionRequest ps)
         {
-            foreach (var p in _query.Predicates)
-                if (p.EventMatches(@event))
-                    return true;
+            var props = _replayWorkerProps.WithSupervisorStrategy(new OneForOneStrategy(ex => Directive.Stop));
 
-            return false;
+            var worker = Context.ActorOf(props);
+            worker.Tell(new InitializeProjectionReplayWorker(_reader, Sender, ps, _currentSequence, _options));
         }
 
-        private void StartProjectionReplay(ProjectionSubscriptionRequest ps)
+        protected override void PostStop()
         {
-            var props = Props
-                .Create<ProjectionReplayWorker>(_reader, Sender, ps, _currentSequence - 1, _options)
-                .WithSupervisorStrategy(new OneForOneStrategy(ex => Directive.Stop));
-
-            Context.ActorOf(props);
+            foreach (var s in _subscribers)
+                s.Tell(new ProjectionUnsubscribed());
         }
+    }
+
+    public class InitializeProjectionReplayWorker
+    {
+        public InitializeProjectionReplayWorker(IActorRef reader, IActorRef subscriber, ProjectionSubscriptionRequest subscriptionRequest, int lastSequenceToRead, GlobalOptions options)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(subscriber, nameof(subscriber));
+            Argument.RequiresNotNull(subscriptionRequest, nameof(subscriptionRequest));
+            Argument.RequiresNotNull(options, nameof(options));
+
+            this.Reader = reader;
+            this.Subscriber = subscriber;
+            this.SubscriptionRequest = subscriptionRequest;
+            this.LastSequenceToRead = lastSequenceToRead;
+            this.Options = options;
+        }
+
+        public IActorRef Reader { get; }
+        public IActorRef Subscriber { get; }
+        public ProjectionSubscriptionRequest SubscriptionRequest { get; }
+        public int LastSequenceToRead { get; }
+        public GlobalOptions Options { get; }
     }
 
     /// <summary>
@@ -240,35 +278,35 @@ namespace Even
         GlobalOptions _options;
 
         int _currentSequence;
-
         Guid _lastRequestId;
-        int _readEvents;
 
-        public ProjectionReplayWorker(IActorRef reader, IActorRef subscriber, ProjectionSubscriptionRequest subscriptionRequest, int lastSequenceToRead, GlobalOptions options)
+        public ProjectionReplayWorker()
         {
-            _reader = reader;
-            _subscriber = subscriber;
-            _lastSequenceToRead = lastSequenceToRead;
-            _options = options;
+            Receive<InitializeProjectionReplayWorker>(ini =>
+            {
+                _reader = ini.Reader;
+                _subscriber = ini.Subscriber;
+                _lastSequenceToRead = ini.LastSequenceToRead;
+                _options = ini.Options;
 
-            _subscriberRequestId = subscriptionRequest.RequestID;
-            _projectionStreamId = subscriptionRequest.Query.ProjectionStreamID;
-            _currentSequence = subscriptionRequest.LastKnownSequence;
+                _subscriberRequestId = ini.SubscriptionRequest.RequestID;
+                _projectionStreamId = ini.SubscriptionRequest.Query.ProjectionStreamID;
+                _currentSequence = ini.SubscriptionRequest.LastKnownSequence;
 
-            StartReadRequest();
-            Become(Replaying);
+                StartReadRequest();
+                Become(Replaying);
+            });
         }
 
         void StartReadRequest()
         {
             var maxEvents = _options.EventsPerReadRequest >= 0 ? _options.EventsPerReadRequest : 0;
-            var count = Math.Max(_lastSequenceToRead - _currentSequence, maxEvents);
+            var count = Math.Min(_lastSequenceToRead - _currentSequence, maxEvents);
 
             var readRequest = new ReadIndexedProjectionStreamRequest(_projectionStreamId, _currentSequence + 1, count);
             _reader.Tell(readRequest);
 
             _lastRequestId = readRequest.RequestID;
-            _readEvents = 0;
         }
 
         private void Replaying()
