@@ -10,9 +10,9 @@ namespace Even.Tests.Utils
 {
     public class ProbeRelay : ReceiveActor
     {
-        public ProbeRelay(TestProbe probe)
+        public ProbeRelay(IActorRef target)
         {
-            ReceiveAny(o => probe.Forward(o));
+            ReceiveAny(o => target.Forward(o));
         }
     }
 
