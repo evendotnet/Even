@@ -280,6 +280,8 @@ namespace Even
         int _currentSequence;
         Guid _lastRequestId;
 
+        int _retries;
+
         public ProjectionReplayWorker()
         {
             Receive<InitializeProjectionReplayWorker>(ini =>
@@ -340,6 +342,15 @@ namespace Even
 
             Receive<Retry>(_ =>
             {
+                _retries++;
+
+                if (_retries >= _options.MaxProjectionReplayRetries)
+                {
+                    var ex = new Exception("Maximum read retries reached. Giving up.");
+                    _subscriber.Tell(new Aborted(_subscriberRequestId, ex));
+                    throw ex;
+                }
+
                 StartReadRequest();
             });
 

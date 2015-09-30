@@ -34,5 +34,6 @@ namespace Even
         public TimeSpan ProjectionReplayDelay { get; set; } = TimeSpan.FromSeconds(1);
 
         public TimeSpan ProjectionReplayRetryInterval { get; set; } = TimeSpan.FromSeconds(1);
+        public int MaxProjectionReplayRetries { get; set; } = 10;
     }
 }
