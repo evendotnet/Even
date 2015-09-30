@@ -122,16 +122,16 @@ namespace Even.Messages
 
     public class InitializeProjection
     {
-        public InitializeProjection(IActorRef projectionStreamSupervisor, IProjectionOptions options)
+        public InitializeProjection(IActorRef projectionStreamSupervisor, GlobalOptions options)
         {
-            Argument.Requires(projectionStreamSupervisor != null, nameof(projectionStreamSupervisor));
-            Argument.Requires(options != null, nameof(options));
+            Argument.RequiresNotNull(projectionStreamSupervisor, nameof(projectionStreamSupervisor));
+            Argument.RequiresNotNull(options, nameof(options));
 
             this.ProjectionStreamSupervisor = projectionStreamSupervisor;
             this.Options = options;
         }
 
         public IActorRef ProjectionStreamSupervisor { get; }
-        public IProjectionOptions Options { get; }
+        public GlobalOptions Options { get; }
     }
 }

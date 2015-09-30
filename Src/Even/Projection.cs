@@ -19,7 +19,7 @@ namespace Even
         LinkedList<Type> _eventTypes = new LinkedList<Type>();
 
         IActorRef _streams;
-        IProjectionOptions _options;
+        GlobalOptions _options;
         Guid _lastRequestId;
 
         public Projection()
@@ -46,7 +46,7 @@ namespace Even
                     var lastKnownState = await GetLastKnownState();
 
                     // if the projection is new or id is changed, the projection needs to be rebuilt
-                    if (lastKnownState == null || !ProjectionStreamID.Equals(lastKnownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
+                    if (lastKnownState != null && !ProjectionStreamID.Equals(lastKnownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
                         await PrepareToRebuild();
 
                     var request = new ProjectionSubscriptionRequest(query, lastKnownState?.ProjectionSequence ?? 0);
@@ -67,7 +67,7 @@ namespace Even
 
         private void Replaying()
         {
-            SetReceiveTimeout(_options.ProjectionReplayTimeout);
+            SetReceiveTimeout(_options.ReadRequestTimeout);
 
             Receive<ProjectionReplayEvent>(async e =>
             {
@@ -94,6 +94,7 @@ namespace Even
                 if (e.RequestID != _lastRequestId)
                     return;
 
+                Stash.UnstashAll();
                 Become(Ready);
             });
 
@@ -132,6 +133,12 @@ namespace Even
                 await ProcessEventInternal(e);
 
             }, e => e.StreamID == ProjectionStreamID);
+
+            Receive<RebuildProjection>(async _ =>
+            {
+                await PrepareToRebuild();
+                throw new RebuildRequestException();
+            });
 
             OnReady();
         }

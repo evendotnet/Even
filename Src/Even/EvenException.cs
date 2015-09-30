@@ -50,4 +50,7 @@ namespace Even
         public long ExpectedSequence { get; }
         public long ReceivedSequence { get; }
     }
+
+    public class RebuildRequestException : Exception
+    { }
 }
