@@ -67,7 +67,7 @@ namespace Even.Tests
             var request = new ProjectionSubscriptionRequest(new ProjectionStreamQuery(), 0);
 
             var worker = Sys.ActorOf<ProjectionReplayWorker>();
-            worker.Tell(new InitializeProjectionReplayWorker(reader, ActorRefs.Nobody, request, 1, new GlobalOptions()));
+            worker.Tell(new InitializeProjectionReplayWorker(reader, ActorRefs.Nobody, request, 0, new GlobalOptions()));
 
             Watch(worker);
             ExpectTerminated(worker);
