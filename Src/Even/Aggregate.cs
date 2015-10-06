@@ -4,44 +4,38 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Even.Messages;
+using System.Text.RegularExpressions;
 
 namespace Even
 {
-    public abstract class Aggregate : CommandProcessorBase, IWithUnboundedStash
+    public abstract class Aggregate : ReceiveActor, IWithUnboundedStash
     {
         public IStash Stash { get; set; }
 
-        Guid _replayId;
-        IActorRef _supervisor;
         IActorRef _reader;
         IActorRef _writer;
-        PersistedEventHandler _eventProcessors = new PersistedEventHandler();
+        GlobalOptions _options;
+
+        ObjectHandler _commandHandlers = new ObjectHandler();
+        ObjectHandler _eventHandlers = new ObjectHandler();
+
         LinkedList<UnpersistedEvent> _unpersistedEvents = new LinkedList<UnpersistedEvent>();
         PersistenceRequest _persistenceRequest;
 
-        bool _snapshotNotAccepted;
-
-        ILoggingAdapter _log = Context.GetLogger();
-
-        protected bool IsNew => StreamSequence == 0;
-        protected string StreamPrefix { get; private set; }
+        protected string Category { get; private set; }
         protected string StreamID { get; private set; }
         protected int StreamSequence { get; private set; }
-        protected bool IsReplaying { get; private set; } = true;
+        protected bool IsReplaying { get; private set; }
 
-        // TODO: read these from settings
-        static TimeSpan ReplayTimeout = TimeSpan.FromSeconds(30);
+        CommandContext _currentCommand;
 
-        protected override TimeSpan? IdleTimeout => TimeSpan.FromSeconds(30);
-
-        protected override IActorRef ProcessorSupervisor => _supervisor;
+        Guid _replayRequestId;
 
         public Aggregate()
         {
-            Become(Uninitialized);
+            Uninitialized();
         }
 
         #region Actor States
@@ -50,96 +44,90 @@ namespace Even
         {
             Receive<InitializeAggregate>(ini =>
             {
-                StreamPrefix = ESCategoryAttribute.GetCategory(this.GetType()) + "-";
+                Category = ESCategoryAttribute.GetCategory(this.GetType());
 
-                if (!IsValidStreamID(ini.StreamID))
-                {
-                    //TODO: this should reply some state to the supervisor, so it can refuse the first command
-                    Sender.Tell(new AggregateInitializationState
-                    {
-                        Initialized = false,
-                        InitializationFailureReason = "Invalid Stream"
-                    });
-
-                    Context.Stop(Self);
-                    return;
-                }
-
-                _supervisor = ini.CommandProcessorSupervisor;
                 _reader = ini.Reader;
                 _writer = ini.Writer;
-                StreamID = ini.StreamID;
-
-                Sender.Tell(new AggregateInitializationState { Initialized = true });
+                _options = ini.Options;
 
                 Become(AwaitingFirstCommand);
             });
         }
 
-        void AwaitingFirstCommand()
+        private void AwaitingFirstCommand()
         {
-            Receive<CommandRequest>(r =>
+            SetReceiveTimeout(_options.AggregateFirstCommandTimeout);
+
+            Receive<AggregateCommand>(c =>
             {
-                // once the first command is received, stash it and start the replay
+                // ensure the first command has a valid stream before starting the replay
+                if (!IsValidStreamID(c.StreamID))
+                {
+                    RefuseInvalidStream(c);
+                    return;
+                }
+
+                // once the first command is received, set the stream id
+                StreamID = c.StreamID;
+
+                // and stash the request to process after the replay
                 Stash.Stash();
 
-                _replayId = Guid.NewGuid();
+                // then start the replay
+                var request = new ReadStreamRequest(c.StreamID, 0, EventCount.Unlimited);
+                _reader.Tell(request);
+                _replayRequestId = request.RequestID;
 
-                _reader.Tell(new ReplayAggregateRequest
-                {
-                    ReplayID = _replayId,
-                    StreamID = StreamID,
-                    InitialSequence = 1
-                });
-
+                IsReplaying = true;
                 Become(Replaying);
+            });
 
-            }, r => String.Equals(r.StreamID, StreamID, StringComparison.OrdinalIgnoreCase));
+            Receive<ReceiveTimeout>(_ => this.StopSelf());
         }
         
-        void Replaying()
+        private void Replaying()
         {
-            Receive<ReplayEvent>(async e =>
+            SetReceiveTimeout(_options.ReadRequestTimeout);
+
+            Receive<ReadStreamResponse>(async msg =>
             {
-                _log.Debug("Received Replay Event Sequence " + e.Event.StreamSequence);
+                if (msg.RequestID != _replayRequestId)
+                    return;
 
-                Contract.Assert(e.Event.StreamSequence == StreamSequence + 1, "Received event in wrong order");
+                Contract.Assert(msg.Event.StreamSequence == StreamSequence + 1);
+                await ApplyEventInternal(msg.Event);
+            });
 
-                await ApplyEventInternal(e.Event);
-
-            }, e => e.ReplayID == _replayId);
-
-            Receive<ReplayCompleted>(_ =>
+            Receive<ReadStreamFinished>(msg =>
             {
-                _log.Debug("Replay Completed");
-
-                _replayId = Guid.Empty;
+                if (msg.RequestID != _replayRequestId)
+                    return;
 
                 IsReplaying = false;
-
-                // remove the timeout handler
-                SetReceiveTimeout(null);
 
                 // switch to ready state and start receiving commands
                 Become(Ready);
 
-            }, msg => msg.ReplayID == _replayId);
+                // unstash the oldest message
+                Stash.Unstash();
+            });
 
             // on errors, let the actor restart
-            Receive<ReplayCancelled>(msg =>
+            Receive<Cancelled>(msg =>
             {
+                if (msg.RequestID != _replayRequestId)
+                    return;
+
                 throw new Exception("Replay was cancelled.");
+            });
 
-            }, msg => msg.ReplayID == _replayId);
-
-            Receive<ReplayAborted>(msg =>
+            Receive<Aborted>(msg =>
             {
+                if (msg.RequestID != _replayRequestId)
+                    return;
+
                 throw new Exception("Replay was aborted.", msg.Exception);
-
-            }, msg => msg.ReplayID == _replayId);
-
-            // if no messages are received for some time, abort
-            SetReceiveTimeout(ReplayTimeout);
+            });
 
             Receive(new Action<ReceiveTimeout>(_ =>
             {
@@ -150,24 +138,69 @@ namespace Even
             ReceiveAny(o => Stash.Stash());
         }
 
-        void Ready()
+        private void Ready()
         {
-            _log.Debug("Ready to receive commands");
+            Receive<AggregateCommand>(async ac =>
+            {
+                // ensure the stream is the same
+                if (!String.Equals(ac.StreamID, StreamID, StringComparison.OrdinalIgnoreCase))
+                {
+                    RefuseInvalidStream(ac);
+                    return;
+                }
 
-            Stash.UnstashAll();
+                // ensure the timeout hasn't expire
+                if (ac.Timeout.IsExpired)
+                {
+                    Sender.Tell(new CommandTimeout(ac.CommandID));
+                    return;
+                }
 
-            SetupBase();
+                // save the context (used for persistence)
+                _currentCommand = new CommandContext(Sender, ac);
+
+                try
+                {
+                    await _commandHandlers.Handle(ac.Command);
+                }
+                // handle command rejections
+                catch (RejectException ex)
+                {
+                    Sender.Tell(new CommandRejected(ac.CommandID, ex.Reasons));
+                    _currentCommand = null;
+                    return;
+                }
+                // handle unexpected exceptions
+                catch (Exception ex)
+                {
+                    Sender.Tell(new CommandFailed(ac.CommandID, ex));
+                    _currentCommand = null;
+                    return;
+                }
+
+                // if there are events to persist, request persistence
+                if (_unpersistedEvents.Count > 0)
+                {
+                    var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList());
+                    _persistenceRequest = request;
+                    _writer.Tell(request);
+
+                    Become(AwaitingPersistence);
+                }
+                // otherwise
+                else
+                {
+                    OnFinishProcessing();
+                }
+            });
 
             OnReady();
-
-            // at this stage, simply skip any incoming replay messages
-            Receive<ReplayMessage>(msg => { });
         }
 
         private void AwaitingPersistence()
         {
-            _log.Debug("Awaiting persistence for " + _persistenceRequest.PersistenceID);
-            
+            SetReceiveTimeout(_options.AggregatePersistenceTimeout);
+
             Receive<IPersistedEvent>(async e =>
             {
                 // locate the unpersisted node
@@ -178,42 +211,105 @@ namespace Even
                     _unpersistedEvents.Remove(node);
                     await ApplyEventInternal(e);
                 }
-
-            }, e => e.StreamID.Equals(e.StreamID, StringComparison.OrdinalIgnoreCase));
+            });
 
             Receive<PersistenceSuccess>(_ =>
             {
-                OnCommandSucceeded();
-                AcceptCommand();
+                Contract.Assert(_unpersistedEvents.Count == 0, "There should be no unpersisted events left.");
+                OnFinishProcessing();
                 Become(Ready);
                 
             }, msg => msg.PersistenceID == _persistenceRequest.PersistenceID);
 
-            // if there is a failure during persistence, try to restart and send the command to itself again
-            Receive<PersistenceFailure>(failure =>
+            Receive(new Action<UnexpectedStreamSequence>(_ =>
             {
-                // forward the current command to itself again
-                Self.Tell(new CommandRequest
+                var command = _currentCommand.Command;
+                var nextAttempt = ((command as RetryAggregateCommand)?.Attempt ?? 1) + 1;
+
+                if (nextAttempt <= _options.MaxAggregateProcessAttempts)
                 {
-                    StreamID = StreamID,
-                    CommandID = CurrentCommand.Request.CommandID,
-                    Command = CurrentCommand.Request.Command,
-                    Retries = CurrentCommand.Request.Retries + 1
-                }, CurrentCommand.Sender);
+                    // forward the current command to itself for retry
+                    Self.Tell(new RetryAggregateCommand(command, nextAttempt), _currentCommand.Sender);
+                }
+                else
+                {
+                    // fail
+                    Sender.Tell(new CommandFailed(command.CommandID, "Too many stream sequence errors."));
+                }
 
-                throw new Exception("Error persisting event", failure.Exception);
+                throw new Exception("Unexpected stream sequence");
+            }));
 
-                return;
-            });
+            Receive(new Action<PersistenceFailure>(msg =>
+            {
+                Sender.Tell(new CommandFailed(_currentCommand.Command.CommandID, msg.Exception));
 
-            // TODO: SetReceiveTimeout
+                throw new Exception("Unexpected persistence failure", msg.Exception);
+            }));
+
+            Receive(new Action<ReceiveTimeout>(_ => {
+                throw new Exception("Timed out awaiting for persistence.");
+            }));
 
             ReceiveAny(_ => Stash.Stash());
+        }
+
+        private void Stopping()
+        {
+            SetReceiveTimeout(_options.AggregateStopTimeout);
+
+            Receive<StopNoticeAcknowledged>(_ =>
+            {
+                Context.Stop(Self);
+            });
+
+            Receive<ReceiveTimeout>(_ =>
+            {
+                Context.Stop(Self);
+            });
+
+            // forward any message to the supervisor so it can forward to the new aggregate
+            ReceiveAny(o => Context.Parent.Forward(o));
+        }
+
+        #endregion
+
+        #region Command/Event Handler Registration
+
+        protected void OnCommand<T>(Func<T, Task> processor)
+        {
+            _commandHandlers.AddHandler<T>(o => processor((T)o));
+        }
+
+        protected void OnCommand<T>(Action<T> processor)
+        {
+            _commandHandlers.AddHandler<T>(o => processor((T)o));
+        }
+
+        protected void OnEvent<T>(Func<T, Task> processor)
+        {
+            _eventHandlers.AddHandler<T>(o => processor((T)o));
+        }
+
+        protected void OnEvent<T>(Action<T> processor)
+        {
+            _eventHandlers.AddHandler<T>(o => processor((T)o));
         }
 
         #endregion
 
         #region Command Handler Responses
+
+        protected void Reject(string reason)
+        {
+            Reject(new RejectReasons(reason));
+        }
+
+        protected void Reject(RejectReasons reasons)
+        {
+            Argument.RequiresNotNull(reasons, nameof(reasons));
+            throw new RejectException(reasons);
+        }
 
         /// <summary>
         /// Tells the aggregate to persist an event. Once the event is persisted,
@@ -221,64 +317,10 @@ namespace Even
         /// for a single command. No new commands are processed until all events
         /// from the same command are persisted.
         /// </summary>
-        protected void Persist(object domainEvent)
+        protected void Persist<T>(T domainEvent, Action<T> persistenceCallback = null)
         {
-            Contract.Requires(domainEvent != null);
+            Argument.RequiresNotNull(domainEvent, nameof(domainEvent));
             _unpersistedEvents.AddLast(new UnpersistedEvent(StreamID, domainEvent));
-        }
-
-        #endregion
-
-        internal override bool HandlePersistenceRequest()
-        {
-            if (_unpersistedEvents.Count == 0)
-                return false;
-
-            var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList());
-
-            _persistenceRequest = request;
-
-            _writer.Tell(request);
-
-            Become(AwaitingPersistence);
-
-            return true;
-        }
-
-        protected abstract bool AcceptSnapshot(object snapshot);
-
-        protected virtual bool IsValidStreamID(string streamId)
-        {
-            return streamId != null
-                && streamId.Length > StreamPrefix.Length
-                && streamId.StartsWith(StreamPrefix, StringComparison.OrdinalIgnoreCase);
-        }
-
-        protected virtual void OnReady()
-        { }
-
-        #region Event Processor Registration
-
-        // on event
-
-        protected void OnEvent<T>(Func<T, Task> processor)
-        {
-            _eventProcessors.AddHandler<T>(e => processor((T) e.DomainEvent));
-        }
-
-        protected void OnEvent<T>(Func<T, IPersistedEvent, Task> processor)
-        {
-            _eventProcessors.AddHandler<T>(e => processor((T)e.DomainEvent, e));
-        }
-
-        protected void OnEvent<T>(Action<T> processor)
-        {
-            _eventProcessors.AddHandler<T>(e => processor((T) e.DomainEvent));
-        }
-
-        protected void OnEvent<T>(Action<T, IPersistedEvent> processor)
-        {
-            _eventProcessors.AddHandler<T>(e => processor((T)e.DomainEvent, e));
         }
 
         #endregion
@@ -288,15 +330,34 @@ namespace Even
             StreamSequence++;
             var eventType = e.DomainEvent.GetType();
 
-            try {
-                await OnReceiveEvent(e);
-                await _eventProcessors.Handle(e);
-            }
-            catch (Exception ex)
-            {
-                _log.Error(ex, "Error processing agggregate event");
-                throw;
-            }
+            await OnReceiveEvent(e);
+            await _eventHandlers.Handle(e);
+        }
+
+        private void OnFinishProcessing()
+        {
+            _currentCommand = null;
+            Stash.Unstash();
+        }
+
+        private void RefuseInvalidStream(AggregateCommand command)
+        {
+            Sender.Tell(new CommandRefused(command.CommandID, $"The stream '{command.StreamID}' is not valid for this aggregate."));
+        }
+
+        protected virtual bool IsValidStreamID(string streamId)
+        {
+            var pattern = "^" + Category + "-[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$";
+            return Regex.IsMatch(streamId, pattern);
+        }
+
+        protected virtual void OnReady()
+        { }
+
+        protected void StopSelf()
+        {
+            Context.Parent.Tell(WillStop.Instance);
+            Become(Stopping);
         }
 
         protected virtual Task OnReceiveEvent(IPersistedEvent e)
@@ -304,27 +365,31 @@ namespace Even
             return Task.CompletedTask;
         }
 
-        class PersistenceContext
+        class CommandContext
         {
-            public IActorRef CommandSender { get; set; }
-            public CommandRequest Command { get; set; }
-            public PersistenceRequest PersistenceRequest { get; set; }
+            public CommandContext(IActorRef sender, AggregateCommand command)
+            {
+                this.Sender = sender;
+                this.Command = command;
+            }
+
+            public IActorRef Sender { get; }
+            public AggregateCommand Command { get; }
+        }
+
+        class RejectException : Exception
+        {
+            public RejectException(RejectReasons reasons)
+            {
+                this.Reasons = reasons;
+            }
+
+            public RejectReasons Reasons { get; }
         }
     }
 
     public abstract class Aggregate<TState> : Aggregate
     {
         protected TState State { get; set; }
-
-        protected override bool AcceptSnapshot(object snapshot)
-        {
-            if (snapshot is TState)
-            {
-                State = (TState)snapshot;
-                return true;
-            }
-
-            return false;
-        }
     }
 }

@@ -76,4 +76,11 @@ namespace Even
             : base(e => e.DomainEvent)
         { }
     }
+
+    public class ObjectHandler : MessageHandler<object>
+    {
+        public ObjectHandler()
+            : base(null)
+        { }
+    }
 }

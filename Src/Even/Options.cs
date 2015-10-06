@@ -35,5 +35,17 @@ namespace Even
 
         public TimeSpan ProjectionReplayRetryInterval { get; set; } = TimeSpan.FromSeconds(1);
         public int MaxProjectionReplayRetries { get; set; } = 10;
+
+        /// <summary>
+        /// The default timeout for commands sent through the gateway.
+        /// </summary>
+        public TimeSpan DefaultCommandTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+        public TimeSpan AggregateFirstCommandTimeout { get; set; } = TimeSpan.FromSeconds(1);
+        public TimeSpan AggregateIdleTimeout { get; set; } = TimeSpan.FromSeconds(60);
+        public TimeSpan AggregatePersistenceTimeout { get; set; } = TimeSpan.FromSeconds(30);
+        public int MaxAggregateProcessAttempts { get; set; } = 10;
+        public TimeSpan AggregateStopTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan DispatcherRecoveryTimeout { get; set; } = TimeSpan.FromSeconds(5);
     }
 }

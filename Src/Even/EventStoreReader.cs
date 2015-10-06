@@ -1,11 +1,5 @@
 ﻿using Akka.Actor;
-using Akka.Event;
 using Even.Messages;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Diagnostics.Contracts;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Even
 {
@@ -15,34 +9,34 @@ namespace Even
         Props _readStreamProps;
         Props _readIndexedProjectionProps;
 
-        public EventStoreReader(Props readProps, Props readStreamProps, Props readIndexedProjectionProps)
+        public static Props CreateProps(IEventStoreReader storeReader, IPersistedEventFactory factory, GlobalOptions options)
+        {
+            return Props.Create<EventStoreReader>(storeReader, factory, options);
+        }
+
+        public EventStoreReader(IEventStoreReader storeReader, IPersistedEventFactory factory, GlobalOptions options)
+        {
+            _readProps = Props.Create<ReadWorker>(storeReader, factory);
+            _readStreamProps = Props.Create<ReadStreamWorker>(storeReader, factory);
+            _readIndexedProjectionProps = Props.Create<ReadIndexedProjectionStreamWorker>(storeReader, factory);
+
+            Ready();
+        }
+
+        // test only
+        public static Props CreateProps(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, GlobalOptions options)
+        {
+            return Props.Create<EventStoreReader>(readProps, readStreamProps, readIndexedProjectionProps, options);
+        }
+
+        // test only
+        public EventStoreReader(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, GlobalOptions options)
         {
             _readProps = readProps;
             _readStreamProps = readStreamProps;
             _readIndexedProjectionProps = readIndexedProjectionProps;
 
-            Become(Ready);
-        }
-
-        public EventStoreReader()
-        {
-            Receive<InitializeEventStoreReader>(ini =>
-            {
-                try
-                {
-                    _readProps = Props.Create<ReadWorker>(ini.Store, ini.Factory);
-                    _readStreamProps = Props.Create<ReadStreamWorker>(ini.Store, ini.Factory);
-                    _readIndexedProjectionProps = Props.Create<ReadIndexedProjectionStreamWorker>(ini.Store, ini.Factory);
-
-                    Become(Ready);
-
-                    Sender.Tell(InitializationResult.Successful());
-                }
-                catch (Exception ex)
-                {
-                    Sender.Tell(InitializationResult.Failed(ex));
-                }
-            });
+            Ready();
         }
 
         void Ready()

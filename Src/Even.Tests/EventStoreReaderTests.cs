@@ -20,19 +20,22 @@ namespace Even.Tests
                 var a = testKit.CreateTestRelay();
                 var b = testKit.CreateTestRelay();
                 var c = testKit.CreateTestRelay();
+                var d = testKit.CreateTestRelay();
 
                 ReadProbe = a.Probe;
                 ReadStreamProbe = b.Probe;
                 ReadIndexedProjectionProbe = c.Probe;
+                ReadProjectionCheckpointProbe = d.Probe;
 
-                var readerProps = Props.Create<EventStoreReader>(a.Props, b.Props, c.Props);
+                var readerProps = EventStoreReader.CreateProps(a.Props, b.Props, c.Props, new GlobalOptions());
                 Reader = testKit.Sys.ActorOf(readerProps);
             }
 
             public IActorRef Reader { get; }
-            public TestProbe ReadProbe { get; } 
+            public TestProbe ReadProbe { get; }
             public TestProbe ReadStreamProbe { get; }
             public TestProbe ReadIndexedProjectionProbe { get; }
+            public TestProbe ReadProjectionCheckpointProbe { get; }
         }
 
         readonly TimeSpan DefaultTimeout = TimeSpan.FromMilliseconds(100);

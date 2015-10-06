@@ -16,43 +16,47 @@ namespace Even
         IActorRef _indexWriter;
         IActorRef _checkpointWriter;
 
-        public EventStoreWriter()
-            : this(null, null, null, null)
-        { }
-
-        // this constructor is for unit testing only
-        public EventStoreWriter(IActorRef serialWriter, IActorRef bufferedWriter, IActorRef indexWriter, IActorRef checkpointWriter)
+        public static Props CreateProps(IEventStoreWriter storeWriter, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
         {
-            Receive<InitializeEventStoreWriter>(ini =>
-            {
-                try
-                {
-                    Argument.Requires(ini.StoreWriter != null, "StoreWriter");
-                    Argument.Requires(ini.Serializer != null, "Serializer");
-                    Argument.Requires(ini.Dispatcher != null, "Dispatcher");
+            Argument.RequiresNotNull(storeWriter, nameof(storeWriter));
+            Argument.RequiresNotNull(serializer, nameof(serializer));
+            Argument.RequiresNotNull(dispatcher, nameof(dispatcher));
 
-                    var serialProps = PropsFactory.Create<SerialEventStreamWriter>(ini.StoreWriter, ini.Serializer, ini.Dispatcher);
-                    _serialWriter = serialWriter ?? Context.ActorOf(serialProps, "serial");
+            return Props.Create<EventStoreWriter>(storeWriter, serializer, dispatcher, options);
+        }
 
-                    var bufferedProps = PropsFactory.Create<BufferedEventWriter>(ini.StoreWriter, ini.Serializer, ini.Dispatcher);
-                    _bufferedWriter = bufferedWriter ?? Context.ActorOf(bufferedProps, "buffered");
+        public EventStoreWriter(IEventStoreWriter storeWriter, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
+        {
+            var serialProps = Props.Create<SerialEventStreamWriter>(storeWriter, serializer, dispatcher, options);
+            _serialWriter = Context.ActorOf(serialProps, "serial");
 
-                    var indexProps = PropsFactory.Create<ProjectionIndexWriter>(ini.StoreWriter, TimeSpan.FromSeconds(2));
-                    _indexWriter = indexWriter ?? Context.ActorOf(indexProps, "index");
+            var bufferedProps = Props.Create<BufferedEventWriter>(storeWriter, serializer, dispatcher, options);
+            _bufferedWriter = Context.ActorOf(bufferedProps, "buffered");
 
-                    var checkpointProps = PropsFactory.Create<ProjectionCheckpointWriter>(ini.StoreWriter, TimeSpan.FromSeconds(5));
-                    _checkpointWriter = checkpointWriter ?? Context.ActorOf(checkpointProps, "checkpoint");
+            var indexWriterProps = Props.Create<ProjectionIndexWriter>(storeWriter, options);
+            _indexWriter = Context.ActorOf(indexWriterProps, "index");
 
-                    Become(Ready);
+            var checkpointWriterProps = Props.Create<ProjectionCheckpointWriter>(storeWriter, options);
+            _checkpointWriter = Context.ActorOf(checkpointWriterProps, "checkpoint");
 
-                    Sender.Tell(InitializationResult.Successful());
-                }
-                catch (Exception ex)
-                {
-                    Sender.Tell(InitializationResult.Failed(ex));
-                    Context.Stop(Self);
-                }
-            });
+            Ready();
+        }
+
+        // test only
+        public static Props CreateProps(IActorRef serial, IActorRef buffered, IActorRef indexWriter, IActorRef checkpointWriter, GlobalOptions options)
+        {
+            return Props.Create<EventStoreWriter>(serial, buffered, indexWriter, checkpointWriter, options);
+        }
+
+        // test only
+        public EventStoreWriter(IActorRef serialWriter, IActorRef bufferedWriter, IActorRef indexWriter, IActorRef checkpointWriter, GlobalOptions options)
+        {
+            _serialWriter = serialWriter;
+            _bufferedWriter = bufferedWriter;
+            _indexWriter = indexWriter;
+            _checkpointWriter = checkpointWriter;
+
+            Ready();
         }
 
         public void Ready()

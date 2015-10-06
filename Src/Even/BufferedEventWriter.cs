@@ -144,7 +144,7 @@ namespace Even
                 var e = entries[i].Event;
                 var re = rawEvents[i];
 
-                var persistedEvent = PersistedEventFactory.Create(re.GlobalSequence, e);
+                var persistedEvent = PersistedEventFactory.FromUnpersistedEvent(re.GlobalSequence, e);
 
                 sender.Tell(persistedEvent);
                 _dispatcher.Tell(persistedEvent);

@@ -1,9 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Even.Messages
 {
@@ -141,6 +136,8 @@ namespace Even.Messages
 
     #endregion
 
+    #region ReadProjectionIndexCheckpoint
+
     public class ReadProjectionIndexCheckpointRequest : IRequest
     {
         public ReadProjectionIndexCheckpointRequest(string projectionStreamId)
@@ -165,19 +162,26 @@ namespace Even.Messages
         public long LastSeenGlobalSequence { get; }
     }
 
-    // additional queries
+    #endregion
 
-    //public class HighestGlobalSequenceRequest : IRequest
-    //{
-    //}
+    #region ReadHighestGlobalSequence
 
-    //public class HighestGlobalSequenceResponse
-    //{
-    //    public HighestGlobalSequenceResponse(long globalSequence)
-    //    {
-    //        this.GlobalSequence = globalSequence;
-    //    }
+    public class ReadHighestGlobalSequenceRequest : IRequest
+    {
+        public Guid RequestID { get; } = Guid.NewGuid();
+    }
 
-    //    public long GlobalSequence { get; }
-    //}
+    public class ReadHighestGlobalSequenceResponse
+    {
+        public ReadHighestGlobalSequenceResponse(Guid requestId, long globalSequence)
+        {
+            this.RequestID = requestId;
+            this.GlobalSequence = globalSequence;
+        }
+
+        public Guid RequestID { get; }
+        public long GlobalSequence { get; }
+    }
+
+    #endregion
 }

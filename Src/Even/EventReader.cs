@@ -13,7 +13,7 @@ namespace Even
     {
         Props _workerProps;
 
-        public EventReader(IEventStoreReader reader, PersistedEventFactory2 factory)
+        public EventReader(IEventStoreReader reader, PersistedEventFactory factory)
         {
             Argument.Requires(reader != null, nameof(reader));
             Argument.Requires(factory != null, nameof(factory));

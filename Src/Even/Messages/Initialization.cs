@@ -27,51 +27,6 @@ namespace Even.Messages
         }
     }
 
-    public class InitializeEventDispatcher
-    {
-        public IActorRef Reader { get; set; }
-        public TimeSpan RecoveryStartTimeout { get; set; } = TimeSpan.FromSeconds(5);
-    }
-
-    public class InitializeEventStoreReader
-    {
-        public InitializeEventStoreReader(IEventStore store, IPersistedEventFactory factory)
-        {
-            Argument.Requires(store != null, nameof(store));
-            Argument.Requires(factory != null, nameof(factory));
-
-            this.Store = store;
-            this.Factory = factory;
-        }
-
-        public IEventStoreReader Store { get; }
-        public IPersistedEventFactory Factory { get; }
-    }
-
-    public class InitializeEventStoreWriter
-    {
-        public ISerializer Serializer { get; set; }
-        public IEventStoreWriter StoreWriter { get; set; }
-        public IActorRef Dispatcher { get; set; }
-    }
-
-    public class InitializeCommandProcessorSupervisor
-    {
-        public IActorRef Writer { get; set; }
-        public IActorRef Reader { get; set; }
-    }
-
-    public class InitializeEventProcessorSupervisor
-    {
-        public IActorRef ProjectionStreamSupervisor { get; set; }
-    }
-
-    public class InitializeProjectionStreams
-    {
-        public IActorRef Reader { get; set; }
-        public IActorRef Writer { get; set; }
-    }
-
     public class InitializeCommandProcessor
     {
         public IActorRef CommandProcessorSupervisor { get; set; }
@@ -80,44 +35,32 @@ namespace Even.Messages
 
     public class InitializeAggregate
     {
-        public string StreamID { get; set; }
-        public IActorRef Reader { get; set; }
-        public IActorRef Writer { get; set; }
-        public IActorRef CommandProcessorSupervisor { get; set; }
+        public InitializeAggregate(IActorRef reader, IActorRef writer, GlobalOptions options)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(writer, nameof(writer));
+            Argument.RequiresNotNull(options, nameof(options));
+
+            this.Reader = reader;
+            this.Writer = writer;
+            this.Options = options;
+        }
+
+        public IActorRef Reader { get; }
+        public IActorRef Writer { get; }
+        public GlobalOptions Options { get; }
     }
 
-    public class AggregateInitializationState
+    public class WillStop
     {
-        public bool Initialized { get; set; }
-        public string InitializationFailureReason { get; set; }
+        private WillStop() { }
+        public static readonly WillStop Instance = new WillStop();
     }
 
-    public class WillStop { }
-
-    public class InitializeProjectionStream
+    public class StopNoticeAcknowledged
     {
-        public ProjectionStreamQuery Query { get; set; }
-        public IActorRef Reader { get; set; }
-        public IActorRef Writer { get; set; }
-    }
-
-    public class InitializeAggregateReplayWorker
-    {
-        public ReplayAggregateRequest Request { get; set; }
-        public IActorRef ReplyTo { get; set; }
-        public InitializeEventStoreReader ReaderInitializer { get; set; }
-    }
-
-    public class StartEventProcessor
-    {
-        public string Name { get; set; }
-        public Type Type { get; set; }
-    }
-
-    [Obsolete]
-    public class InitializeEventProcessor
-    {
-        public IActorRef ProjectionStreamSupervisor { get; set; }
+        private StopNoticeAcknowledged() { }
+        public static readonly StopNoticeAcknowledged Instance = new StopNoticeAcknowledged();
     }
 
     public class InitializeProjection

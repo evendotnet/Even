@@ -10,30 +10,39 @@ namespace Even
 {
     public class EventProcessorSupervisor: ReceiveActor
     {
-        public EventProcessorSupervisor()
-        {
-            Receive<InitializeEventProcessorSupervisor>(ini =>
-            {
-                _projectionStreams = ini.ProjectionStreamSupervisor;
+        Dictionary<string, IActorRef> _processors = new Dictionary<string, IActorRef>();
+        GlobalOptions _options;
 
-                Become(Ready);
-            });
+        public static Props CreateProps(GlobalOptions options)
+        {
+            return Props.Create<EventProcessorSupervisor>(options);
         }
 
-        IActorRef _projectionStreams;
+        public EventProcessorSupervisor(GlobalOptions options)
+        {
+            Argument.Requires(options != null, nameof(options));
+            _options = options;
+
+            Ready();
+        }
 
         void Ready()
         {
-            Receive<StartEventProcessor>(s =>
+            Receive<StartEventProcessor>(m =>
             {
-                var props = PropsFactory.Create(s.Type);
-                var actor = Context.ActorOf(props, s.Name);
-
-                actor.Tell(new InitializeEventProcessor
-                {
-                    ProjectionStreamSupervisor = _projectionStreams
-                });
+                
             });
+        }
+
+        class EventProcessorEntry
+        {
+            public EventProcessorEntry(string name, IActorRef actor)
+            {
+
+            }
+
+            public IActorRef ActorRef;
+            public string Name;
         }
     }
 }

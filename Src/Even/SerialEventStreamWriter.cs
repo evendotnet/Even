@@ -59,15 +59,11 @@ namespace Even
             await _writer.WriteStreamAsync(request.StreamID, request.ExpectedStreamSequence, rawEvents);
 
             // publishes the events in the order they were sent
+            for (int i = 0, len = events.Count; i < len; i++) {
 
-            var setSequence = request.ExpectedStreamSequence != ExpectedSequence.Any;
-            var sequence = request.ExpectedStreamSequence + 1;
-            var i = 0;
-
-            foreach (var e in events)
-            {
-                var rawEvent = rawEvents[i++];
-                var persistedEvent = PersistedEventFactory.Create(rawEvent.GlobalSequence, setSequence ? sequence++ : -1, e);
+                var e = events[i];
+                var re = rawEvents[i];
+                var persistedEvent = PersistedEventFactory.FromUnpersistedEvent(re.GlobalSequence, e);
 
                 // notify the sender
                 Sender.Tell(persistedEvent);

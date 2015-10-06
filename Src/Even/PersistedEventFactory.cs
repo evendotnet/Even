@@ -12,12 +12,12 @@ namespace Even
         IPersistedStreamEvent CreateStreamEvent(IPersistedRawEvent rawEvent, int streamSequence);
     }
 
-    public class PersistedEventFactory2 : IPersistedEventFactory
+    public class PersistedEventFactory : IPersistedEventFactory
     {
         EventRegistry _registry;
         ISerializer _serializer;
 
-        public PersistedEventFactory2(EventRegistry registry, ISerializer serializer)
+        public PersistedEventFactory(EventRegistry registry, ISerializer serializer)
         {
             Argument.Requires(registry != null);
             Argument.Requires(serializer != null);
@@ -31,7 +31,7 @@ namespace Even
             var metadata = _serializer.DeserializeMetadata(rawEvent.Metadata);
             var domainEvent = DeserializeDomainEvent(rawEvent, metadata);
 
-            var t = typeof(PersistedEvent<>).MakeGenericType(domainEvent.GetType());
+            var t = typeof(ReadEvent<>).MakeGenericType(domainEvent.GetType());
             return (IPersistedStreamEvent)Activator.CreateInstance(t, rawEvent, metadata, domainEvent);
         }
 
@@ -40,7 +40,7 @@ namespace Even
             var metadata = _serializer.DeserializeMetadata(rawEvent.Metadata);
             var domainEvent = DeserializeDomainEvent(rawEvent, metadata);
 
-            var t = typeof(PersistedStreamEvent<>).MakeGenericType(domainEvent.GetType());
+            var t = typeof(ReadStreamEvent<>).MakeGenericType(domainEvent.GetType());
             return (IPersistedStreamEvent)Activator.CreateInstance(t, rawEvent, metadata, domainEvent, streamSequence);
         }
 
@@ -69,9 +69,15 @@ namespace Even
             return domainEvent;
         }
 
-        class PersistedEvent<T> : IPersistedEvent<T>
+        public static IPersistedEvent FromUnpersistedEvent(long globalSequence, UnpersistedEvent e)
         {
-            public PersistedEvent(IPersistedRawEvent rawEvent, IReadOnlyDictionary<string, object> metadata, T domainEvent)
+            var t = typeof(WrittenEvent<>).MakeGenericType(e.DomainEvent.GetType());
+            return (IPersistedEvent)Activator.CreateInstance(t, globalSequence, e);
+        }
+
+        class ReadEvent<T> : IPersistedEvent<T>
+        {
+            public ReadEvent(IPersistedRawEvent rawEvent, IReadOnlyDictionary<string, object> metadata, T domainEvent)
             {
                 this.GlobalSequence = rawEvent.GlobalSequence;
                 this.EventID = rawEvent.EventID;
@@ -95,15 +101,37 @@ namespace Even
             object IPersistedEvent.DomainEvent => DomainEvent;
         }
 
-        class PersistedStreamEvent<T> : PersistedEvent<T>, IPersistedStreamEvent<T>
+        class ReadStreamEvent<T> : ReadEvent<T>, IPersistedStreamEvent<T>
         {
-            public PersistedStreamEvent(IPersistedRawEvent rawEvent, IReadOnlyDictionary<string, object> metadata, T domainEvent, int streamSequence)
+            public ReadStreamEvent(IPersistedRawEvent rawEvent, IReadOnlyDictionary<string, object> metadata, T domainEvent, int streamSequence)
                 : base(rawEvent, metadata, domainEvent)
             {
                 this.StreamSequence = streamSequence;
             }
 
             public int StreamSequence { get; }
+        }
+
+        class WrittenEvent<T> : IPersistedEvent<T>
+        {
+            public WrittenEvent(long globalSequence, UnpersistedEvent e)
+            {
+                this.GlobalSequence = globalSequence;
+                this.e = e;
+            }
+
+            UnpersistedEvent e;
+
+            public long GlobalSequence { get; }
+            public Guid EventID => e.EventID;
+            public string StreamID => e.StreamID;
+            public string OriginalStreamID => e.StreamID;
+            public string EventType => e.EventType;
+            public DateTime UtcTimestamp => e.UtcTimestamp;
+            public IReadOnlyDictionary<string, object> Metadata => e.Metadata;
+            public T DomainEvent => (T) e.DomainEvent;
+
+            object IPersistedEvent.DomainEvent => DomainEvent;
         }
     }
 }

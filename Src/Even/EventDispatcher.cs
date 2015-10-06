@@ -14,54 +14,46 @@ namespace Even
         public IStash Stash { get; set; }
 
         IActorRef _reader;
-        TimeSpan _recoveryTimeout;
+        GlobalOptions _options;
 
         long _currentGlobalSequence;
         long _firstSequenceAfterGap;
         ICancelable _recovery;
-        Guid _replayId;
+        Guid _requestId;
+
         ILoggingAdapter _log = Context.GetLogger();
 
-        public EventDispatcher()
+        public static Props CreateProps(IActorRef reader, GlobalOptions options)
         {
-            Become(Uninitialized);
+            return Props.Create<EventDispatcher>(reader, options);
         }
 
-        void Uninitialized()
+        public EventDispatcher(IActorRef reader, GlobalOptions options)
         {
-            Receive<InitializeEventDispatcher>(ini =>
-            {
-                try
-                {
-                    Argument.Requires(ini.Reader != null);
-                    Argument.Requires(ini.RecoveryStartTimeout > TimeSpan.Zero && ini.RecoveryStartTimeout < TimeSpan.FromMinutes(1));
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(options, nameof(options));
 
-                    _reader = ini.Reader;
-                    _recoveryTimeout = ini.RecoveryStartTimeout;
+            _reader = reader;
+            _options = options;
 
-                    _replayId = Guid.NewGuid();
-                    _reader.Tell(new GlobalSequenceRequest { ReplayID = _replayId });
-                    Become(AwaitingGlobalSequence);
+            var request = new ReadHighestGlobalSequenceRequest();
+            _reader.Tell(request);
+            _requestId = request.RequestID;
 
-                    Sender.Tell(InitializationResult.Successful());
-                }
-                catch (Exception ex)
-                {
-                    Sender.Tell(InitializationResult.Failed(ex));
-                    Context.Stop(Self);
-                }
-            });
+            Become(AwaitingGlobalSequence);
+
+            AwaitingGlobalSequence();
         }
-
+        
         void AwaitingGlobalSequence()
         {
-            Receive<GlobalSequenceResponse>(res =>
+            Receive<ReadHighestGlobalSequenceResponse>(res =>
             {
-                _currentGlobalSequence = res.LastGlobalSequence;
+                _currentGlobalSequence = res.GlobalSequence;
                 Stash.UnstashAll();
                 Become(Ready);
 
-            }, r => r.ReplayID == _replayId);
+            }, r => r.RequestID == _requestId);
 
             ReceiveAny(_ => Stash.Stash());
         }
@@ -78,7 +70,7 @@ namespace Even
                 {
                     _currentGlobalSequence++;
 
-                    // publish to the event stream and increment the sequence
+                    // publish to the event stream
                     Context.System.EventStream.Publish(e);
 
                     // if a recovery was requested, cancel as the event already arrived
@@ -99,7 +91,7 @@ namespace Even
                 {
                     if (_recovery == null)
                     {
-                        _recovery = Context.System.Scheduler.ScheduleTellOnceCancelable(_recoveryTimeout, Self, new RecoverCommand(), Self);
+                        _recovery = Context.System.Scheduler.ScheduleTellOnceCancelable(_options.DispatcherRecoveryTimeout, Self, new RecoverCommand(), Self);
                         _firstSequenceAfterGap = received;
                     }
                     else
@@ -129,8 +121,8 @@ namespace Even
                 var initialSequence = _currentGlobalSequence + 1;
                 var count = (int) (_firstSequenceAfterGap - initialSequence);
 
-                var request = new EventReplayRequest(initialSequence, count);
-                _replayId = request.ReplayID;
+                var request = new ReadRequest(initialSequence, count);
+                _requestId = request.RequestID;
                 _reader.Tell(request);
 
                 Become(Recovering);
@@ -139,16 +131,16 @@ namespace Even
 
         void Recovering()
         {
-            Receive<ReplayEvent>(e =>
+            Receive<ReadResponse>(m =>
             {
-                // publish to the event stream and increment the sequence
-                Context.System.EventStream.Publish(e.Event);
+                // publish to the event stream
+                Context.System.EventStream.Publish(m.Event);
 
-            }, e => e.ReplayID == _replayId);
+            }, e => e.RequestID == _requestId);
 
-            Receive<ReplayCompleted>(e =>
+            Receive<ReadFinished>(m =>
             {
-                _currentGlobalSequence = e.LastSeenGlobalSequence;
+                _currentGlobalSequence = _firstSequenceAfterGap - 1;
                 Stash.UnstashAll();
                 Become(Ready);
             });

@@ -15,36 +15,7 @@ namespace Even.Tests
 
         static readonly TimeSpan NoMsgTimeout = TimeSpan.FromMilliseconds(100);
 
-        void Initialize(IActorRef writer)
-        {
-            writer.Tell(new InitializeEventStoreWriter
-            {
-                Dispatcher = CreateTestProbe(),
-                Serializer = new MockSerializer(),
-                StoreWriter = Mocks.MockEventStore.SuccessfulWriter(),
-            });
-
-            ExpectMsg<InitializationResult>(r => r.Initialized);
-        }
-
         #endregion
-
-        [Fact]
-        public void Initialization_replies_with_initialized_message()
-        {
-            var probe = CreateTestProbe();
-
-            var actor = Sys.ActorOf<EventStoreWriter>();
-
-            actor.Tell(new InitializeEventStoreWriter
-            {
-                Dispatcher = CreateTestProbe(),
-                Serializer = new MockSerializer(),
-                StoreWriter = Mocks.MockEventStore.SuccessfulWriter(),
-            });
-
-            ExpectMsg<InitializationResult>(r => r.Initialized);
-        }
 
         [Fact]
         public void Requests_with_expected_version_are_forwarded_to_serial_writer_only()
@@ -54,9 +25,7 @@ namespace Even.Tests
             var i = CreateTestProbe();
             var c = CreateTestProbe();
 
-            var props = Props.Create<EventStoreWriter>(s, b, i, c);
-            var writer = Sys.ActorOf(props);
-            Initialize(writer);
+            var writer = Sys.ActorOf(EventStoreWriter.CreateProps(s, b, i, c, new GlobalOptions()));
             
             writer.Tell(new PersistenceRequest("a", 0, new[] { new UnpersistedEvent("a", new object()) }));
 
@@ -75,9 +44,7 @@ namespace Even.Tests
             var i = CreateTestProbe();
             var c = CreateTestProbe();
 
-            var props = Props.Create<EventStoreWriter>(s, b, i, c);
-            var writer = Sys.ActorOf(props);
-            Initialize(writer);
+            var writer = Sys.ActorOf(EventStoreWriter.CreateProps(s, b, i, c, new GlobalOptions()));
 
             writer.Tell(new PersistenceRequest("a", ExpectedSequence.Any, new[] { new UnpersistedEvent("a", new object()) }));
 
@@ -96,9 +63,7 @@ namespace Even.Tests
             var i = CreateTestProbe();
             var c = CreateTestProbe();
 
-            var props = Props.Create<EventStoreWriter>(s, b, i, c);
-            var writer = Sys.ActorOf(props);
-            Initialize(writer);
+            var writer = Sys.ActorOf(EventStoreWriter.CreateProps(s, b, i, c, new GlobalOptions()));
 
             writer.Tell(new PersistenceRequest(new[]
             {
@@ -121,9 +86,7 @@ namespace Even.Tests
             var i = CreateTestProbe();
             var c = CreateTestProbe();
 
-            var props = Props.Create<EventStoreWriter>(s, b, i, c);
-            var writer = Sys.ActorOf(props);
-            Initialize(writer);
+            var writer = Sys.ActorOf(EventStoreWriter.CreateProps(s, b, i, c, new GlobalOptions()));
 
             writer.Tell(new ProjectionIndexPersistenceRequest("a", 1, 1));
 
@@ -142,9 +105,7 @@ namespace Even.Tests
             var i = CreateTestProbe();
             var c = CreateTestProbe();
 
-            var props = Props.Create<EventStoreWriter>(s, b, i, c);
-            var writer = Sys.ActorOf(props);
-            Initialize(writer);
+            var writer = Sys.ActorOf(EventStoreWriter.CreateProps(s, b, i, c, new GlobalOptions()));
 
             writer.Tell(new ProjectionCheckpointPersistenceRequest("a", 1));
 

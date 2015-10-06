@@ -1,11 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Even.Messages
 {
+    public class StartProjection
+    {
+        public StartProjection(Type projectionType, string name)
+        {
+            Argument.RequiresNotNull(projectionType, nameof(projectionType));
+            Argument.Requires(typeof(Projection).IsAssignableFrom(projectionType), nameof(projectionType));
+
+            this.ProjectionType = projectionType;
+            this.Name = name ?? projectionType.FullName;
+        }
+
+        public Type ProjectionType { get; }
+        public string Name { get; }
+    }
+
     public class ProjectionSubscriptionRequest : IRequest
     {
         public ProjectionSubscriptionRequest(ProjectionStreamQuery query, int lastKnownSequence)

@@ -22,19 +22,18 @@ namespace Even.Sample
                 var memoryStore = new InMemoryStore();
 
                 var gateway = await actorSystem
-                    .SetupEventStore()
-                    .UseStore(memoryStore)
+                    .SetupEven()
                     .AddProjection<ActiveProducts>()
                     .Start();
 
                 await Task.Delay(500);
 
                 await Task.WhenAll(
-                    gateway.SendCommandAsync<Product>(1, new CreateProduct { Name = "Product 1" }),
-                    gateway.SendCommandAsync<Product>(2, new CreateProduct { Name = "Product 2" }),
-                    gateway.SendCommandAsync<Product>(3, new CreateProduct { Name = "Product 2" }),
-                    gateway.SendCommandAsync<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" }),
-                    gateway.SendCommandAsync<Product>(1, new DeleteProduct())
+                    gateway.SendAggregateCommand<Product>(1, new CreateProduct { Name = "Product 1" }),
+                    gateway.SendAggregateCommand<Product>(2, new CreateProduct { Name = "Product 2" }),
+                    gateway.SendAggregateCommand<Product>(3, new CreateProduct { Name = "Product 2" }),
+                    gateway.SendAggregateCommand<Product>(2, new RenameProduct { NewName = "Product 1 - Renamed" }),
+                    gateway.SendAggregateCommand<Product>(1, new DeleteProduct())
                 );
 
                 await Task.Delay(500);

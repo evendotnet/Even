@@ -33,7 +33,7 @@ namespace Even.Messages
         public Guid PersistenceID { get; } = Guid.NewGuid();
         public string StreamID { get; }
         public int ExpectedStreamSequence { get; } = ExpectedSequence.Any;
-        public IReadOnlyCollection<UnpersistedEvent> Events { get; }
+        public IReadOnlyList<UnpersistedEvent> Events { get; }
     }
 
     public abstract class PersistenceResponse

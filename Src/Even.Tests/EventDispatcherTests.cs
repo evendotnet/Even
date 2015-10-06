@@ -15,20 +15,17 @@ namespace Even.Tests
     {
         #region Helpers
 
-        IActorRef CreateDispatcher(int initialGlobalSequence = 0, TimeSpan? recoveryStartTimeout = null)
+        IActorRef CreateDispatcher(int initialGlobalSequence, TimeSpan recoveryStartTimeout)
         {
             var reader = CreateTestReader(initialGlobalSequence);
-            recoveryStartTimeout = recoveryStartTimeout ?? TimeSpan.FromMilliseconds(100);
-
-            var dispatcher = Sys.ActorOf<EventDispatcher>();
-            dispatcher.Tell(new InitializeEventDispatcher { Reader = reader, RecoveryStartTimeout = recoveryStartTimeout.Value });
+            var dispatcher = Sys.ActorOf(EventDispatcher.CreateProps(reader, new GlobalOptions { DispatcherRecoveryTimeout = recoveryStartTimeout }));
 
             return dispatcher;
         }
 
-        static IPersistedStreamEvent CreateTestEvent(long globalSequence)
+        static IPersistedEvent CreateTestEvent(long globalSequence)
         {
-            var e = Substitute.For<IPersistedStreamEvent>();
+            var e = Substitute.For<IPersistedEvent>();
             e.GlobalSequence.Returns(globalSequence);
             return e;
         }
@@ -39,22 +36,22 @@ namespace Even.Tests
 
             reader.SetAutoPilot(new DelegateAutoPilot((IActorRef sender, object msg) =>
             {
-                if (msg is GlobalSequenceRequest)
+                if (msg is ReadHighestGlobalSequenceRequest)
                 {
-                    var r = (GlobalSequenceRequest)msg;
-                    sender.Tell(new GlobalSequenceResponse { ReplayID = r.ReplayID, LastGlobalSequence = initialGlobalSequence });
+                    var r = (ReadHighestGlobalSequenceRequest)msg;
+                    sender.Tell(new ReadHighestGlobalSequenceResponse(r.RequestID, initialGlobalSequence));
                 }
 
-                if (msg is EventReplayRequest)
+                if (msg is ReadRequest)
                 {
-                    var r = (EventReplayRequest)msg;
+                    var r = (ReadRequest)msg;
                     var start = r.InitialGlobalSequence;
                     var last = start + r.Count - 1;
 
                     for (var i = start; i <= last; i++)
-                        sender.Tell(new ReplayEvent { ReplayID = r.ReplayID, Event = CreateTestEvent(i) });
+                        sender.Tell(new ReadResponse(r.RequestID, CreateTestEvent(i)));
 
-                    sender.Tell(new ReplayCompleted { ReplayID = r.ReplayID, LastSeenGlobalSequence = last });
+                    sender.Tell(new ReadFinished(r.RequestID));
                 }
 
                 return AutoPilot.KeepRunning;
@@ -62,26 +59,23 @@ namespace Even.Tests
 
             return reader;
         }
-       
+
         #endregion
 
         [Fact]
         public void Normal_initialization_message_replies_as_initialized_and_request_global_sequence_to_reader()
         {
-            var dispatcher = Sys.ActorOf<EventDispatcher>();
-
             var reader = CreateTestProbe();
-            dispatcher.Tell(new InitializeEventDispatcher { Reader = reader });
+            var dispatcher = Sys.ActorOf(EventDispatcher.CreateProps(reader, new GlobalOptions()));
 
-            ExpectMsg<InitializationResult>(i => i.Initialized);
-            reader.ExpectMsg<GlobalSequenceRequest>();
+            reader.ExpectMsg<ReadHighestGlobalSequenceRequest>();
         }
 
         [Fact]
         public void Dispatcher_publishes_events_to_eventstream()
         {
-            var dispatcher = CreateDispatcher();
-            
+            var dispatcher = CreateDispatcher(0, TimeSpan.FromSeconds(1));
+
             var probe = CreateTestProbe();
             Sys.EventStream.Subscribe(probe, typeof(IPersistedEvent));
 
@@ -99,9 +93,9 @@ namespace Even.Tests
         }
 
         [Fact]
-        public void Gaps_in_sequence_causes_dispatcher_to_get_events_from_reader()
+        public void Gaps_in_sequence_causes_dispatcher_to_get_missing_events_from_reader()
         {
-            var dispatcher = CreateDispatcher();
+            var dispatcher = CreateDispatcher(0, TimeSpan.FromMilliseconds(100));
 
             var probe = CreateTestProbe();
             Sys.EventStream.Subscribe(probe, typeof(IPersistedEvent));
@@ -121,21 +115,18 @@ namespace Even.Tests
         [Fact]
         public void Dispatcher_requests_correct_missing_events_to_reader()
         {
-            var dispatcher = Sys.ActorOf<EventDispatcher>();
             var reader = CreateTestReader(0);
-            dispatcher.Tell(new InitializeEventDispatcher { Reader = reader, RecoveryStartTimeout = TimeSpan.FromMilliseconds(100) });
+            var dispatcher = Sys.ActorOf(EventDispatcher.CreateProps(reader, new GlobalOptions { DispatcherRecoveryTimeout = TimeSpan.FromMilliseconds(100) }));
 
-            reader.ExpectMsg<GlobalSequenceRequest>();
+            reader.ExpectMsg<ReadHighestGlobalSequenceRequest>();
 
             foreach (var i in new[] { 1, 4, 5, 9, 20, 22 })
                 dispatcher.Tell(CreateTestEvent(i));
 
-            reader.ExpectMsg<EventReplayRequest>(r => r.InitialGlobalSequence == 2 && r.Count == 2);
-            reader.ExpectMsg<EventReplayRequest>(r => r.InitialGlobalSequence == 6 && r.Count == 3);
-            reader.ExpectMsg<EventReplayRequest>(r => r.InitialGlobalSequence == 10 && r.Count == 10);
-            reader.ExpectMsg<EventReplayRequest>(r => r.InitialGlobalSequence == 21 && r.Count == 1);
+            reader.ExpectMsg<ReadRequest>(r => r.InitialGlobalSequence == 2 && r.Count == 2);
+            reader.ExpectMsg<ReadRequest>(r => r.InitialGlobalSequence == 6 && r.Count == 3);
+            reader.ExpectMsg<ReadRequest>(r => r.InitialGlobalSequence == 10 && r.Count == 10);
+            reader.ExpectMsg<ReadRequest>(r => r.InitialGlobalSequence == 21 && r.Count == 1);
         }
-
-
     }
 }

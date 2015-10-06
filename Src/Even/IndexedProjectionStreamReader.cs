@@ -12,7 +12,7 @@ namespace Even
     {
         Props _workerProps;
 
-        public IndexedProjectionStreamReader(IEventStoreReader reader, PersistedEventFactory2 factory)
+        public IndexedProjectionStreamReader(IEventStoreReader reader, PersistedEventFactory factory)
         {
             Argument.Requires(reader != null, nameof(reader));
             Argument.Requires(factory != null, nameof(factory));

@@ -23,7 +23,7 @@ namespace Even.Sample.Aggregates
             OnCommand<CreateProduct>(c => {
 
                 if (State != null)
-                    Fail("Product already exists");
+                    Reject("Product already exists");
 
                 Persist(new ProductCreated { Name = c.Name });
             });
@@ -40,12 +40,12 @@ namespace Even.Sample.Aggregates
             OnCommand<RenameProduct>(async c =>
             {
                 if (State == null)
-                    Fail("Product doesn't exist");
+                    Reject("Product doesn't exist");
 
                 var alreadyExists = await Task.FromResult(false);
 
                 if (alreadyExists)
-                    Fail("Can't rename, name already taken.");
+                    Reject("Can't rename, name already taken.");
 
                 Persist(new ProductRenamed { NewName = c.NewName });
             });

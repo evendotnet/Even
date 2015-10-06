@@ -8,9 +8,14 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    public class ProjectionStreams : ReceiveActor
+    public class ProjectionStreamSupervisor : ReceiveActor
     {
-        public ProjectionStreams(IActorRef reader, IActorRef writer, GlobalOptions options)
+        public static Props CreateProps(IActorRef reader, IActorRef writer, GlobalOptions options)
+        {
+            return Props.Create<ProjectionStreamSupervisor>(reader, writer, options);
+        }
+
+        public ProjectionStreamSupervisor(IActorRef reader, IActorRef writer, GlobalOptions options)
         {
             Argument.RequiresNotNull(reader, nameof(reader));
             Argument.RequiresNotNull(writer, nameof(writer));
