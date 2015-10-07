@@ -30,6 +30,7 @@ Even supports 3 basic constructs:
 * Aggregates
 * Command Processors
 * Event Processors
+* Projections
 
 ### Aggregates
 
@@ -50,7 +51,7 @@ public class User : Aggregate<UserState>
 		OnCommand<RegisterUser>(c => {
 			
 			if (State != null)
-				Fail("User already exists");
+				Reject("User already exists");
 			
 			Persist(new UserRegistered { Name = c.Name });
 		});
@@ -100,14 +101,56 @@ public class Tracker : CommandProcessor
 
 ### Event Processors
 
-Event processors are the core concept of Even. They listen to any events as they are persisted, but in order.
-In fact, every time an event processor is created, a projection stream is automatically created for it based on the query it does
-on the events. That stream is automatically sequenced and indexed, so any replays are fast and deterministic.
-
-The query is defined by the events the processor decides to receive. For example:
+Event processors listen to events as they are persisted at runtime. They don't replay events or persist anything by
+themselves. Their purpose is to create decoupled components that generate side effects, possibly sending new commands
+to aggregates or communicate with other parts of the application.
 
 ```cs
-public class ActiveUsers : EventProcessor
+// blocks users that had 3 failed login attempts in 15 minutes
+public class UserBlocker : EventProcessor
+{
+	Cache _attempts = new Cache();
+
+	public class UserBlocker()
+	{
+		OnEvent<UserLoginFailed>(e => {
+		
+			var cacheEntry = _attempts.GetOrAdd(e.UserID, TimeSpan.FromMinutes(15));
+			
+			if (cacheEntry.Counter > 3)
+				Gateway.SendCommand<User>(e.UserID, new BlockUser("Too many failed login attempts."));
+		});
+	}
+}
+
+// notifies other parts of the system that an user came online
+public class OnlineUserNotifier : EventProcessor
+{
+    public class OnlineUserNotifier()
+	{
+		// when the user logs in
+		OnEvent<UserLoggedIn>(e => {
+		
+			// notify some actor to update the user stats if needed
+			Context.ActorSelection("/user/statsmanager", new UpdateUserStats(e.UserID));
+
+			// notify an "online tracker" that a new user is online
+			Context.ActorSelection("/user/onlinetracker", new UserIsOnline(e.UserID));
+		});
+	}
+}
+```
+
+### Projections
+
+Projections are the core concept of Even. They listen to any events as they are persisted, but in order.
+Every time a projection is created, a projection stream is automatically created for it based on the query it does
+on the global event stream. That stream is automatically sequenced and indexed, so any replays are fast and deterministic.
+
+The query is defined by the events the projection decides to receive. For example:
+
+```cs
+public class ActiveUsers : Projection
 {
 	public RegisteredUser()
 	{
@@ -117,28 +160,38 @@ public class ActiveUsers : EventProcessor
 }  
 ```
 
-This processor creates a stream that contains only `UserRegistered` and `UserBlocked`, and emits a new predictable sequence number 
-that starts with 1 and increments monotonically for that stream only. If two different event processors ask for the same events, event
+This projection creates a stream that contains only `UserRegistered` and `UserBlocked`, and emits a new predictable sequence number 
+that starts with 1 and increments monotonically for that stream only. If two different projections ask for the same events, even
 in different order, they can share the same stream.
 
 Because the stream is indexed in the database, replaying the events don't require replaying the entire event store.
-
-You can use event processors to build projections in external stores. For example:
+Projections can be in memory or stored in an external database.
 
 ```cs
-public class ActiveUsers : EventProcessor
+public class ActiveUsers : Projection
 {
 	public RegisteredUser()
 	{
 		OnEvent<UserRegistered>(e => {
-			// insert into sometable values (userid, streamsequence)
+			// insert into sometable values (userid, streamId, streamSequence)
 		});
+	}
+
+	protected override async Task<ProjectionState> GetLastKnownState()
+	{
+		// select StreamID, StreamSequence from sometable order by StreamSequence desc limit 1
+		return new ProjectionState(streamId, streamSequence);
+	}
+	
+	protected override async Task PrepareToRebuild()
+	{
+		// truncate table sometable
 	}
 }  
 ```
 
-Because the sequence is deterministic, you can restart the application, query the table to see the last sequence you stored
-and resume the projection from that point automatically.
+When the projection restarts, it can query the underlying store and ensure the stream is the same (the query didn't change).
+If it changes, the projection is automatically rebuilt. if it didn't, the projection is replayed from the last
+sequence it saw forward, making it really fast to restart.
 
 You can then project data to any external store, like Mongo, MySql, Azure, Amazon, etc and have zero startup time.
-
