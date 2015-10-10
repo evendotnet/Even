@@ -88,14 +88,18 @@ namespace Even
 
         public async Task<EvenGateway> Start(string name = null)
         {
-            var startInfo = new EvenStartInfo(_store ?? new InMemoryStore(), _serializer ?? new DefaultSerializer(), _options ?? new GlobalOptions());
+            var options = _options ?? new GlobalOptions();
+            var store = _store ?? new InMemoryStore();
+            var serializer = _serializer ?? new DefaultSerializer();
+
+            var startInfo = new EvenStartInfo(store, serializer, options);
             var props = EvenMaster.CreateProps(startInfo);
             var master = _system.ActorOf(props, name);
             var timeout = TimeSpan.FromSeconds(5);
 
             var services = (EvenServices) await master.Ask(new GetEvenServices(), timeout);
 
-            return new EvenGateway(services, _options);
+            return new EvenGateway(services, options);
         }
     }
 

@@ -86,6 +86,7 @@
   <ItemGroup>
     <Compile Include="AggregateTests.cs" />
     <Compile Include="BufferedEventWriterTests.cs" />
+    <Compile Include="EvenSetupTests.cs" />
     <Compile Include="EventDispatcherTests.cs" />
     <Compile Include="EventStoreReaderTests.cs" />
     <Compile Include="EventStoreWriterTests.cs" />
