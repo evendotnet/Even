@@ -195,24 +195,24 @@ namespace Even
 
         #region Event Subscriptions
 
-        protected void OnEvent<T>(Func<IPersistedEvent<T>, Task> handler)
+        protected void OnEvent<T>(Func<IPersistedStreamEvent<T>, Task> handler)
         {
             var t = typeof(T);
 
             if (!_eventTypes.Contains(t))
                 _eventTypes.AddLast(t);
 
-            _handlers.AddHandler<T>(e => handler((IPersistedEvent<T>) e));
+            _handlers.AddHandler<T>(e => handler((IPersistedStreamEvent<T>) e));
         }
 
-        protected void OnEvent<T>(Action<IPersistedEvent<T>> handler)
+        protected void OnEvent<T>(Action<IPersistedStreamEvent<T>> handler)
         {
             var t = typeof(T);
 
             if (!_eventTypes.Contains(t))
                 _eventTypes.AddLast(t);
 
-            _handlers.AddHandler<T>(e => handler((IPersistedEvent<T>)e));
+            _handlers.AddHandler<T>(e => handler((IPersistedStreamEvent<T>)e));
         }
 
         #endregion
