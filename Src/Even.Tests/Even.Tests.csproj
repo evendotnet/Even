@@ -88,6 +88,7 @@
     <Compile Include="EventDispatcherTests.cs" />
     <Compile Include="EventStoreReaderTests.cs" />
     <Compile Include="EventStoreWriterTests.cs" />
+    <Compile Include="MessageHandlerTests.cs" />
     <Compile Include="Mocks\MockPersistedEvent.cs" />
     <Compile Include="Mocks\MockPersistedEventFactory.cs" />
     <Compile Include="Mocks\MockPersistedStreamEvent.cs" />

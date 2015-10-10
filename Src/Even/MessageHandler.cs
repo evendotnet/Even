@@ -1,20 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Even
 {
     public class MessageHandler<TMessage>
     {
-        public MessageHandler(Func<TMessage, object> mapper)
+        /// <summary>
+        /// Creates a new message handler for message of type <typeparamref name="TMessage"/>.
+        /// </summary>
+        /// <param name="mapper">
+        /// Optional. A mapper function that returns the type to match the handler.
+        /// If null, the actual message type will be used to find the matching handler.
+        /// </param>
+        public MessageHandler(Func<TMessage, Type> mapper = null)
         {
             _mapper = mapper;
         }
 
-        Func<TMessage, object> _mapper;
+        Func<TMessage, Type> _mapper;
         class HandlerList : LinkedList<Func<TMessage, Task>> { }
 
         Dictionary<Type, HandlerList> _handlers = new Dictionary<Type, HandlerList>();
@@ -28,14 +32,14 @@ namespace Even
 
             if (_mapper != null)
             {
-                type = _mapper(message)?.GetType();
+                type = _mapper(message);
 
                 if (type == null)
                     return;
             }
             else
             {
-                type = typeof(TMessage);
+                type = message.GetType();
             }
 
             HandlerList list;
@@ -73,14 +77,10 @@ namespace Even
     public class PersistedEventHandler : MessageHandler<IPersistedEvent>
     {
         public PersistedEventHandler()
-            : base(e => e.DomainEvent)
+            : base(e => e.DomainEvent?.GetType())
         { }
     }
 
     public class ObjectHandler : MessageHandler<object>
-    {
-        public ObjectHandler()
-            : base(null)
-        { }
-    }
+    { }
 }
