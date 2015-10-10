@@ -65,9 +65,6 @@ namespace Even
                 var re = rawEvents[i];
                 var persistedEvent = PersistedEventFactory.FromUnpersistedEvent(re.GlobalSequence, e);
 
-                // notify the sender
-                Sender.Tell(persistedEvent);
-
                 // publish to the event stream
                 _dispatcher.Tell(persistedEvent);
             }

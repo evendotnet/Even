@@ -43,25 +43,6 @@ namespace Even.Tests
         #endregion
 
         [Fact]
-        public void Writer_replies_persistedevents_in_request_order()
-        {
-            var writer = CreateWriter(writer: MockEventStore.SuccessfulWriter());
-            
-            var request = new PersistenceRequest(new[] {
-                new UnpersistedEvent("a", new SampleEvent3()),
-                new UnpersistedEvent("a", new SampleEvent1()),
-                new UnpersistedEvent("a", new SampleEvent2())
-            });
-
-            writer.Tell(request);
-
-            ExpectMsg<IPersistedEvent<SampleEvent3>>();
-            ExpectMsg<IPersistedEvent<SampleEvent1>>();
-            ExpectMsg<IPersistedEvent<SampleEvent2>>();
-            ExpectMsg<PersistenceSuccess>();
-        }
-
-        [Fact]
         public void Writer_tells_persistedevents_to_dispatcher_in_order()
         {
             var dispatcher = CreateTestProbe();

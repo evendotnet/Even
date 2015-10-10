@@ -137,7 +137,7 @@ namespace Even
             // writes to the store
             await _writer.WriteAsync(rawEvents);
 
-            // sends the events to the sender and to the dispatcher
+            // sends the events to the dispatcher
             for (int i = 0, len = entries.Count; i < len; i++)
             {
                 var sender = entries[i].Sender;
@@ -146,7 +146,6 @@ namespace Even
 
                 var persistedEvent = PersistedEventFactory.FromUnpersistedEvent(re.GlobalSequence, e);
 
-                sender.Tell(persistedEvent);
                 _dispatcher.Tell(persistedEvent);
             }
         }
