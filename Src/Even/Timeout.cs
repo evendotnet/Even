@@ -15,7 +15,7 @@ namespace Even
             Ticks = monotonicTicks;
         }
 
-        public bool IsExpired => Ticks >= SystemClock.MonotonicTicks;
+        public bool IsExpired => SystemClock.MonotonicTicks >= Ticks;
 
         public static Timeout In(TimeSpan timeSpan)
         {

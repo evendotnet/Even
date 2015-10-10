@@ -110,6 +110,7 @@
     <Compile Include="Persistence\MySqlEventStoreTests.cs" />
     <Compile Include="Persistence\SqlServer2012StoreTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TimeoutTests.cs" />
     <Compile Include="Utils\ProbeRelay.cs" />
     <Compile Include="Utils\BatchStringBuilderTests.cs" />
     <Compile Include="Utils\EnumerableExtensionsTests.cs" />

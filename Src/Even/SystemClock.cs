@@ -9,7 +9,7 @@ namespace Even
 {
     public static class SystemClock
     {
-        private static Stopwatch _sw = new Stopwatch();
+        private static Stopwatch _sw = Stopwatch.StartNew();
         public static long MonotonicTicks => _sw.Elapsed.Ticks;
         public static DateTimeOffset Now => DateTimeOffset.Now;
     }
