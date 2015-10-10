@@ -32,7 +32,7 @@ namespace Even
         CommandContext _currentCommand;
 
         Guid _replayRequestId;
-
+        
         public Aggregate()
         {
             Uninitialized();
@@ -51,7 +51,10 @@ namespace Even
                 _options = ini.Options;
 
                 Become(AwaitingFirstCommand);
+                Stash.UnstashAll();
             });
+
+            ReceiveAny(o => Stash.Stash());
         }
 
         private void AwaitingFirstCommand()
@@ -74,7 +77,7 @@ namespace Even
                 Stash.Stash();
 
                 // then start the replay
-                var request = new ReadStreamRequest(c.StreamID, 0, EventCount.Unlimited);
+                var request = new ReadStreamRequest(c.StreamID, 1, EventCount.Unlimited);
                 _reader.Tell(request);
                 _replayRequestId = request.RequestID;
 
@@ -158,28 +161,26 @@ namespace Even
 
                 // save the context (used for persistence)
                 _currentCommand = new CommandContext(Sender, ac);
+                var success = false;
 
                 try
                 {
                     await _commandHandlers.Handle(ac.Command);
+                    success = true;
                 }
                 // handle command rejections
                 catch (RejectException ex)
                 {
                     Sender.Tell(new CommandRejected(ac.CommandID, ex.Reasons));
-                    _currentCommand = null;
-                    return;
                 }
                 // handle unexpected exceptions
                 catch (Exception ex)
                 {
                     Sender.Tell(new CommandFailed(ac.CommandID, ex));
-                    _currentCommand = null;
-                    return;
                 }
 
                 // if there are events to persist, request persistence
-                if (_unpersistedEvents.Count > 0)
+                if (success && _unpersistedEvents.Count > 0)
                 {
                     var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList());
                     _persistenceRequest = request;
@@ -201,21 +202,11 @@ namespace Even
         {
             SetReceiveTimeout(_options.AggregatePersistenceTimeout);
 
-            Receive<IPersistedEvent>(async e =>
+            Receive<PersistenceSuccess>(async _ =>
             {
-                // locate the unpersisted node
-                var node = _unpersistedEvents.Nodes().FirstOrDefault(n => n.Value.EventID == e.EventID);
+                foreach (var e in _unpersistedEvents)
+                    await ApplyEventInternal(e.DomainEvent);
 
-                if (node != null)
-                {
-                    _unpersistedEvents.Remove(node);
-                    await ApplyEventInternal(e);
-                }
-            });
-
-            Receive<PersistenceSuccess>(_ =>
-            {
-                Contract.Assert(_unpersistedEvents.Count == 0, "There should be no unpersisted events left.");
                 OnFinishProcessing();
                 Become(Ready);
                 
@@ -234,10 +225,10 @@ namespace Even
                 else
                 {
                     // fail
-                    Sender.Tell(new CommandFailed(command.CommandID, "Too many stream sequence errors."));
+                    _currentCommand.Sender.Tell(new CommandFailed(command.CommandID, "Too many stream sequence errors."));
                 }
 
-                throw new Exception("Unexpected stream sequence");
+                throw new Exception("Unexpected stream sequence - expecting automatic restart.");
             }));
 
             Receive(new Action<PersistenceFailure>(msg =>
@@ -286,11 +277,6 @@ namespace Even
             _commandHandlers.AddHandler<T>(o => processor((T)o));
         }
 
-        protected void OnEvent<T>(Func<T, Task> processor)
-        {
-            _eventHandlers.AddHandler<T>(o => processor((T)o));
-        }
-
         protected void OnEvent<T>(Action<T> processor)
         {
             _eventHandlers.AddHandler<T>(o => processor((T)o));
@@ -325,11 +311,9 @@ namespace Even
 
         #endregion
 
-        private async Task ApplyEventInternal(IPersistedEvent e)
+        private async Task ApplyEventInternal(object e)
         {
             StreamSequence++;
-            var eventType = e.DomainEvent.GetType();
-
             await OnReceiveEvent(e);
             await _eventHandlers.Handle(e);
         }
@@ -360,9 +344,15 @@ namespace Even
             Become(Stopping);
         }
 
-        protected virtual Task OnReceiveEvent(IPersistedEvent e)
+        protected virtual Task OnReceiveEvent(object e)
         {
             return Task.CompletedTask;
+        }
+
+        protected override void PreRestart(Exception reason, object message)
+        {
+            Self.Tell(new InitializeAggregate(_reader, _writer, _options));
+            base.PreRestart(reason, message);
         }
 
         class CommandContext

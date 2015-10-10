@@ -84,6 +84,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AggregateTests.cs" />
     <Compile Include="BufferedEventWriterTests.cs" />
     <Compile Include="EventDispatcherTests.cs" />
     <Compile Include="EventStoreReaderTests.cs" />
