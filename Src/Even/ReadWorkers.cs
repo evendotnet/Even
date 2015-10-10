@@ -57,6 +57,14 @@ namespace Even
 
     internal class ReadWorker : ReadWorkerBase
     {
+        public static Props CreateProps(IEventStoreReader reader, IPersistedEventFactory factory)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(factory, nameof(factory));
+
+            return Props.Create<ReadWorker>(reader, factory);
+        }
+
         public ReadWorker(IEventStoreReader reader, IPersistedEventFactory factory)
         {
             ReceiveRequest<ReadRequest>((req, sender, ct) =>
@@ -72,6 +80,14 @@ namespace Even
 
     internal class ReadStreamWorker : ReadWorkerBase
     {
+        public static Props CreateProps(IEventStoreReader reader, IPersistedEventFactory factory)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(factory, nameof(factory));
+
+            return Props.Create<ReadStreamWorker>(reader, factory);
+        }
+
         public ReadStreamWorker(IEventStoreReader reader, IPersistedEventFactory factory)
         {
             ReceiveRequest<ReadStreamRequest>((req, sender, ct) =>
@@ -96,6 +112,14 @@ namespace Even
     {
         long _lastSeenGlobalCheckpoint;
 
+        public static Props CreateProps(IEventStoreReader reader, IPersistedEventFactory factory)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(factory, nameof(factory));
+
+            return Props.Create<ReadIndexedProjectionStreamWorker>(reader, factory);
+        }
+
         public ReadIndexedProjectionStreamWorker(IProjectionStoreReader reader, IPersistedEventFactory factory)
         {
             ReceiveRequest<ReadIndexedProjectionStreamRequest>(async (req, sender, ct) =>
@@ -118,6 +142,32 @@ namespace Even
         protected override void SendFinishedMessage(IActorRef sender, Guid requestId)
         {
             sender.Tell(new ReadIndexedProjectionStreamFinished(requestId, _lastSeenGlobalCheckpoint), ActorRefs.NoSender);
+        }
+    }
+
+    internal class ReadHighestGlobalSequenceWorker : ReceiveActor
+    {
+        public static Props CreateProps(IEventStoreReader reader)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+
+            return Props.Create<ReadHighestGlobalSequenceWorker>(reader);
+        }
+
+        public ReadHighestGlobalSequenceWorker(IEventStoreReader reader)
+        {
+            Receive<ReadHighestGlobalSequenceRequest>(async r =>
+            {
+                try
+                {
+                    var globalSequence = await reader.ReadHighestGlobalSequenceAsync();
+                    Sender.Tell(new ReadHighestGlobalSequenceResponse(r.RequestID, globalSequence));
+                }
+                finally
+                {
+                    Context.Stop(Self);
+                }
+            });
         }
     }
 }

@@ -1,13 +1,17 @@
 ﻿using Akka.Actor;
 using Even.Messages;
+using System.Threading.Tasks;
 
 namespace Even
 {
     public class EventStoreReader : ReceiveActor
     {
+        IEventStoreReader _reader;
+
         Props _readProps;
         Props _readStreamProps;
         Props _readIndexedProjectionProps;
+        Props _readHighestGlobalSequenceProps;
 
         public static Props CreateProps(IEventStoreReader storeReader, IPersistedEventFactory factory, GlobalOptions options)
         {
@@ -16,25 +20,29 @@ namespace Even
 
         public EventStoreReader(IEventStoreReader storeReader, IPersistedEventFactory factory, GlobalOptions options)
         {
-            _readProps = Props.Create<ReadWorker>(storeReader, factory);
-            _readStreamProps = Props.Create<ReadStreamWorker>(storeReader, factory);
-            _readIndexedProjectionProps = Props.Create<ReadIndexedProjectionStreamWorker>(storeReader, factory);
+            _reader = storeReader;
+
+            _readProps = ReadWorker.CreateProps(storeReader, factory);
+            _readStreamProps = ReadStreamWorker.CreateProps(storeReader, factory);
+            _readIndexedProjectionProps = ReadIndexedProjectionStreamWorker.CreateProps(storeReader, factory);
+            _readHighestGlobalSequenceProps = ReadHighestGlobalSequenceWorker.CreateProps(storeReader);
 
             Ready();
         }
 
         // test only
-        public static Props CreateProps(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, GlobalOptions options)
+        public static Props CreateProps(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, Props readHighestGlobalSequenceProps, GlobalOptions options)
         {
-            return Props.Create<EventStoreReader>(readProps, readStreamProps, readIndexedProjectionProps, options);
+            return Props.Create<EventStoreReader>(readProps, readStreamProps, readIndexedProjectionProps, readHighestGlobalSequenceProps,  options);
         }
 
         // test only
-        public EventStoreReader(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, GlobalOptions options)
+        public EventStoreReader(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, Props readHighestGlobalSequenceProps, GlobalOptions options)
         {
             _readProps = readProps;
             _readStreamProps = readStreamProps;
             _readIndexedProjectionProps = readIndexedProjectionProps;
+            _readHighestGlobalSequenceProps = readHighestGlobalSequenceProps;
 
             Ready();
         }
@@ -56,6 +64,12 @@ namespace Even
             Receive<ReadIndexedProjectionStreamRequest>(r =>
             {
                 var worker = Context.ActorOf(_readIndexedProjectionProps);
+                worker.Forward(r);
+            });
+
+            Receive<ReadHighestGlobalSequenceRequest>(r =>
+            {
+                var worker = Context.ActorOf(_readHighestGlobalSequenceProps);
                 worker.Forward(r);
             });
         }

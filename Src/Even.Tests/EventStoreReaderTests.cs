@@ -25,9 +25,9 @@ namespace Even.Tests
                 ReadProbe = a.Probe;
                 ReadStreamProbe = b.Probe;
                 ReadIndexedProjectionProbe = c.Probe;
-                ReadProjectionCheckpointProbe = d.Probe;
+                ReadHighestGlobalSequenceProbe = d.Probe;
 
-                var readerProps = EventStoreReader.CreateProps(a.Props, b.Props, c.Props, new GlobalOptions());
+                var readerProps = EventStoreReader.CreateProps(a.Props, b.Props, c.Props, d.Props, new GlobalOptions());
                 Reader = testKit.Sys.ActorOf(readerProps);
             }
 
@@ -35,7 +35,7 @@ namespace Even.Tests
             public TestProbe ReadProbe { get; }
             public TestProbe ReadStreamProbe { get; }
             public TestProbe ReadIndexedProjectionProbe { get; }
-            public TestProbe ReadProjectionCheckpointProbe { get; }
+            public TestProbe ReadHighestGlobalSequenceProbe { get; }
         }
 
         readonly TimeSpan DefaultTimeout = TimeSpan.FromMilliseconds(100);
@@ -63,7 +63,7 @@ namespace Even.Tests
         }
 
         [Fact]
-        public void ReadIndexedProjectionStreamRequest_are_forwarded_to_worker()
+        public void ReadIndexedProjectionStreamRequests_are_forwarded_to_worker()
         {
             var o = new TestContainer(this);
 
@@ -71,6 +71,16 @@ namespace Even.Tests
             o.Reader.Tell(req);
 
             o.ReadIndexedProjectionProbe.ExpectMsg<ReadIndexedProjectionStreamRequest>(m => m == req);
+        }
+
+        [Fact]
+        public void ReadHighestGlobalSequenceRequests_are_fowarded_to_worker()
+        {
+            var o = new TestContainer(this);
+
+            var req = new ReadHighestGlobalSequenceRequest();
+            o.Reader.Tell(req);
+            o.ReadHighestGlobalSequenceProbe.ExpectMsg<ReadHighestGlobalSequenceRequest>(m => m == req);
         }
     }
 }
