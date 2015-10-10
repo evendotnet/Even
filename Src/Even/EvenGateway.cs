@@ -37,7 +37,7 @@ namespace Even
         /// Sends a command to an aggregate using the aggregate's category and an id to compose the stream id.
         /// The stream will be generated as "category-id".
         /// </summary>
-        public Task SendAggregateCommand<T>(object id, object command, TimeSpan? timeout = null)
+        public Task<CommandResult> SendAggregateCommand<T>(object id, object command, TimeSpan? timeout = null)
             where T : Aggregate
         {
             Contract.Requires(id != null);
@@ -57,10 +57,13 @@ namespace Even
             Argument.RequiresNotNull(streamId, nameof(streamId));
             Argument.RequiresNotNull(command, nameof(command));
 
-            var aggregateCommand = new AggregateCommand(streamId, command, timeout.Value);
+            var to = timeout ?? _options.DefaultCommandTimeout;
+
+            var aggregateCommand = new AggregateCommand(streamId, command, to);
             var envelope = new AggregateCommandEnvelope(typeof(T), aggregateCommand);
 
-            return Ask(Services.Aggregates, envelope, timeout ?? _options.DefaultCommandTimeout);
+            // TODO: add some threshold to Ask higher than the timeout
+            return Ask(Services.Aggregates, envelope, to);
         }
 
         private static async Task<CommandResult> Ask(IActorRef actor, object msg, TimeSpan timeout)
@@ -73,34 +76,22 @@ namespace Even
             }
             catch (TaskCanceledException)
             {
-                return CommandResult.Timedout();
+                throw new CommandException("Command timeout");
             }
 
             if (response is CommandSucceeded)
-                return CommandResult.Successful();
+                return new CommandResult();
+
+            if (response is CommandRejected)
+                return new CommandResult(((CommandRejected)response).Reasons);
 
             if (response is CommandFailed)
-                return CommandResult.Failed((CommandFailed) response);
+            {
+                var cf = (CommandFailed)response;
+                throw new CommandException("An error occoured while processing the command: " + cf.Reason, cf.Exception);
+            }
 
             throw new UnexpectedCommandResponseException(response);
-        }
-    }
-
-    public class CommandResult
-    {
-        public static CommandResult Successful()
-        {
-            return new CommandResult();
-        }
-
-        public static CommandResult Failed(CommandFailed failedMessage)
-        {
-            return new CommandResult();
-        }
-
-        public static CommandResult Timedout()
-        {
-            return new CommandResult();
         }
     }
 }

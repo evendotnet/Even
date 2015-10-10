@@ -55,6 +55,7 @@
     <Compile Include="CommandProcessorSupervisor.cs" />
     <Compile Include="Argument.cs" />
     <Compile Include="BufferedEventWriter.cs" />
+    <Compile Include="CommandResult.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="DefaultSerializer.cs" />
     <Compile Include="EvenServices.cs" />

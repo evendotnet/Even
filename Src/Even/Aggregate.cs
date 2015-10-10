@@ -172,15 +172,19 @@ namespace Even
                 catch (RejectException ex)
                 {
                     Sender.Tell(new CommandRejected(ac.CommandID, ex.Reasons));
+                    OnFinishProcessing();
+                    return;
                 }
                 // handle unexpected exceptions
                 catch (Exception ex)
                 {
                     Sender.Tell(new CommandFailed(ac.CommandID, ex));
+                    OnFinishProcessing();
+                    return;
                 }
 
                 // if there are events to persist, request persistence
-                if (success && _unpersistedEvents.Count > 0)
+                if (_unpersistedEvents.Count > 0)
                 {
                     var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList());
                     _persistenceRequest = request;
@@ -188,9 +192,10 @@ namespace Even
 
                     Become(AwaitingPersistence);
                 }
-                // otherwise
+                // otherwise just reply and finish
                 else
                 {
+                    _currentCommand.Sender.Tell(new CommandSucceeded(ac.CommandID));
                     OnFinishProcessing();
                 }
             });
@@ -204,12 +209,14 @@ namespace Even
 
             Receive<PersistenceSuccess>(async _ =>
             {
+                _currentCommand.Sender.Tell(new CommandSucceeded(_currentCommand.Command.CommandID));
+
                 foreach (var e in _unpersistedEvents)
                     await ApplyEventInternal(e.DomainEvent);
-
+                
                 OnFinishProcessing();
                 Become(Ready);
-                
+
             }, msg => msg.PersistenceID == _persistenceRequest.PersistenceID);
 
             Receive(new Action<UnexpectedStreamSequence>(_ =>
@@ -326,7 +333,7 @@ namespace Even
 
         private void RefuseInvalidStream(AggregateCommand command)
         {
-            Sender.Tell(new CommandRefused(command.CommandID, $"The stream '{command.StreamID}' is not valid for this aggregate."));
+            Sender.Tell(new CommandFailed(command.CommandID, $"The stream '{command.StreamID}' is not valid for this aggregate."));
         }
 
         protected virtual bool IsValidStreamID(string streamId)

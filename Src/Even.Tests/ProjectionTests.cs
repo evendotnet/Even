@@ -73,7 +73,7 @@ namespace Even.Tests
             var e = MockPersistedStreamEvent.Create(new TestEvent(), streamId: streamId);
             proj.Tell(e);
 
-            ExpectMsg<IPersistedEvent>();
+            ExpectMsg<IPersistedStreamEvent<TestEvent>>(TimeSpan.FromSeconds(15));
         }
 
         [Fact]

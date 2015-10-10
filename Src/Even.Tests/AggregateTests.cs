@@ -174,20 +174,20 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var writer = CreateWorkingWriter();
-            var ag = Sys.ActorOf(Props.Create<Sample>(TestActor, null));
+            var ag = Sys.ActorOf<Sample>();
             ag.Tell(new InitializeAggregate(reader, writer, new GlobalOptions()));
 
-            var c1 = new PersistOne();
-            var c2 = new PersistOne();
-            var c3 = new PersistOne();
+            var c1 = new AggregateCommand(TestStream, new PersistOne(), CommandTimeout);
+            var c2 = new AggregateCommand(TestStream, new PersistOne(), CommandTimeout);
+            var c3 = new AggregateCommand(TestStream, new PersistOne(), CommandTimeout);
 
-            ag.Tell(new AggregateCommand(TestStream, c1, CommandTimeout));
-            ag.Tell(new AggregateCommand(TestStream, c2, CommandTimeout));
-            ag.Tell(new AggregateCommand(TestStream, c3, CommandTimeout));
+            ag.Tell(c1);
+            ag.Tell(c2);
+            ag.Tell(c3);
 
-            ExpectMsg<PersistOne>(c => c == c1);
-            ExpectMsg<PersistOne>(c => c == c2);
-            ExpectMsg<PersistOne>(c => c == c3);
+            ExpectMsg<CommandSucceeded>(c => c.CommandID == c1.CommandID);
+            ExpectMsg<CommandSucceeded>(c => c.CommandID == c2.CommandID);
+            ExpectMsg<CommandSucceeded>(c => c.CommandID == c3.CommandID);
         }
 
         [Fact]
@@ -195,14 +195,15 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var writer = CreateUnexpectedSequenceWriter();
+            var commandProbe = CreateTestProbe();
 
-            var ag = Sys.ActorOf(Props.Create<Sample>(TestActor, null));
+            var ag = Sys.ActorOf(Props.Create<Sample>(commandProbe, null));
             ag.Tell(new InitializeAggregate(reader, writer, new GlobalOptions { MaxAggregateProcessAttempts = 3 }));
             ag.Tell(new AggregateCommand(TestStream, new PersistOne(), TimeSpan.FromHours(1)), TestActor);
 
-            ExpectMsg<PersistOne>();
-            ExpectMsg<PersistOne>();
-            ExpectMsg<PersistOne>();
+            commandProbe.ExpectMsg<PersistOne>();
+            commandProbe.ExpectMsg<PersistOne>();
+            commandProbe.ExpectMsg<PersistOne>();
             ExpectMsg<CommandFailed>();
             ExpectNoMsg(TimeSpan.FromMilliseconds(100));
         }
@@ -236,15 +237,17 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var writer = CreateWorkingWriter();
-            var ag = Sys.ActorOf(Props.Create<Sample>(TestActor, null));
+            var ag = Sys.ActorOf<Sample>();
             ag.Tell(new InitializeAggregate(reader, writer, new GlobalOptions()));
 
-            ag.Tell(new AggregateCommand(TestStream, new PersistOne { Throw = true }, CommandTimeout));
-            var expected = new PersistOne();
-            ag.Tell(new AggregateCommand(TestStream, expected, CommandTimeout));
+            var c1 = new AggregateCommand(TestStream, new PersistOne { Throw = true }, CommandTimeout);
+            var c2 = new AggregateCommand(TestStream, new PersistOne(), CommandTimeout);
 
-            ExpectMsg<CommandFailed>();
-            ExpectMsg<PersistOne>(p => p == expected);
+            ag.Tell(c1);
+            ag.Tell(c2);
+
+            ExpectMsg<CommandFailed>(c => c.CommandID == c1.CommandID);
+            ExpectMsg<CommandSucceeded>(c => c.CommandID == c2.CommandID);
         }
         
         [Fact]
@@ -252,13 +255,14 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var writer = CreateWorkingWriter();
-            var ag = Sys.ActorOf(Props.Create<Sample>(null, TestActor));
+            var probe = CreateTestProbe();
+            var ag = Sys.ActorOf(Props.Create<Sample>(null, probe));
             ag.Tell(new InitializeAggregate(reader, writer, new GlobalOptions()));
 
             ag.Tell(new AggregateCommand(TestStream, new PersistTwo(), CommandTimeout));
 
-            ExpectMsg<SampleEvent1>();
-            ExpectMsg<SampleEvent2>();
+            probe.ExpectMsg<SampleEvent1>();
+            probe.ExpectMsg<SampleEvent2>();
         }
     }
 }

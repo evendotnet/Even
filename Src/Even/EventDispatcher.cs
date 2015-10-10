@@ -25,22 +25,20 @@ namespace Even
 
         public static Props CreateProps(IActorRef reader, GlobalOptions options)
         {
+            Argument.RequiresNotNull(reader, nameof(reader));
+            Argument.RequiresNotNull(options, nameof(options));
+
             return Props.Create<EventDispatcher>(reader, options);
         }
 
         public EventDispatcher(IActorRef reader, GlobalOptions options)
         {
-            Argument.RequiresNotNull(reader, nameof(reader));
-            Argument.RequiresNotNull(options, nameof(options));
-
             _reader = reader;
             _options = options;
 
             var request = new ReadHighestGlobalSequenceRequest();
             _reader.Tell(request);
             _requestId = request.RequestID;
-
-            Become(AwaitingGlobalSequence);
 
             AwaitingGlobalSequence();
         }

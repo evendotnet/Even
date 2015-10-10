@@ -126,16 +126,4 @@ namespace Even.Messages
             : base(commandId)
         { }
     }
-
-    public class CommandRefused : CommandResponse
-    {
-        public CommandRefused(Guid commandId, string reason)
-            : base(commandId)
-        {
-            this.Reason = reason;
-        }
-
-        public AggregateCommand CommandRequest { get; set; }
-        public string Reason { get; set; }
-    }
 }

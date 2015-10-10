@@ -32,7 +32,7 @@ namespace Even.Tests
         {
             var timeout = Timeout.In(TimeSpan.FromMilliseconds(milliseconds));
 
-            await Task.Delay(milliseconds);
+            await Task.Delay(milliseconds + 1);
 
             Assert.True(timeout.IsExpired);
         }

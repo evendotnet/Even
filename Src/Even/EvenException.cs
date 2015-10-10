@@ -54,7 +54,18 @@ namespace Even
     public class RebuildRequestException : Exception
     { }
 
-    public class UnexpectedCommandResponseException : Exception
+    public class CommandException : Exception
+    {
+        public CommandException(string message)
+            : base(message)
+        { }
+
+        public CommandException(string message, Exception innerException)
+            : base(message, innerException)
+        { }
+    }
+
+    public class UnexpectedCommandResponseException : CommandException
     {
         public UnexpectedCommandResponseException(object response)
             : base("An unexpected command response was received.")
@@ -63,15 +74,5 @@ namespace Even
         }
 
         public object Response { get; }
-    }
-
-    public class RejectCommandException
-    {
-        public RejectCommandException(object reason)
-        {
-            this.Reason = reason;
-        }
-
-        public object Reason { get; }
     }
 }
