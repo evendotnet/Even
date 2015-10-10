@@ -39,7 +39,7 @@ namespace Even.Tests
             serializer = serializer ?? new MockSerializer();
             dispatcher = dispatcher ?? CreateTestProbe();
 
-            var props = Props.Create<BufferedEventWriter>(writer, serializer, dispatcher);
+            var props = BufferedEventWriter.CreateProps(writer, serializer, dispatcher, new GlobalOptions());
             return Sys.ActorOf(props);
         }
 

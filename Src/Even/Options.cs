@@ -47,5 +47,7 @@ namespace Even
         public int MaxAggregateProcessAttempts { get; set; } = 10;
         public TimeSpan AggregateStopTimeout { get; set; } = TimeSpan.FromSeconds(10);
         public TimeSpan DispatcherRecoveryTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan IndexWriterFlushDelay { get; set; } = TimeSpan.FromSeconds(2);
+        public TimeSpan CheckpointWriterFlushDelay { get; set; } = TimeSpan.FromSeconds(2);
     }
 }

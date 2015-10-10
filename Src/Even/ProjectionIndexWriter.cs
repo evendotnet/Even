@@ -13,17 +13,23 @@ namespace Even
     public class ProjectionIndexWriter : ReceiveActor
     {
         IProjectionStoreWriter _writer;
+        GlobalOptions _options;
+
         LinkedList<BufferEntry> _buffer = new LinkedList<BufferEntry>();
-        TimeSpan _flushDelay;
         bool _flushRequested;
 
-        public ProjectionIndexWriter(IProjectionStoreWriter writer, TimeSpan flushDelay)
+        public static Props CreateProps(IProjectionStoreWriter writer, GlobalOptions options)
         {
-            Argument.Requires(writer != null);
-            Argument.Requires(flushDelay < TimeSpan.FromSeconds(30), "Flush delay shouldn't be too high.");
+            Argument.RequiresNotNull(writer, nameof(writer));
+            Argument.RequiresNotNull(options, nameof(options));
 
+            return Props.Create<ProjectionIndexWriter>(writer, options);
+        }
+
+        public ProjectionIndexWriter(IProjectionStoreWriter writer, GlobalOptions options)
+        {
             _writer = writer;
-            _flushDelay = flushDelay;
+            _options = options;
 
             Receive<ProjectionIndexPersistenceRequest>(request => Enqueue(request));
             Receive<FlushBufferCommand>(_ => FlushBuffer());
@@ -36,7 +42,7 @@ namespace Even
             if (!_flushRequested)
             {
                 _flushRequested = true;
-                Context.System.Scheduler.ScheduleTellOnce(_flushDelay, Self, new FlushBufferCommand(), Self);
+                Context.System.Scheduler.ScheduleTellOnce(_options.IndexWriterFlushDelay, Self, new FlushBufferCommand(), Self);
             }
         }
 

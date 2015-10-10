@@ -14,19 +14,27 @@ namespace Even
         ISerializer _serializer;
         IEventStoreWriter _writer;
         IActorRef _dispatcher;
+        GlobalOptions _options;
 
         LinkedList<BufferEntry> _buffer = new LinkedList<BufferEntry>();
         bool _flushRequested;
 
-        public BufferedEventWriter(IEventStoreWriter writer, ISerializer serializer, IActorRef dispatcher)
+        public static Props CreateProps(IEventStoreWriter writer, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
         {
-            Argument.Requires(writer != null, nameof(writer));
-            Argument.Requires(serializer != null, nameof(serializer));
-            Argument.Requires(dispatcher != null, nameof(dispatcher));
+            Argument.RequiresNotNull(writer, nameof(writer));
+            Argument.RequiresNotNull(serializer, nameof(serializer));
+            Argument.RequiresNotNull(dispatcher, nameof(dispatcher));
+            Argument.RequiresNotNull(options, nameof(options));
 
+            return Props.Create<BufferedEventWriter>(writer, serializer, dispatcher, options);
+        }
+
+        public BufferedEventWriter(IEventStoreWriter writer, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
+        {
             _writer = writer;
             _serializer = serializer;
             _dispatcher = dispatcher;
+            _options = options;
 
             Receive<PersistenceRequest>(r => Enqueue(r));
             Receive<FlushBufferCommand>(_ => FlushBuffer());

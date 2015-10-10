@@ -16,7 +16,7 @@ namespace Even.Tests
         public async Task Writer_buffers_and_writes_only_highest_value()
         {
             var store = Substitute.For<IProjectionStoreWriter>();
-            var props = Props.Create<ProjectionCheckpointWriter>(store, TimeSpan.FromMilliseconds(10));
+            var props = ProjectionCheckpointWriter.CreateProps(store, new GlobalOptions { CheckpointWriterFlushDelay = TimeSpan.FromMilliseconds(10) });
             var writer = Sys.ActorOf(props);
 
             writer.Tell(new ProjectionCheckpointPersistenceRequest("a", 10));
@@ -38,12 +38,12 @@ namespace Even.Tests
             var store = Substitute.For<IProjectionStoreWriter>();
             store.WriteProjectionCheckpointAsync(null, 0).ReturnsForAnyArgs(_ => { throw new Exception(); });
 
-            var props = Props.Create<ProjectionCheckpointWriter>(store, TimeSpan.Zero);
+            var props = ProjectionCheckpointWriter.CreateProps(store, new GlobalOptions { CheckpointWriterFlushDelay = TimeSpan.Zero });
             var writer = Sys.ActorOf(props);
 
             writer.Tell(new ProjectionCheckpointPersistenceRequest("a", 1));
 
-            ExpectNoMsg(TimeSpan.FromSeconds(1));
+            ExpectNoMsg(TimeSpan.FromMilliseconds(200));
         }
     }
 }

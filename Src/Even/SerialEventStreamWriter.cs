@@ -13,16 +13,24 @@ namespace Even
         IEventStoreWriter _writer;
         ISerializer _serializer;
         IActorRef _dispatcher;
+        GlobalOptions _options;
 
-        public SerialEventStreamWriter(IEventStoreWriter writer, ISerializer serializer, IActorRef dispatcher)
+        public static Props CreateProps(IEventStoreWriter writer, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
         {
-            Argument.Requires(writer != null, nameof(writer));
-            Argument.Requires(serializer != null, nameof(serializer));
-            Argument.Requires(dispatcher != null, nameof(dispatcher));
+            Argument.RequiresNotNull(writer, nameof(writer));
+            Argument.RequiresNotNull(serializer, nameof(serializer));
+            Argument.RequiresNotNull(dispatcher, nameof(dispatcher));
+            Argument.RequiresNotNull(options, nameof(options));
 
+            return Props.Create<SerialEventStreamWriter>(writer, serializer, dispatcher, options);
+        }
+
+        public SerialEventStreamWriter(IEventStoreWriter writer, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
+        {
             this._writer = writer;
             this._serializer = serializer;
             this._dispatcher = dispatcher;
+            this._options = options;
 
             Receive<PersistenceRequest>(r => HandleRequest(r));
         }

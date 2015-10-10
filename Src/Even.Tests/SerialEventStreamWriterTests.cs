@@ -36,7 +36,7 @@ namespace Even.Tests
             serializer = serializer ?? new MockSerializer();
             dispatcher = dispatcher ?? CreateTestProbe();
 
-            var props = Props.Create<SerialEventStreamWriter>(writer, serializer, dispatcher);
+            var props = SerialEventStreamWriter.CreateProps(writer, serializer, dispatcher, new GlobalOptions());
             return Sys.ActorOf(props);
         }
 

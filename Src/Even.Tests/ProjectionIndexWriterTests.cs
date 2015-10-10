@@ -19,7 +19,7 @@ namespace Even.Tests
         {
             writer = writer ?? MockProjectionStore.SuccessfulWriter();
             var delay = flushDelay ?? TimeSpan.FromMilliseconds(10);
-            var props = Props.Create<ProjectionIndexWriter>(writer, delay);
+            var props = ProjectionIndexWriter.CreateProps(writer, new GlobalOptions { IndexWriterFlushDelay = delay });
             return Sys.ActorOf(props);
         }
 

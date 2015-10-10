@@ -16,27 +16,28 @@ namespace Even
         IActorRef _indexWriter;
         IActorRef _checkpointWriter;
 
-        public static Props CreateProps(IEventStoreWriter storeWriter, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
+        public static Props CreateProps(IEventStore store, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
         {
-            Argument.RequiresNotNull(storeWriter, nameof(storeWriter));
+            Argument.RequiresNotNull(store, nameof(store));
             Argument.RequiresNotNull(serializer, nameof(serializer));
             Argument.RequiresNotNull(dispatcher, nameof(dispatcher));
+            Argument.RequiresNotNull(options, nameof(options));
 
-            return Props.Create<EventStoreWriter>(storeWriter, serializer, dispatcher, options);
+            return Props.Create<EventStoreWriter>(store, serializer, dispatcher, options);
         }
 
-        public EventStoreWriter(IEventStoreWriter storeWriter, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
+        public EventStoreWriter(IEventStore store, ISerializer serializer, IActorRef dispatcher, GlobalOptions options)
         {
-            var serialProps = Props.Create<SerialEventStreamWriter>(storeWriter, serializer, dispatcher, options);
+            var serialProps = SerialEventStreamWriter.CreateProps(store, serializer, dispatcher, options);
             _serialWriter = Context.ActorOf(serialProps, "serial");
 
-            var bufferedProps = Props.Create<BufferedEventWriter>(storeWriter, serializer, dispatcher, options);
+            var bufferedProps = BufferedEventWriter.CreateProps(store, serializer, dispatcher, options);
             _bufferedWriter = Context.ActorOf(bufferedProps, "buffered");
 
-            var indexWriterProps = Props.Create<ProjectionIndexWriter>(storeWriter, options);
+            var indexWriterProps = ProjectionIndexWriter.CreateProps(store, options);
             _indexWriter = Context.ActorOf(indexWriterProps, "index");
 
-            var checkpointWriterProps = Props.Create<ProjectionCheckpointWriter>(storeWriter, options);
+            var checkpointWriterProps = ProjectionCheckpointWriter.CreateProps(store, options);
             _checkpointWriter = Context.ActorOf(checkpointWriterProps, "checkpoint");
 
             Ready();
