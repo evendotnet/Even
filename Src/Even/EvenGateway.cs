@@ -11,16 +11,19 @@ namespace Even
 {
     public class EvenGateway 
     {
-        public EvenGateway(EvenServices services, GlobalOptions options)
+        public EvenGateway(EvenServices services, ActorSystem system, GlobalOptions options)
         {
             Argument.RequiresNotNull(services, nameof(services));
+            Argument.RequiresNotNull(system, nameof(system));
             Argument.RequiresNotNull(options, nameof(options));
 
+            this._system = system;
             this.Services = services;
             this._options = options;
         }
 
         public EvenServices Services { get; }
+        ActorSystem _system;
         GlobalOptions _options;
 
         /// <summary>
@@ -92,6 +95,62 @@ namespace Even
             }
 
             throw new UnexpectedCommandResponseException(response);
+        }
+
+        public Task<object> Query(object query, TimeSpan? timeout = null)
+        {
+            var to = timeout ?? _options.DefaultQueryTimeout;
+            var q = QueryFactory.Create(query, Timeout.In(to));
+            var msg = QueryAsker.CreateMessage(q, to);
+
+            var asker = _system.ActorOf(QueryAsker.Props);
+            return asker.Ask(msg, to);
+        }
+
+        /// <summary>
+        /// Sends a query through the event stream and responds with the first message it receives back.
+        /// </summary>
+        class QueryAsker : ReceiveActor
+        {
+            public static readonly Props Props = Props.Create<QueryAsker>();
+
+            IActorRef _sender;
+
+            public QueryAsker()
+            {
+                Receive<Request>(request =>
+                {
+                    _sender = Sender;
+                    Context.System.EventStream.Publish(request.Message);
+
+                    Become(() =>
+                    {
+                        SetReceiveTimeout(request.Timeout);
+
+                        ReceiveAny(response =>
+                        {
+                            _sender.Forward(response);
+                            Context.Stop(Self);
+                        });
+
+                        Receive<ReceiveTimeout>(_ =>
+                        {
+                            Context.Stop(Self);
+                        });
+                    });
+                });
+            }
+
+            class Request
+            {
+                public IQuery Message { get; set; }
+                public TimeSpan Timeout { get; set; }
+            }
+
+            public static object CreateMessage(IQuery message, TimeSpan timeout)
+            {
+                return new Request { Message = message, Timeout = timeout };
+            }
         }
     }
 }

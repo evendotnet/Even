@@ -18,6 +18,7 @@ namespace Even.Tests
     public class ProjectionTests : EvenTestKit
     {
         public class TestEvent { }
+        public class TestQuery { }
 
         class TestProjection : Projection
         {
@@ -31,6 +32,19 @@ namespace Even.Tests
                 {
                     _probe.Forward(e);
                 });
+
+                OnQuery<TestQuery>(q =>
+                {
+                    _probe.Forward(q);
+                });
+            }
+
+            protected override void OnReady()
+            {
+                Receive<int>(async delay =>
+                {
+                    await Task.Delay(delay);
+                });
             }
 
             protected override Task PrepareToRebuild()
@@ -38,6 +52,34 @@ namespace Even.Tests
                 _probe.Tell("rebuild");
                 return Task.CompletedTask;
             }
+
+            protected override Task OnExpiredQuery(object query)
+            {
+                _probe.Tell("expired");
+                return Task.CompletedTask;
+            }
+        }
+
+        private string _testStreamId;
+
+        private IActorRef CreateAndInitializeTestProjection(GlobalOptions options = null)
+        {
+            var sup = Sys.ActorOf(conf =>
+            {
+                conf.Receive<ProjectionSubscriptionRequest>((r, ctx) =>
+                {
+                    _testStreamId = r.Query.ProjectionStreamID;
+                    ctx.Sender.Tell(new ProjectionReplayFinished(r.RequestID));
+                });
+            });
+
+            var props = Props.Create<TestProjection>(TestActor);
+            var proj = Sys.ActorOf(props);
+
+            proj.Tell(new InitializeProjection(sup, options ?? new GlobalOptions()));
+            ExpectMsg<InitializationResult>(i => i.Initialized);
+
+            return proj;
         }
 
         [Fact]
@@ -53,24 +95,9 @@ namespace Even.Tests
         [Fact]
         public void Receives_events_after_replay()
         {
-            string streamId = null;
+            var proj = CreateAndInitializeTestProjection();
 
-            var sup = Sys.ActorOf(conf =>
-            {
-                conf.Receive<ProjectionSubscriptionRequest>((r, ctx) =>
-                {
-                    streamId = r.Query.ProjectionStreamID;
-                    ctx.Sender.Tell(new ProjectionReplayFinished(r.RequestID));
-                });
-            });
-
-            var props = Props.Create<TestProjection>(TestActor);
-            var proj = Sys.ActorOf(props);
-
-            proj.Tell(new InitializeProjection(sup, new GlobalOptions()));
-            ExpectMsg<InitializationResult>(i => i.Initialized);
-
-            var e = MockPersistedStreamEvent.Create(new TestEvent(), streamId: streamId);
+            var e = MockPersistedStreamEvent.Create(new TestEvent(), streamId: _testStreamId);
             proj.Tell(e);
 
             ExpectMsg<IPersistedStreamEvent<TestEvent>>(TimeSpan.FromSeconds(15));
@@ -79,26 +106,39 @@ namespace Even.Tests
         [Fact]
         public void Rebuilds_on_RebuildProjection_message()
         {
-            string streamId = null;
-
-            var sup = Sys.ActorOf(conf =>
-            {
-                conf.Receive<ProjectionSubscriptionRequest>((r, ctx) =>
-                {
-                    streamId = r.Query.ProjectionStreamID;
-                    ctx.Sender.Tell(new ProjectionReplayFinished(r.RequestID));
-                });
-            });
-
-            var props = Props.Create<TestProjection>(TestActor).WithSupervisorStrategy(new OneForOneStrategy(ex => Directive.Restart));
-            var proj = Sys.ActorOf(props);
-
-            proj.Tell(new InitializeProjection(sup, new GlobalOptions()));
-            ExpectMsg<InitializationResult>(i => i.Initialized);
+            var proj = CreateAndInitializeTestProjection();
 
             proj.Tell(new RebuildProjection());
 
             ExpectMsg<string>(s => s == "rebuild");
+        }
+
+        [Fact]
+        public void Handles_queries()
+        {
+            var proj = CreateAndInitializeTestProjection();
+
+            var q = new TestQuery();
+            Sys.EventStream.Publish(new Query<TestQuery>(q, Timeout.In(1000)));
+
+            ExpectMsg<TestQuery>(o => o == q);
+        }
+
+        [Fact]
+        public void Does_not_handle_expired_queries()
+        {
+            var proj = CreateAndInitializeTestProjection();
+
+            // create an event to expire in 10 ms
+            var q = new Query<TestQuery>(new TestQuery(), Timeout.In(10));
+
+            // forces the projection to sleep for 100 ms
+            proj.Tell(100);
+
+            // publish the expired event
+            Sys.EventStream.Publish(q);
+
+            ExpectMsg<string>(s => s == "expired");
         }
     }
 }

@@ -94,6 +94,7 @@
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\BaseSqlStore.cs" />
+    <Compile Include="ProjectionQuery.cs" />
     <Compile Include="ProjectionSupervisor.cs" />
     <Compile Include="ReadWorkers.cs" />
     <Compile Include="RejectReason.cs" />

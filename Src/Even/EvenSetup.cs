@@ -99,7 +99,7 @@ namespace Even
 
             var services = (EvenServices) await master.Ask(new GetEvenServices(), timeout);
 
-            return new EvenGateway(services, options);
+            return new EvenGateway(services, _system, options);
         }
     }
 

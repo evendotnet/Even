@@ -49,5 +49,6 @@ namespace Even
         public TimeSpan DispatcherRecoveryTimeout { get; set; } = TimeSpan.FromSeconds(5);
         public TimeSpan IndexWriterFlushDelay { get; set; } = TimeSpan.FromSeconds(2);
         public TimeSpan CheckpointWriterFlushDelay { get; set; } = TimeSpan.FromSeconds(2);
+        public TimeSpan DefaultQueryTimeout { get; set; } = TimeSpan.FromSeconds(5);
     }
 }

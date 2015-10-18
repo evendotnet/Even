@@ -15,7 +15,8 @@ namespace Even
         protected int CurrentSequence { get; private set; }
         protected string ProjectionStreamID { get; private set; }
 
-        PersistedEventHandler _handlers = new PersistedEventHandler();
+        PersistedEventHandler _eventHandlers = new PersistedEventHandler();
+        QueryHandler _queryHandlers = new QueryHandler();
         LinkedList<Type> _eventTypes = new LinkedList<Type>();
 
         IActorRef _streams;
@@ -134,6 +135,14 @@ namespace Even
 
             }, e => e.StreamID == ProjectionStreamID);
 
+            Receive<IQuery>(async q =>
+            {
+                var handled = await _queryHandlers.Handle(q);
+
+                if (!handled)
+                    Unhandled(q);
+            });
+
             Receive<RebuildProjection>(async _ =>
             {
                 await PrepareToRebuild();
@@ -148,7 +157,7 @@ namespace Even
         async Task ProcessEventInternal(IPersistedStreamEvent e)
         {
             await OnReceiveEvent(e);
-            await _handlers.Handle(e);
+            await _eventHandlers.Handle(e);
         }
 
         /// <summary>
@@ -185,6 +194,11 @@ namespace Even
             return Task.CompletedTask;
         }
 
+        protected virtual Task OnExpiredQuery(object query)
+        {
+            return Task.CompletedTask;
+        }
+
         /// <summary>
         /// Signals the projection to prepare for rebuild.
         /// </summary>
@@ -202,7 +216,7 @@ namespace Even
             if (!_eventTypes.Contains(t))
                 _eventTypes.AddLast(t);
 
-            _handlers.AddHandler<T>(e => handler((IPersistedStreamEvent<T>) e));
+            _eventHandlers.AddHandler<T>(e => handler((IPersistedStreamEvent<T>) e));
         }
 
         protected void OnEvent<T>(Action<IPersistedStreamEvent<T>> handler)
@@ -212,7 +226,33 @@ namespace Even
             if (!_eventTypes.Contains(t))
                 _eventTypes.AddLast(t);
 
-            _handlers.AddHandler<T>(e => handler((IPersistedStreamEvent<T>)e));
+            _eventHandlers.AddHandler<T>(e => handler((IPersistedStreamEvent<T>)e));
+        }
+
+        #endregion
+
+        #region Query Subscriptions
+
+        protected void OnQuery<T>(Func<T, Task> handler)
+        {
+            Context.System.EventStream.Subscribe(Self, typeof(IQuery<T>));
+
+            _queryHandlers.AddHandler<T>(q =>
+            {
+                if (q.Timeout.IsExpired)
+                    return OnExpiredQuery(q.Message);
+
+                return handler((T) q.Message);
+            });
+        }
+
+        protected void OnQuery<T>(Action<T> handler)
+        {
+            OnQuery(new Func<T, Task>(q =>
+            {
+                handler(q);
+                return Task.CompletedTask;
+            }));
         }
 
         #endregion

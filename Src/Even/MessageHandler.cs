@@ -23,10 +23,10 @@ namespace Even
 
         Dictionary<Type, HandlerList> _handlers = new Dictionary<Type, HandlerList>();
 
-        public async Task Handle(TMessage message)
+        public async Task<bool> Handle(TMessage message)
         {
             if (message == null)
-                return;
+                return false;
 
             Type type;
 
@@ -35,7 +35,7 @@ namespace Even
                 type = _mapper(message);
 
                 if (type == null)
-                    return;
+                    return false;
             }
             else
             {
@@ -48,7 +48,11 @@ namespace Even
             {
                 foreach (var handler in list)
                     await handler(message);
+
+                return true;
             }
+
+            return false;
         }
 
         public void AddHandler<T>(Func<TMessage, Task> handler)
@@ -78,6 +82,13 @@ namespace Even
     {
         public PersistedEventHandler()
             : base(e => e.DomainEvent?.GetType())
+        { }
+    }
+
+    public class QueryHandler : MessageHandler<IQuery>
+    {
+        public QueryHandler()
+            : base(e => e.Message?.GetType())
         { }
     }
 
