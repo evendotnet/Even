@@ -14,21 +14,6 @@ namespace Even.Sample.Projections
     {
         public ActiveProducts()
         {
-            //FromStream("foo").On<ProductCreated>(e =>
-            //{
-
-            //});
-
-            //FromCategory("produto").On<ProductCreated>(e =>
-            //{
-
-            //});
-
-            //FromAll().On<ProductCreated>(e =>
-            //{
-
-            //});
-
             OnEvent<ProductCreated>(e =>
             {
                 _list.Add(new ProductInfo { ID = e.StreamID, Name = e.DomainEvent.Name });
