@@ -24,7 +24,7 @@ namespace Even.Sample
                 var gateway = await actorSystem
                     .SetupEven()
                     .AddProjection<ActiveProducts>()
-                    .Start();
+                    .Start("even");
 
                 await Task.Delay(500);
 
