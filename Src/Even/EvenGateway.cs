@@ -127,14 +127,14 @@ namespace Even
                     {
                         SetReceiveTimeout(request.Timeout);
 
-                        ReceiveAny(response =>
+                        Receive<ReceiveTimeout>(_ =>
                         {
-                            _sender.Forward(response);
                             Context.Stop(Self);
                         });
 
-                        Receive<ReceiveTimeout>(_ =>
+                        ReceiveAny(response =>
                         {
+                            _sender.Forward(response);
                             Context.Stop(Self);
                         });
                     });
