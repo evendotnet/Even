@@ -42,7 +42,7 @@ namespace Even
                 // if the projection stream doesn't exist, start one
                 if (pRef == ActorRefs.Nobody)
                 {
-                    var props = Props.Create<ProjectionStream>(ps.Query, _reader, _writer, _options);
+                    var props = ProjectionStream.CreateProps(ps.Query, _reader, _writer, _options);
                     pRef = Context.ActorOf(props);
                 }
 
