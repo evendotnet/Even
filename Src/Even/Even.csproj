@@ -92,7 +92,6 @@
     <Compile Include="Aggregate.cs" />
     <Compile Include="AggregateSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
-    <Compile Include="PersistedEvent.cs" />
     <Compile Include="Persistence\BaseSqlStore.cs" />
     <Compile Include="ProjectionQuery.cs" />
     <Compile Include="ProjectionSupervisor.cs" />
