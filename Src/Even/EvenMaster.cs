@@ -2,6 +2,7 @@
 using Even.Messages;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Even
 {
@@ -26,7 +27,7 @@ namespace Even
         public Dictionary<string, Type> EventTypes { get; } = new Dictionary<string, Type>();
     }
 
-    public class EvenMaster : ReceiveActor
+    public class EvenMaster : ReceiveActor, IWithUnboundedStash
     {
         IActorRef _reader;
         IActorRef _dispatcher;
@@ -37,6 +38,8 @@ namespace Even
         IActorRef _commandProcessors;
         IActorRef _aggregates;
 
+        public IStash Stash { get; set; }
+
         public static Props CreateProps(EvenStartInfo startInfo)
         {
             Argument.RequiresNotNull(startInfo, nameof(startInfo));
@@ -46,18 +49,44 @@ namespace Even
 
         public EvenMaster(EvenStartInfo startInfo)
         {
-            Initialize(startInfo);
-
-            foreach (var o in startInfo.EventProcessors)
-                _eventProcessors.Tell(o);
-
-            foreach (var o in startInfo.Projections)
-                _projections.Tell(o);
-
-            Ready();
+            Self.Tell(startInfo);
+            InitializingServices();
         }
 
-        void Initialize(EvenStartInfo startInfo)
+        void InitializingServices()
+        {
+            Receive<EvenStartInfo>(async startInfo =>
+            {
+                InitializeServices(startInfo);
+                var t1 = InitializeProjections(startInfo.Projections);
+                var t2 = InitializeEventProcessors(startInfo.EventProcessors);
+
+                await Task.WhenAll(t1, t2);
+
+                Stash.UnstashAll();
+                Become(Ready);
+            });
+
+            ReceiveAny(o => Stash.Stash());
+        }
+
+        void Ready()
+        {
+            Receive<GetEvenServices>(m =>
+            {
+                Sender.Tell(new EvenServices
+                {
+                    Reader = _reader,
+                    Writer = _writer,
+                    Aggregates = _aggregates,
+                    CommandProcessors = _commandProcessors,
+                    EventProcessors = _eventProcessors,
+                    Projections = _projections
+                });
+            });
+        }
+
+        void InitializeServices(EvenStartInfo startInfo)
         {
             var serializer = startInfo.Serializer;
             var store = startInfo.Store;
@@ -88,6 +117,10 @@ namespace Even
             var projectionStreamsProps = ProjectionStreamSupervisor.CreateProps(_reader, _writer, options);
             _projectionStreams = Context.ActorOf(projectionStreamsProps, "projectionstreams");
 
+            // initialize projections supervisor
+            var projectionProps = ProjectionSupervisor.CreateProps(_projectionStreams, options);
+            _projections = Context.ActorOf(projectionProps, "projections");
+
             // initialize command processors supervisor
             var commandProcessorsProps = CommandProcessorSupervisor.CreateProps(_writer, options);
             _commandProcessors = Context.ActorOf(commandProcessorsProps, "commandprocessors");
@@ -97,20 +130,24 @@ namespace Even
             _aggregates = Context.ActorOf(aggregatesProps, "aggregates");
         }
 
-        void Ready()
+        private Task InitializeEventProcessors(List<StartEventProcessor> list)
         {
-            Receive<GetEvenServices>(m =>
-            {
-                Sender.Tell(new EvenServices
-                {
-                    Reader = _reader,
-                    Writer = _writer,
-                    Aggregates = _aggregates,
-                    CommandProcessors = _commandProcessors,
-                    EventProcessors = _eventProcessors,
-                    Projections = _projections
-                });
-            });
+            var tasks = new List<Task>(list.Count);
+
+            foreach (var o in list)
+                tasks.Add(_eventProcessors.Ask(o));
+
+            return Task.WhenAll(tasks);
+        }
+
+        private Task InitializeProjections(List<StartProjection> list)
+        {
+            var tasks = new List<Task>(list.Count);
+
+            foreach (var o in list)
+                tasks.Add(_projections.Ask(o));
+
+            return Task.WhenAll(tasks);
         }
     }
 }

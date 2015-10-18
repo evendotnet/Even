@@ -36,7 +36,7 @@ namespace Even
             {
                 try
                 {
-                    _streams = ini.ProjectionStreamSupervisor;
+                    _streams = ini.ProjectionStreams;
                     _options = ini.Options;
 
                     var query = BuildQuery();

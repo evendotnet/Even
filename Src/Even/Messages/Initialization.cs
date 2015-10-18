@@ -70,11 +70,11 @@ namespace Even.Messages
             Argument.RequiresNotNull(projectionStreamSupervisor, nameof(projectionStreamSupervisor));
             Argument.RequiresNotNull(options, nameof(options));
 
-            this.ProjectionStreamSupervisor = projectionStreamSupervisor;
+            this.ProjectionStreams = projectionStreamSupervisor;
             this.Options = options;
         }
 
-        public IActorRef ProjectionStreamSupervisor { get; }
+        public IActorRef ProjectionStreams { get; }
         public GlobalOptions Options { get; }
     }
 }

@@ -11,32 +11,38 @@ namespace Even
     public class ProjectionSupervisor : ReceiveActor
     {
         GlobalOptions _options;
-        IActorRef _projectionStreamsSupervisor;
+        IActorRef _projectionStreams;
         
+        public static Props CreateProps(IActorRef projectionStreams, GlobalOptions options)
+        {
+            Argument.RequiresNotNull(projectionStreams, nameof(projectionStreams));
+            Argument.RequiresNotNull(options, nameof(options));
+
+            return Props.Create<ProjectionSupervisor>(projectionStreams, options);
+        }
+
         public ProjectionSupervisor(IActorRef projectionStreamSupervisor, GlobalOptions options)
         {
-            _projectionStreamsSupervisor = projectionStreamSupervisor;
+            _projectionStreams = projectionStreamSupervisor;
             _options = options;
+
+            Ready();
         }
 
         void Ready()
         {
             Receive<StartProjection>(sp =>
             {
-                var props = PropsFactory.Create(sp.ProjectionType);
-                var projection = Context.ActorOf(props);
-
-                Task.Run(async () =>
+                try
                 {
-                    var result = await projection.Ask(new InitializeProjection(_projectionStreamsSupervisor, _options)) as InitializationResult;
-
-                    if (result.Initialized)
-                    {
-
-                    }
-
-                });
-                
+                    var props = PropsFactory.Create(sp.ProjectionType);
+                    var projection = Context.ActorOf(props);
+                    projection.Ask(new InitializeProjection(_projectionStreams, _options)).PipeTo(Sender);
+                }
+                catch (Exception ex)
+                {
+                    Sender.Tell(InitializationResult.Failed(ex));
+                }
             });
         }
 
@@ -46,12 +52,6 @@ namespace Even
             {
                 return Directive.Restart;
             });
-        }
-
-        class ProjectionInfo
-        {
-            public IActorRef ActorRef;
-            public string Name;
         }
     }
 }

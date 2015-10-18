@@ -93,6 +93,9 @@ namespace Even
             var serializer = _serializer ?? new DefaultSerializer();
 
             var startInfo = new EvenStartInfo(store, serializer, options);
+            startInfo.Projections.AddRange(_projections);
+            startInfo.EventProcessors.AddRange(_eventProcessors);
+
             var props = EvenMaster.CreateProps(startInfo);
             var master = _system.ActorOf(props, name);
             var timeout = TimeSpan.FromSeconds(5);
