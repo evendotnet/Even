@@ -58,7 +58,7 @@ namespace Even
             Context.System.EventStream.Subscribe(Self, typeof(IPersistedEvent));
 
             // request checkpoint
-            var request = new ReadProjectionIndexCheckpointRequest(_query.ProjectionStreamID);
+            var request = new ReadProjectionCheckpointRequest(_query.ProjectionStreamID);
             _lastRequestId = request.RequestID;
             _reader.Tell(request);
 
@@ -71,7 +71,7 @@ namespace Even
         {
             SetReceiveTimeout(_options.ReadRequestTimeout);
 
-            Receive<ReadProjectionIndexCheckpointResponse>(m =>
+            Receive<ReadProjectionCheckpointResponse>(m =>
             {
                 _globalSequence = m.LastSeenGlobalSequence;
                 StartReadRequest();

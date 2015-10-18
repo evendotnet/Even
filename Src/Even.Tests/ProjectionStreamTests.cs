@@ -41,9 +41,9 @@ namespace Even.Tests
         {
             return Sys.ActorOf(conf =>
             {
-                conf.Receive<ReadProjectionIndexCheckpointRequest>((r, ctx) =>
+                conf.Receive<ReadProjectionCheckpointRequest>((r, ctx) =>
                 {
-                    ctx.Sender.Tell(new ReadProjectionIndexCheckpointResponse(r.RequestID, eventCount));
+                    ctx.Sender.Tell(new ReadProjectionCheckpointResponse(r.RequestID, eventCount));
                 });
 
                 conf.Receive<ReadRequest>((r, ctx) =>
@@ -67,7 +67,7 @@ namespace Even.Tests
             var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
             Sys.ActorOf(props);
 
-            reader.ExpectMsg<ReadProjectionIndexCheckpointRequest>();
+            reader.ExpectMsg<ReadProjectionCheckpointRequest>();
         }
 
         [Fact]
@@ -75,7 +75,7 @@ namespace Even.Tests
         {
             var reader = Sys.ActorOf(conf =>
             {
-                conf.Receive<ReadProjectionIndexCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new ReadProjectionIndexCheckpointResponse(r.RequestID, 0)));
+                conf.Receive<ReadProjectionCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new ReadProjectionCheckpointResponse(r.RequestID, 0)));
                 conf.Receive<ReadRequest>((r, ctx) => TestActor.Forward(r));
             });
 
@@ -90,7 +90,7 @@ namespace Even.Tests
         {
             var reader = Sys.ActorOf(conf =>
             {
-                conf.Receive<ReadProjectionIndexCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new Aborted(r.RequestID, new Exception())));
+                conf.Receive<ReadProjectionCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new Aborted(r.RequestID, new Exception())));
             });
 
             var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
@@ -113,7 +113,7 @@ namespace Even.Tests
         {
             var reader = Sys.ActorOf(conf =>
             {
-                conf.Receive<ReadProjectionIndexCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new ReadProjectionIndexCheckpointResponse(r.RequestID, 0)));
+                conf.Receive<ReadProjectionCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new ReadProjectionCheckpointResponse(r.RequestID, 0)));
                 conf.Receive<ReadRequest>((r, ctx) => ctx.Sender.Tell(new Aborted(r.RequestID, new Exception())));
             });
 
@@ -162,9 +162,9 @@ namespace Even.Tests
 
             var reader = Sys.ActorOf(conf =>
             {
-                conf.Receive<ReadProjectionIndexCheckpointRequest>((r, ctx) =>
+                conf.Receive<ReadProjectionCheckpointRequest>((r, ctx) =>
                 {
-                    ctx.Sender.Tell(new ReadProjectionIndexCheckpointResponse(r.RequestID, 0));
+                    ctx.Sender.Tell(new ReadProjectionCheckpointResponse(r.RequestID, 0));
                     checkpointRead = true;
                 });
             });

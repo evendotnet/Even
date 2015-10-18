@@ -138,9 +138,9 @@ namespace Even.Messages
 
     #region ReadProjectionIndexCheckpoint
 
-    public class ReadProjectionIndexCheckpointRequest : IRequest
+    public class ReadProjectionCheckpointRequest : IRequest
     {
-        public ReadProjectionIndexCheckpointRequest(string projectionStreamId)
+        public ReadProjectionCheckpointRequest(string projectionStreamId)
         {
             Argument.RequiresNotNull(projectionStreamId, nameof(projectionStreamId));
             this.ProjectionStreamID = projectionStreamId;
@@ -150,9 +150,9 @@ namespace Even.Messages
         public string ProjectionStreamID { get; }
     }
 
-    public class ReadProjectionIndexCheckpointResponse
+    public class ReadProjectionCheckpointResponse
     {
-        public ReadProjectionIndexCheckpointResponse(Guid requestId, long lastSeenGlobalSequence)
+        public ReadProjectionCheckpointResponse(Guid requestId, long lastSeenGlobalSequence)
         {
             this.RequestID = requestId;
             this.LastSeenGlobalSequence = lastSeenGlobalSequence;
