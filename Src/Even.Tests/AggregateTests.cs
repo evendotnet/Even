@@ -23,6 +23,11 @@ namespace Even.Tests
         class SampleEvent1 { }
         class SampleEvent2 { }
 
+        class PersistThis
+        {
+            public object[] Events { get; set; }
+        }
+
         class Sample : Aggregate
         {
             public Sample()
@@ -53,6 +58,12 @@ namespace Even.Tests
                     Persist(new SampleEvent2());
 
                     commandProbe.Tell(c);
+                });
+
+                OnCommand<PersistThis>(c =>
+                {
+                    foreach (var e in c.Events)
+                        Persist(e);
                 });
 
                 OnEvent<SampleEvent1>(e =>
@@ -89,11 +100,17 @@ namespace Even.Tests
             return reader;
         }
 
-        IActorRef CreateWorkingWriter()
+        IActorRef CreateWorkingWriter(IActorRef relay = null)
         {
             return Sys.ActorOf(conf =>
             {
-                conf.Receive<PersistenceRequest>((r, ctx) => ctx.Sender.Tell(new PersistenceSuccess(r.PersistenceID)));
+                conf.Receive<PersistenceRequest>((r, ctx) => {
+
+                    if (relay != null)
+                        relay.Forward(r);
+
+                    ctx.Sender.Tell(new PersistenceSuccess(r.PersistenceID));
+                });
             });
         }
 
@@ -263,6 +280,39 @@ namespace Even.Tests
 
             probe.ExpectMsg<SampleEvent1>();
             probe.ExpectMsg<SampleEvent2>();
+        }
+
+        [Fact]
+        public void Multiple_commands_persist_events_correctly()
+        {
+            var reader = CreateWorkingReader();
+            var probe = CreateTestProbe();
+            var writer = CreateWorkingWriter(probe);
+
+            var ag = Sys.ActorOf(Props.Create<Sample>());
+            ag.Tell(new InitializeAggregate(reader, writer, new GlobalOptions()));
+
+            var data1 = new object();
+            var data2 = new object();
+            var data3 = new object();
+
+            ag.Tell(new AggregateCommand(TestStream, new PersistThis { Events = new[] { data1 } }, CommandTimeout));
+            var r1 = probe.ExpectMsg<PersistenceRequest>();
+            Assert.Equal(1, r1.Events.Count);
+            Assert.Equal(data1, r1.Events[0].DomainEvent);
+
+            ag.Tell(new AggregateCommand(TestStream, new PersistThis { Events = new[] { data2, data1 } }, CommandTimeout));
+            var r2 = probe.ExpectMsg<PersistenceRequest>();
+            Assert.Equal(2, r2.Events.Count);
+            Assert.Equal(data2, r2.Events[0].DomainEvent);
+            Assert.Equal(data1, r2.Events[1].DomainEvent);
+
+            ag.Tell(new AggregateCommand(TestStream, new PersistThis { Events = new[] { data3, data2, data1 } }, CommandTimeout));
+            var r3 = probe.ExpectMsg<PersistenceRequest>();
+            Assert.Equal(3, r3.Events.Count);
+            Assert.Equal(data3, r3.Events[0].DomainEvent);
+            Assert.Equal(data2, r3.Events[1].DomainEvent);
+            Assert.Equal(data1, r3.Events[2].DomainEvent);
         }
     }
 }

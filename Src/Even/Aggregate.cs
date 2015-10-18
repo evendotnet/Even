@@ -161,12 +161,10 @@ namespace Even
 
                 // save the context (used for persistence)
                 _currentCommand = new CommandContext(Sender, ac);
-                var success = false;
 
                 try
                 {
                     await _commandHandlers.Handle(ac.Command);
-                    success = true;
                 }
                 // handle command rejections
                 catch (RejectException ex)
@@ -213,7 +211,7 @@ namespace Even
 
                 foreach (var e in _unpersistedEvents)
                     await ApplyEventInternal(e.DomainEvent);
-                
+
                 OnFinishProcessing();
                 Become(Ready);
 
@@ -328,6 +326,7 @@ namespace Even
         private void OnFinishProcessing()
         {
             _currentCommand = null;
+            _unpersistedEvents.Clear();
             Stash.Unstash();
         }
 
