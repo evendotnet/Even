@@ -112,7 +112,7 @@ namespace Even
     {
         long _lastSeenGlobalCheckpoint;
 
-        public static Props CreateProps(IEventStoreReader reader, IPersistedEventFactory factory)
+        public static Props CreateProps(IProjectionStoreReader reader, IPersistedEventFactory factory)
         {
             Argument.RequiresNotNull(reader, nameof(reader));
             Argument.RequiresNotNull(factory, nameof(factory));
@@ -142,6 +142,32 @@ namespace Even
         protected override void SendFinishedMessage(IActorRef sender, Guid requestId)
         {
             sender.Tell(new ReadIndexedProjectionStreamFinished(requestId, _lastSeenGlobalCheckpoint), ActorRefs.NoSender);
+        }
+    }
+
+    internal class ReadProjectionCheckpointWorker : ReceiveActor
+    {
+        public static Props CreateProps(IProjectionStoreReader reader)
+        {
+            Argument.RequiresNotNull(reader, nameof(reader));
+
+            return Props.Create<ReadProjectionCheckpointWorker>(reader);
+        }
+
+        public ReadProjectionCheckpointWorker(IProjectionStoreReader reader)
+        {
+            Receive<ReadProjectionCheckpointRequest>(async r =>
+            {
+                try
+                {
+                    var checkpoint = await reader.ReadProjectionCheckpointAsync(r.ProjectionStreamID);
+                    Sender.Tell(new ReadProjectionCheckpointResponse(r.RequestID, checkpoint));
+                }
+                finally
+                {
+                    Context.Stop(Self);
+                }
+            });
         }
     }
 

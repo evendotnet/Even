@@ -20,14 +20,16 @@ namespace Even.Tests
                 var a = testKit.CreateTestRelay();
                 var b = testKit.CreateTestRelay();
                 var c = testKit.CreateTestRelay();
+                var e = testKit.CreateTestRelay();
                 var d = testKit.CreateTestRelay();
 
                 ReadProbe = a.Probe;
                 ReadStreamProbe = b.Probe;
                 ReadIndexedProjectionProbe = c.Probe;
-                ReadHighestGlobalSequenceProbe = d.Probe;
+                ReadProjectionIndexCheckpointProbe = d.Probe;
+                ReadHighestGlobalSequenceProbe = e.Probe;
 
-                var readerProps = EventStoreReader.CreateProps(a.Props, b.Props, c.Props, d.Props, new GlobalOptions());
+                var readerProps = EventStoreReader.CreateProps(a.Props, b.Props, c.Props, d.Props, e.Props, new GlobalOptions());
                 Reader = testKit.Sys.ActorOf(readerProps);
             }
 
@@ -35,6 +37,7 @@ namespace Even.Tests
             public TestProbe ReadProbe { get; }
             public TestProbe ReadStreamProbe { get; }
             public TestProbe ReadIndexedProjectionProbe { get; }
+            public TestProbe ReadProjectionIndexCheckpointProbe { get; }
             public TestProbe ReadHighestGlobalSequenceProbe { get; }
         }
 
@@ -71,6 +74,17 @@ namespace Even.Tests
             o.Reader.Tell(req);
 
             o.ReadIndexedProjectionProbe.ExpectMsg<ReadIndexedProjectionStreamRequest>(m => m == req);
+        }
+
+        [Fact]
+        public void ReadProjectionIndexCheckpointRequests_are_forwarded_to_worker()
+        {
+            var o = new TestContainer(this);
+
+            var req = new ReadProjectionCheckpointRequest("a");
+            o.Reader.Tell(req);
+
+            o.ReadProjectionIndexCheckpointProbe.ExpectMsg<ReadProjectionCheckpointRequest>(m => m == req);
         }
 
         [Fact]

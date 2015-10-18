@@ -6,42 +6,41 @@ namespace Even
 {
     public class EventStoreReader : ReceiveActor
     {
-        IEventStoreReader _reader;
-
         Props _readProps;
         Props _readStreamProps;
         Props _readIndexedProjectionProps;
+        Props _readProjectionCheckpointProps;
         Props _readHighestGlobalSequenceProps;
 
-        public static Props CreateProps(IEventStoreReader storeReader, IPersistedEventFactory factory, GlobalOptions options)
+        public static Props CreateProps(IEventStore store, IPersistedEventFactory factory, GlobalOptions options)
         {
-            return Props.Create<EventStoreReader>(storeReader, factory, options);
+            return Props.Create<EventStoreReader>(store, factory, options);
         }
 
-        public EventStoreReader(IEventStoreReader storeReader, IPersistedEventFactory factory, GlobalOptions options)
+        public EventStoreReader(IEventStore store, IPersistedEventFactory factory, GlobalOptions options)
         {
-            _reader = storeReader;
-
-            _readProps = ReadWorker.CreateProps(storeReader, factory);
-            _readStreamProps = ReadStreamWorker.CreateProps(storeReader, factory);
-            _readIndexedProjectionProps = ReadIndexedProjectionStreamWorker.CreateProps(storeReader, factory);
-            _readHighestGlobalSequenceProps = ReadHighestGlobalSequenceWorker.CreateProps(storeReader);
+            _readProps = ReadWorker.CreateProps(store, factory);
+            _readStreamProps = ReadStreamWorker.CreateProps(store, factory);
+            _readIndexedProjectionProps = ReadIndexedProjectionStreamWorker.CreateProps(store, factory);
+            _readProjectionCheckpointProps = ReadProjectionCheckpointWorker.CreateProps(store);
+            _readHighestGlobalSequenceProps = ReadHighestGlobalSequenceWorker.CreateProps(store);
 
             Ready();
         }
 
         // test only
-        public static Props CreateProps(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, Props readHighestGlobalSequenceProps, GlobalOptions options)
+        public static Props CreateProps(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, Props readProjectionCheckpointProps, Props readHighestGlobalSequenceProps, GlobalOptions options)
         {
-            return Props.Create<EventStoreReader>(readProps, readStreamProps, readIndexedProjectionProps, readHighestGlobalSequenceProps,  options);
+            return Props.Create<EventStoreReader>(readProps, readStreamProps, readIndexedProjectionProps, readProjectionCheckpointProps, readHighestGlobalSequenceProps, options);
         }
 
         // test only
-        public EventStoreReader(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, Props readHighestGlobalSequenceProps, GlobalOptions options)
+        public EventStoreReader(Props readProps, Props readStreamProps, Props readIndexedProjectionProps, Props readProjectionCheckpointProps, Props readHighestGlobalSequenceProps, GlobalOptions options)
         {
             _readProps = readProps;
             _readStreamProps = readStreamProps;
             _readIndexedProjectionProps = readIndexedProjectionProps;
+            _readProjectionCheckpointProps = readProjectionCheckpointProps;
             _readHighestGlobalSequenceProps = readHighestGlobalSequenceProps;
 
             Ready();
@@ -64,6 +63,12 @@ namespace Even
             Receive<ReadIndexedProjectionStreamRequest>(r =>
             {
                 var worker = Context.ActorOf(_readIndexedProjectionProps);
+                worker.Forward(r);
+            });
+
+            Receive<ReadProjectionCheckpointRequest>(r =>
+            {
+                var worker = Context.ActorOf(_readProjectionCheckpointProps);
                 worker.Forward(r);
             });
 
