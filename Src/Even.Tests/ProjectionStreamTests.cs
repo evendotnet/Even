@@ -28,7 +28,7 @@ namespace Even.Tests
                 Writer = testKit.CreateTestProbe();
                 options = options ?? new GlobalOptions();
 
-                var props = Props.Create<ProjectionStream>(query, Reader, Writer, options);
+                var props = Even.ProjectionStream.CreateProps(query, Reader, Writer, options);
                 ProjectionStream = testKit.Sys.ActorOf(props);
             }
 
@@ -64,7 +64,7 @@ namespace Even.Tests
         public void Requests_checkpoint_on_start()
         {
             var reader = CreateTestProbe();
-            var props = Props.Create<ProjectionStream>(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
             Sys.ActorOf(props);
 
             reader.ExpectMsg<ReadProjectionIndexCheckpointRequest>();
@@ -79,7 +79,7 @@ namespace Even.Tests
                 conf.Receive<ReadRequest>((r, ctx) => TestActor.Forward(r));
             });
 
-            var props = Props.Create<ProjectionStream>(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
             Sys.ActorOf(props);
 
             ExpectMsg<ReadRequest>();
@@ -93,7 +93,7 @@ namespace Even.Tests
                 conf.Receive<ReadProjectionIndexCheckpointRequest>((r, ctx) => ctx.Sender.Tell(new Aborted(r.RequestID, new Exception())));
             });
 
-            var props = Props.Create<ProjectionStream>(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
 
             Sys.ActorOf(c =>
             {
@@ -117,7 +117,7 @@ namespace Even.Tests
                 conf.Receive<ReadRequest>((r, ctx) => ctx.Sender.Tell(new Aborted(r.RequestID, new Exception())));
             });
 
-            var props = Props.Create<ProjectionStream>(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, new GlobalOptions());
 
             Sys.ActorOf(c =>
             {
@@ -140,7 +140,7 @@ namespace Even.Tests
                 ReadRequestTimeout = TimeSpan.FromMilliseconds(300)
             };
 
-            var props = Props.Create<ProjectionStream>(new ProjectionStreamQuery(), ActorRefs.Nobody, ActorRefs.Nobody, options);
+            var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), ActorRefs.Nobody, ActorRefs.Nobody, options);
 
             Sys.ActorOf(c =>
             {
@@ -174,7 +174,7 @@ namespace Even.Tests
                 ReadRequestTimeout = TimeSpan.FromMilliseconds(300)
             };
 
-            var props = Props.Create<ProjectionStream>(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, options);
+            var props = ProjectionStream.CreateProps(new ProjectionStreamQuery(), reader, ActorRefs.Nobody, options);
 
             Sys.ActorOf(c =>
             {
@@ -195,7 +195,7 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var query = new ProjectionStreamQuery();
-            var props = Props.Create<ProjectionStream>(query, reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(query, reader, ActorRefs.Nobody, new GlobalOptions());
             var ps = Sys.ActorOf(props);
             var subscriber = CreateTestProbe();
 
@@ -208,7 +208,7 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader(0);
             var query = new ProjectionStreamQuery();
-            var props = Props.Create<ProjectionStream>(query, reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(query, reader, ActorRefs.Nobody, new GlobalOptions());
             var ps = Sys.ActorOf(props);
             var subscriber = CreateTestProbe();
 
@@ -222,7 +222,7 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var query = new ProjectionStreamQuery(new DomainEventPredicate(typeof(TestEvent)));
-            var props = Props.Create<ProjectionStream>(query, reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(query, reader, ActorRefs.Nobody, new GlobalOptions());
             var ps = Sys.ActorOf(props);
 
             var subscriber = Sys.ActorOf(conf =>
@@ -247,7 +247,7 @@ namespace Even.Tests
         {
             var reader = CreateWorkingReader();
             var query = new ProjectionStreamQuery(new DomainEventPredicate(typeof(TestEvent)));
-            var props = Props.Create<ProjectionStream>(query, reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(query, reader, ActorRefs.Nobody, new GlobalOptions());
             var ps = Sys.ActorOf(props);
 
             var subscriber = Sys.ActorOf(conf =>
@@ -274,7 +274,7 @@ namespace Even.Tests
 
             var reader = CreateWorkingReader(1);
             var query = new ProjectionStreamQuery(new DomainEventPredicate(typeof(TestEvent)));
-            var props = Props.Create<ProjectionStream>(query, reader, ActorRefs.Nobody, new GlobalOptions(), workerProps);
+            var props = ProjectionStream.CreateProps(query, reader, ActorRefs.Nobody, new GlobalOptions(), workerProps);
             var ps = Sys.ActorOf(props);
 
             var subscriber = CreateTestProbe();
@@ -289,7 +289,7 @@ namespace Even.Tests
         {
             var query = new ProjectionStreamQuery();
             var reader = CreateWorkingReader();
-            var props = Props.Create<ProjectionStream>(query, reader, ActorRefs.Nobody, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(query, reader, ActorRefs.Nobody, new GlobalOptions());
             var ps = Sys.ActorOf(props);
 
             var subscriber = Sys.ActorOf(conf =>
@@ -310,7 +310,7 @@ namespace Even.Tests
         {
             var query = new ProjectionStreamQuery(new DomainEventPredicate(typeof(TestEvent)));
             var writer = CreateTestProbe();
-            var props = Props.Create<ProjectionStream>(query, CreateWorkingReader(), writer, new GlobalOptions());
+            var props = ProjectionStream.CreateProps(query, CreateWorkingReader(), writer, new GlobalOptions());
             var ps = Sys.ActorOf(props);
 
             ps.Tell(MockPersistedEvent.Create(new object(), 1));

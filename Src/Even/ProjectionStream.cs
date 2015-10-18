@@ -34,20 +34,20 @@ namespace Even
         long _globalSequence;
         int _currentSequence;
 
-
         public IStash Stash { get; set; }
 
-        public ProjectionStream(ProjectionStreamQuery query, IActorRef reader, IActorRef writer, GlobalOptions options)
-            : this(query, reader, writer, options, null)
-        { }
-
-        public ProjectionStream(ProjectionStreamQuery query, IActorRef reader, IActorRef writer, GlobalOptions options, Props replayWorkerProps)
+        public static Props CreateProps(ProjectionStreamQuery query, IActorRef reader, IActorRef writer, GlobalOptions options, Props replayWorkerProps = null)
         {
             Argument.RequiresNotNull(query, nameof(query));
             Argument.RequiresNotNull(reader, nameof(reader));
             Argument.RequiresNotNull(writer, nameof(writer));
             Argument.RequiresNotNull(options, nameof(options));
 
+            return Props.Create<ProjectionStream>(query, reader, writer, options, replayWorkerProps);
+        }
+
+        public ProjectionStream(ProjectionStreamQuery query, IActorRef reader, IActorRef writer, GlobalOptions options, Props replayWorkerProps)
+        {
             _query = query;
             _reader = reader;
             _writer = writer;
