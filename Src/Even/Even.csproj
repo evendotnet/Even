@@ -93,8 +93,9 @@
     <Compile Include="AggregateSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
     <Compile Include="Persistence\BaseSqlStore.cs" />
-    <Compile Include="ProjectionQuery.cs" />
+    <Compile Include="Query.cs" />
     <Compile Include="ProjectionSupervisor.cs" />
+    <Compile Include="QueryExtensions.cs" />
     <Compile Include="ReadWorkers.cs" />
     <Compile Include="RejectReason.cs" />
     <Compile Include="StreamEventReader.cs" />

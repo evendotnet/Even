@@ -48,18 +48,9 @@ namespace Even.Tests
             Sys.EventStream.Subscribe(TestActor, typeof(IQuery));
 
             var query = new object();
-            TestGateway.Query(query);
+            TestGateway.Query<object>(query);
 
             ExpectMsg<IQuery>(m => m.Message == query);
-        }
-
-        [Fact]
-        public void Query_throws_TimeoutException_on_timeout()
-        {
-            Assert.ThrowsAsync<TimeoutException>(async () =>
-            {
-                await TestGateway.Query(new object(), TimeSpan.FromMilliseconds(10));
-            });
         }
     }
 }

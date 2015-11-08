@@ -75,4 +75,11 @@ namespace Even
 
         public object Response { get; }
     }
+
+    public class QueryException : Exception
+    {
+        public QueryException(string message, Exception innerException)
+            : base(message, innerException)
+        { }
+    }
 }

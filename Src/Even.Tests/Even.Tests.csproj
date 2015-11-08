@@ -103,6 +103,7 @@
     <Compile Include="ProjectionReplayWorkerTests.cs" />
     <Compile Include="ProjectionStreamTests.cs" />
     <Compile Include="ProjectionTests.cs" />
+    <Compile Include="QueryTests.cs" />
     <Compile Include="ReadIndexedProjectionStreamWorkerTests.cs" />
     <Compile Include="ReadStreamWorkerTests.cs" />
     <Compile Include="ReadWorkerTests.cs" />

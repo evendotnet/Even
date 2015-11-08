@@ -44,7 +44,7 @@ namespace Even.Tests
                     _isDone = true;
                 });
 
-                OnQuery<IsSomeghingDone>(_ =>
+                OnQuery<IsSomeghingDone>(q =>
                 {
                     Sender.Tell(_isDone);
                 });
@@ -70,17 +70,17 @@ namespace Even.Tests
                 .AddProjection<TestProjection>()
                 .Start();
 
-            var isDone = await gateway.Query(new IsSomeghingDone(), TimeSpan.FromSeconds(10)) as bool?;
+            var isDone = await Sys.Query<bool>(new IsSomeghingDone(), TimeSpan.FromSeconds(1));
 
-            Assert.False(isDone.Value, "should not be done");
+            Assert.False(isDone, "should not be done");
 
             await gateway.SendAggregateCommand<TestAggregate>(new Guid(), new DoSomething());
 
             await Task.Delay(1000);
 
-            isDone = await gateway.Query(new IsSomeghingDone()) as bool?;
+            isDone = await Sys.Query<bool>(new IsSomeghingDone(), TimeSpan.FromSeconds(1));
 
-            Assert.True(isDone.Value, "should be done by now");
+            Assert.True(isDone, "should be done by now");
         }
     }
 }

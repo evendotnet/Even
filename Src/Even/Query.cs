@@ -1,9 +1,11 @@
-﻿using System;
+﻿using Akka.Actor;
+using System;
 
 namespace Even
 {
     public interface IQuery
     {
+        IActorRef Sender { get; }
         object Message { get; }
         Timeout Timeout { get; }
     }
@@ -15,27 +17,28 @@ namespace Even
 
     public class Query<T> : IQuery<T>
     {
-        public Query(T query, Timeout timeout)
+        public Query(IActorRef sender, T query, Timeout timeout)
         {
+            this.Sender = sender;
             this.Message = query;
             this.Timeout = timeout;
         }
 
+        public IActorRef Sender { get; private set;  }
         public T Message { get; private set; }
         public Timeout Timeout { get; private set; }
         object IQuery.Message => Message;
     }
 
-    public static class QueryFactory
+    public static class Query
     {
-        public static IQuery Create(object query, Timeout timeout)
+        public static IQuery Create(IActorRef sender, object query, TimeSpan timeout)
         {
             Argument.RequiresNotNull(query, nameof(query));
-            Argument.RequiresNotNull(timeout, nameof(timeout));
 
             var type = typeof(Query<>).MakeGenericType(query.GetType());
 
-            return (IQuery) Activator.CreateInstance(type, query, timeout);
+            return (IQuery) Activator.CreateInstance(type, sender, query, Timeout.In(timeout));
         }
     }
 }
