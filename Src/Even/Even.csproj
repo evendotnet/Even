@@ -65,6 +65,7 @@
     <Compile Include="EventReader.cs" />
     <Compile Include="EventRegistry.cs" />
     <Compile Include="ExpectedSequence.cs" />
+    <Compile Include="ICommandValidator.cs" />
     <Compile Include="IndexedProjectionStreamReader.cs" />
     <Compile Include="IndexSequenceEntry.cs" />
     <Compile Include="EventDispatcher.cs" />

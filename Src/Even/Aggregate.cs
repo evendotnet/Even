@@ -17,6 +17,7 @@ namespace Even
         IActorRef _reader;
         IActorRef _writer;
         GlobalOptions _options;
+        ICommandValidator _validator;
 
         ObjectHandler _commandHandlers = new ObjectHandler();
         ObjectHandler _eventHandlers = new ObjectHandler();
@@ -49,6 +50,7 @@ namespace Even
                 _reader = ini.Reader;
                 _writer = ini.Writer;
                 _options = ini.Options;
+                _validator = _options.DefaultCommandValidator;
 
                 Become(AwaitingFirstCommand);
                 Stash.UnstashAll();
@@ -143,6 +145,8 @@ namespace Even
 
         private void Ready()
         {
+            SetReceiveTimeout(_options.AggregateIdleTimeout);
+
             Receive<AggregateCommand>(async ac =>
             {
                 // ensure the stream is the same
@@ -152,7 +156,7 @@ namespace Even
                     return;
                 }
 
-                // ensure the timeout hasn't expire
+                // ensure the timeout hasn't expired
                 if (ac.Timeout.IsExpired)
                 {
                     Sender.Tell(new CommandTimeout(ac.CommandID));
@@ -164,6 +168,7 @@ namespace Even
 
                 try
                 {
+                    await Validate(ac.Command);
                     await _commandHandlers.Handle(ac.Command);
                 }
                 // handle command rejections
@@ -196,6 +201,11 @@ namespace Even
                     _currentCommand.Sender.Tell(new CommandSucceeded(ac.CommandID));
                     OnFinishProcessing();
                 }
+            });
+
+            Receive<ReceiveTimeout>(_ =>
+            {
+                StopSelf();
             });
 
             OnReady();
@@ -353,6 +363,16 @@ namespace Even
         protected virtual Task OnReceiveEvent(object e)
         {
             return Task.CompletedTask;
+        }
+
+        protected virtual async Task Validate(object command)
+        {
+            if (_validator != null) {
+                var reasons = await _validator.ValidateAsync(command);
+
+                if (reasons != null)
+                    throw new RejectException(reasons);
+            }
         }
 
         protected override void PreRestart(Exception reason, object message)
