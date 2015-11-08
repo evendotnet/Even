@@ -83,7 +83,6 @@
     <Compile Include="ProjectionIndexWriter.cs" />
     <Compile Include="MessageHandler.cs" />
     <Compile Include="CommandProcessor.cs" />
-    <Compile Include="CommandProcessorBase.cs" />
     <Compile Include="ESCategoryAttribute.cs" />
     <Compile Include="EvenException.cs" />
     <Compile Include="ExtensionMethods.cs" />
@@ -114,7 +113,6 @@
     <Compile Include="EventStoreWriter.cs" />
     <Compile Include="EvenGateway.cs" />
     <Compile Include="Messages\CommandMessages.cs" />
-    <Compile Include="Messages\ReplayMessages.cs" />
     <Compile Include="Messages\Initialization.cs" />
     <Compile Include="IProjectionStreamPredicate.cs" />
     <Compile Include="ProjectionState.cs" />
