@@ -30,19 +30,9 @@ namespace Even
         {
             Receive<StartEventProcessor>(m =>
             {
-                
+                var props = PropsFactory.Create(m.EventProcessorType);
+                Context.ActorOf(props);
             });
-        }
-
-        class EventProcessorEntry
-        {
-            public EventProcessorEntry(string name, IActorRef actor)
-            {
-
-            }
-
-            public IActorRef ActorRef;
-            public string Name;
         }
     }
 }
