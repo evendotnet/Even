@@ -119,7 +119,7 @@ namespace Even.Tests
             var proj = CreateAndInitializeTestProjection();
 
             var q = new TestQuery();
-            Sys.EventStream.Publish(new Query<TestQuery>(q, Timeout.In(1000)));
+            Sys.EventStream.Publish(new Query<TestQuery>(CreateTestProbe(), q, Timeout.In(1000)));
 
             ExpectMsg<TestQuery>(o => o == q);
         }
@@ -130,7 +130,7 @@ namespace Even.Tests
             var proj = CreateAndInitializeTestProjection();
 
             // create an event to expire in 10 ms
-            var q = new Query<TestQuery>(new TestQuery(), Timeout.In(10));
+            var q = new Query<TestQuery>(CreateTestProbe(), new TestQuery(), Timeout.In(10));
 
             // forces the projection to sleep for 100 ms
             proj.Tell(100);

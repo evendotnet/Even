@@ -23,10 +23,14 @@ namespace Even
         GlobalOptions _options;
         Guid _lastRequestId;
 
+        IActorRef _querySender;
+
         public Projection()
         {
             Become(Uninitialized);
         }
+
+        protected new IActorRef Sender => _querySender ?? base.Sender;
 
         #region Actor States
 
@@ -137,10 +141,14 @@ namespace Even
 
             Receive<IQuery>(async q =>
             {
+                _querySender = q.Sender;
+
                 var handled = await _queryHandlers.Handle(q);
 
                 if (!handled)
                     Unhandled(q);
+
+                _querySender = null;
             });
 
             Receive<RebuildProjection>(async _ =>

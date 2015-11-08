@@ -97,60 +97,10 @@ namespace Even
             throw new UnexpectedCommandResponseException(response);
         }
 
-        public Task<object> Query(object query, TimeSpan? timeout = null)
+        public Task<TResponse> Query<TResponse>(object query, TimeSpan? timeout = null)
         {
             var to = timeout ?? _options.DefaultQueryTimeout;
-            var q = QueryFactory.Create(query, Timeout.In(to));
-            var msg = QueryAsker.CreateMessage(q, to);
-
-            var asker = _system.ActorOf(QueryAsker.Props);
-            return asker.Ask(msg, to);
-        }
-
-        /// <summary>
-        /// Sends a query through the event stream and responds with the first message it receives back.
-        /// </summary>
-        class QueryAsker : ReceiveActor
-        {
-            public static readonly Props Props = Props.Create<QueryAsker>();
-
-            IActorRef _sender;
-
-            public QueryAsker()
-            {
-                Receive<Request>(request =>
-                {
-                    _sender = Sender;
-                    Context.System.EventStream.Publish(request.Message);
-
-                    Become(() =>
-                    {
-                        SetReceiveTimeout(request.Timeout);
-
-                        Receive<ReceiveTimeout>(_ =>
-                        {
-                            Context.Stop(Self);
-                        });
-
-                        ReceiveAny(response =>
-                        {
-                            _sender.Forward(response);
-                            Context.Stop(Self);
-                        });
-                    });
-                });
-            }
-
-            class Request
-            {
-                public IQuery Message { get; set; }
-                public TimeSpan Timeout { get; set; }
-            }
-
-            public static object CreateMessage(IQuery message, TimeSpan timeout)
-            {
-                return new Request { Message = message, Timeout = timeout };
-            }
+            return _system.Query<TResponse>(query, timeout ?? _options.DefaultQueryTimeout);
         }
     }
 }

@@ -52,36 +52,38 @@ namespace Even
             return this;
         }
 
-        public EvenSetup AddProjections(Func<IEnumerable<StartProjection>> func)
+        public EvenSetup AddProjections(Func<IEnumerable<Type>> func)
         {
             Argument.RequiresNotNull(func, nameof(func));
 
-            _projections.AddRange(func());
+            foreach (var t in func())
+                _projections.Add(new StartProjection(t));
 
             return this;
         }
 
-        public EvenSetup AddProjection<T>(string name = null)
+        public EvenSetup AddProjection<T>()
             where T : Projection
         {
-            _projections.Add(new StartProjection(typeof(T), name));
+            _projections.Add(new StartProjection(typeof(T)));
 
             return this;
         }
 
-        public EvenSetup AddEventProcessors(Func<IEnumerable<StartEventProcessor>> func)
+        public EvenSetup AddEventProcessors(Func<IEnumerable<Type>> func)
         {
             Argument.RequiresNotNull(func, nameof(func));
 
-            _eventProcessors.AddRange(func());
+            foreach(var t in func())
+                _eventProcessors.Add(new StartEventProcessor(t));
 
             return this;
         }
 
-        public EvenSetup AddEventProcessor<T>(string name = null)
+        public EvenSetup AddEventProcessor<T>()
             where T : EventProcessor
         {
-            _eventProcessors.Add(new StartEventProcessor(typeof(T), name));
+            _eventProcessors.Add(new StartEventProcessor(typeof(T)));
 
             return this;
         }
