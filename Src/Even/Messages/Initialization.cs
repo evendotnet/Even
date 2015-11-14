@@ -29,8 +29,17 @@ namespace Even.Messages
 
     public class InitializeCommandProcessor
     {
-        public IActorRef CommandProcessorSupervisor { get; set; }
+        public InitializeCommandProcessor(IActorRef writer, GlobalOptions options)
+        {
+            Argument.RequiresNotNull(writer, nameof(writer));
+            Argument.RequiresNotNull(options, nameof(options));
+
+            this.Writer = writer;
+            this.Options = options;
+        }
+
         public IActorRef Writer { get; set; }
+        public GlobalOptions Options { get; }
     }
 
     public class InitializeAggregate

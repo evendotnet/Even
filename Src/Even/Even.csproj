@@ -71,6 +71,7 @@
     <Compile Include="EventDispatcher.cs" />
     <Compile Include="IPersistedEvent.cs" />
     <Compile Include="IPersistedStreamEvent.cs" />
+    <Compile Include="Messages\CommandProcessorMessages.cs" />
     <Compile Include="Messages\EventProcessorMessages.cs" />
     <Compile Include="Messages\EventReadMessages.cs" />
     <Compile Include="Messages\GenericMessages.cs" />

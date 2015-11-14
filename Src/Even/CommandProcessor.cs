@@ -1,131 +1,184 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
-//using Even.Messages;
-//using System.Diagnostics.Contracts;
-//using Akka.Actor;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Even.Messages;
+using System.Diagnostics.Contracts;
+using Akka.Actor;
 
-//namespace Even
-//{
-//    public class CommandProcessor : CommandProcessorBase
-//    {
-//        LinkedList<UnpersistedEvent> _unpersistedEvents = new LinkedList<UnpersistedEvent>();
-//        IActorRef _writer;
+namespace Even
+{
+    public class CommandProcessor : ReceiveActor, IWithUnboundedStash
+    {
+        public IStash Stash { get; set; }
 
-//        private IActorRef _supervisor;
-//        protected override IActorRef ProcessorSupervisor => _supervisor;
+        LinkedList<UnpersistedEvent> _unpersistedEvents = new LinkedList<UnpersistedEvent>();
+        IActorRef _writer;
+        GlobalOptions _options;
+        ObjectHandler _commandHandlers = new ObjectHandler();
 
-//        // Command processors are cheap to start, so the timeout can be small
-//        protected override TimeSpan? IdleTimeout => TimeSpan.FromSeconds(5);
+        //private IActorRef _supervisor;
+        //protected override IActorRef ProcessorSupervisor => _supervisor;
 
-//        public CommandProcessor()
-//        {
-//            Receive<InitializeCommandProcessor>(ini =>
-//            {
-//                _writer = ini.Writer;
-//                _supervisor = ini.CommandProcessorSupervisor;
+        //// Command processors are cheap to start, so the timeout can be small
+        //protected override TimeSpan? IdleTimeout => TimeSpan.FromSeconds(5);
 
-//                Become(Ready);
-//            });
-//        }
+        public CommandProcessor()
+        {
+            Uninitialized();
+        }
 
-//        void Ready()
-//        {
-//            SetupBase();
-//        }
+        private void Uninitialized()
+        {
+            Receive<InitializeCommandProcessor>(ini =>
+            {
+                _writer = ini.Writer;
+                _options = ini.Options;
 
-//        internal override bool HandlePersistenceRequest()
-//        {
-//            if (_unpersistedEvents.Count == 0)
-//                return false;
+                Become(Ready);
+            });
+        }
 
-//            // because the command processor doesn't care about stream sequences,
-//            // it delegates the persistence job to a worker and go on to process other commands
-//            var requests = _unpersistedEvents.Select(u => new PersistenceRequest(u.StreamID, 0, new[] { u })).ToList();
+        void Ready()
+        {
+            SetReceiveTimeout(_options.CommandProcessorIdleTimeout);
 
-//            var workerContext = new WorkerContext
-//            {
-//                Command = CurrentCommand,
-//                Writer = _writer,
-//                Requests = requests
-//            };
+            Receive<ProcessorCommand>(async c =>
+            {
+                // ensure the timeout hasn't expired
+                if (c.Timeout.IsExpired)
+                {
+                    Sender.Tell(new CommandTimeout(c.CommandID));
+                    return;
+                }
 
-//            var props = PropsFactory.Create<PersistenceWorker>(workerContext);
-//            var worker = Context.ActorOf(props);
+                try
+                {
+                    await Validate(c.Command);
+                    await _commandHandlers.Handle(c.Command);
+                }
+                // handle command rejections
+                catch (RejectException ex)
+                {
+                    Sender.Tell(new CommandRejected(c.CommandID, ex.Reasons));
+                    return;
+                }
+                // handle unexpected exceptions
+                catch (Exception ex)
+                {
+                    Sender.Tell(new CommandFailed(c.CommandID, ex));
+                    return;
+                }
 
-//            // send the persistence request immediately on behalf of the worker
-//            foreach (var request in requests)
-//                _writer.Tell(requests, worker);
+                if (_unpersistedEvents.Count > 0)
+                {
+                    var request = new PersistenceRequest(_unpersistedEvents.ToList());
 
-//            // clear the events and return
-//            _unpersistedEvents.Clear();
+                    // command processors don't need to wait for persistence, so
+                    // we delegate it to a worker and move on to wait for new commands
+                    // the worker will wait for responses and notify the sender
+                    var props = PersistenceWorker.CreateProps(request.PersistenceID, c.CommandID, Sender, _options.CommandProcessorPersistenceTimeout);
+                    var worker = Context.ActorOf(props);
 
-//            return true;
-//        }
+                    // send the request on behalf of the worker and let it wait for responses
+                    _writer.Tell(request, worker);
 
-//        /// <summary>
-//        /// Requests persistence of an event to the store.
-//        /// </summary>
-//        protected void Persist(string streamId, object domainEvent)
-//        {
-//            _unpersistedEvents.AddLast(new UnpersistedEvent(streamId, domainEvent));
-//        }
+                    // clear the unpersisted events
+                    _unpersistedEvents.Clear();
+                }
+            });
 
-//        /// <summary>
-//        /// Handles the persistence results and tell the command sender.
-//        /// </summary>
-//        class PersistenceWorker : ReceiveActor
-//        {
-//            LinkedList<PersistenceRequest> _requests;
+            Receive<ReceiveTimeout>(_ => StopSelf());
+        }
 
-//            public PersistenceWorker(WorkerContext ctx)
-//            {
-//                _requests = new LinkedList<PersistenceRequest>(ctx.Requests);
-//                var cmd = ctx.Command;
+        private void Stopping()
+        {
+            SetReceiveTimeout(_options.CommandProcessorStopTimeout);
 
-//                Receive<PersistenceSuccess>(msg =>
-//                {
-//                    var node = _requests.Nodes().FirstOrDefault(n => n.Value.PersistenceID == msg.PersistenceID);
+            Receive<StopNoticeAcknowledged>(_ =>
+            {
+                Context.Stop(Self);
+            });
 
-//                    if (node != null)
-//                        _requests.Remove(node);
+            Receive<ReceiveTimeout>(_ =>
+            {
+                Context.Stop(Self);
+            });
 
-//                    if (_requests.Count == 0)
-//                    {
-//                        cmd.Sender.Tell(new CommandSucceeded
-//                        {
-//                            CommandID = cmd.Command.CommandID
-//                        });
+            // forward any message to the supervisor so it can forward to the new aggregate
+            ReceiveAny(o => Context.Parent.Forward(o));
+        }
 
-//                        Context.Stop(Self);
-//                    }
-//                });
+        protected void StopSelf()
+        {
+            Context.Parent.Tell(WillStop.Instance);
+            Become(Stopping);
+        }
 
-//                Receive<PersistenceFailure>(msg =>
-//                {
-//                    cmd.Sender.Tell(new CommandFailed
-//                    {
-//                        CommandID = cmd.Command.CommandID,
-//                        Exception = msg.Exception
-//                    });
+        protected virtual async Task Validate(object command)
+        {
+            var validator = _options.DefaultCommandValidator;
 
-//                    Context.Stop(Self);
-//                });
+            if (validator != null)
+            {
+                var reasons = await validator.ValidateAsync(command);
 
-//                //TODO: add some timeout from settings to stop the worker
-//            }
-//        }
+                if (reasons != null)
+                    throw new RejectException(reasons);
+            }
+        }
 
-//        /// <summary>
-//        /// Context information to initialize the worker.
-//        /// </summary>
-//        class WorkerContext
-//        {
-//            public CommandContext Command { get; set; }
-//            public IActorRef Writer { get; set; }
-//            public IReadOnlyCollection<PersistenceRequest> Requests { get; set; }
-//        }
-//    }
-//}
+        class RejectException : Exception
+        {
+            public RejectException(RejectReasons reasons)
+            {
+                this.Reasons = reasons;
+            }
+
+            public RejectReasons Reasons { get; }
+        }
+
+        /// <summary>
+        /// Requests persistence of an event to the store.
+        /// </summary>
+        protected void Persist(string streamId, object domainEvent)
+        {
+            _unpersistedEvents.AddLast(new UnpersistedEvent(streamId, domainEvent));
+        }
+
+        /// <summary>
+        /// Handles the persistence results and tell the command sender.
+        /// </summary>
+        class PersistenceWorker : ReceiveActor
+        {
+            public static Props CreateProps(Guid persistenceId, Guid commandId, IActorRef sender, TimeSpan timeout)
+            {
+                return Props.Create<PersistenceWorker>(persistenceId, commandId, sender, timeout);
+            }
+
+            public PersistenceWorker(Guid persistenceId, Guid commandId, IActorRef sender, TimeSpan timeout)
+            {
+                SetReceiveTimeout(timeout);
+
+                Receive<PersistenceSuccess>(msg =>
+                {
+                    sender.Tell(new CommandSucceeded(commandId));
+                    Context.Stop(Self);
+                });
+
+                Receive<PersistenceFailure>(msg =>
+                {
+                    sender.Tell(new CommandFailed(commandId, msg.Exception));
+                    Context.Stop(Self);
+                });
+
+                Receive<ReceiveTimeout>(_ =>
+                {
+                    sender.Tell(new CommandFailed(commandId, "Timeout waiting for persistence."));
+                    Context.Stop(Self);
+                });
+            }
+        }
+    }
+}

@@ -50,8 +50,9 @@ namespace Even
         public TimeSpan IndexWriterFlushDelay { get; set; } = TimeSpan.FromSeconds(2);
         public TimeSpan CheckpointWriterFlushDelay { get; set; } = TimeSpan.FromSeconds(2);
         public TimeSpan DefaultQueryTimeout { get; set; } = TimeSpan.FromSeconds(5);
-
-
+        public TimeSpan CommandProcessorPersistenceTimeout { get; set; } = TimeSpan.FromSeconds(30);
+        public TimeSpan CommandProcessorIdleTimeout { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan CommandProcessorStopTimeout { get; set; } = TimeSpan.FromSeconds(10);
         public ICommandValidator DefaultCommandValidator { get; set; }
     }
 }
