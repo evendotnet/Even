@@ -12,14 +12,14 @@ namespace Even.Messages
     /// </summary>
     public class PersistenceRequest
     {
-        public PersistenceRequest(IReadOnlyCollection<UnpersistedEvent> events)
+        public PersistenceRequest(IReadOnlyList<UnpersistedEvent> events)
         {
             Argument.Requires(events != null && events.Any(), nameof(events), "The argument must contain at least one event.");
 
-            this.Events = events.ToList();
+            this.Events = events;
         }
 
-        public PersistenceRequest(string streamId, int expectedStreamSequence, IReadOnlyCollection<UnpersistedEvent> events)
+        public PersistenceRequest(string streamId, int expectedStreamSequence, IReadOnlyList<UnpersistedEvent> events)
             : this(events)
         {
             Argument.Requires(!String.IsNullOrEmpty(streamId), nameof(streamId));
@@ -28,6 +28,7 @@ namespace Even.Messages
 
             this.StreamID = streamId;
             this.ExpectedStreamSequence = expectedStreamSequence;
+            this.Events = events;
         }
 
         public Guid PersistenceID { get; } = Guid.NewGuid();
