@@ -36,7 +36,7 @@ namespace Even
             Receive<AggregateCommandEnvelope>(envelope =>
             {
                 var command = envelope.Command;
-                var key = command.StreamID + "|" + envelope.AggregateType.FullName;
+                var key = command.Stream.Name + "|" + envelope.AggregateType.FullName;
                 IActorRef aRef;
 
                 // if the aggregate doesn't exist, create it

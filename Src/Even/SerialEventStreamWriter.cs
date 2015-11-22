@@ -64,7 +64,7 @@ namespace Even
             var rawEvents = UnpersistedRawEvent.FromUnpersistedEvents(events, _serializer);
 
             // writes all events to the store
-            await _writer.WriteStreamAsync(request.StreamID, request.ExpectedStreamSequence, rawEvents);
+            await _writer.WriteStreamAsync(request.Stream, request.ExpectedStreamSequence, rawEvents);
 
             // publishes the events in the order they were sent
             for (int i = 0, len = events.Count; i < len; i++) {

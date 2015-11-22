@@ -48,19 +48,19 @@ namespace Even.Messages
 
     public class ReadStreamRequest : IRequest
     {
-        public ReadStreamRequest(string streamId, int initialSequence, int count)
+        public ReadStreamRequest(Stream stream, int initialSequence, int count)
         {
-            Argument.Requires(streamId != null);
+            Argument.Requires(stream != null);
             Argument.Requires(initialSequence >= 1, nameof(initialSequence));
             Argument.Requires(count >= 0 || count == EventCount.Unlimited, nameof(count));
 
-            this.StreamID = streamId;
+            this.Stream = stream;
             this.InitialSequence = initialSequence;
             this.Count = count;
         }
 
         public Guid RequestID { get; } = Guid.NewGuid();
-        public string StreamID { get; }
+        public Stream Stream { get; }
         public int InitialSequence { get; }
         public int Count { get; }
     }
@@ -93,19 +93,19 @@ namespace Even.Messages
 
     public class ReadIndexedProjectionStreamRequest : IRequest
     {
-        public ReadIndexedProjectionStreamRequest(string projectionStreamId, int initialSequence, int count)
+        public ReadIndexedProjectionStreamRequest(Stream projectionStream, int initialSequence, int count)
         {
-            Argument.Requires(projectionStreamId != null);
+            Argument.Requires(projectionStream != null);
             Argument.Requires(initialSequence >= 1, nameof(initialSequence));
             Argument.Requires(count >= 0 || count == EventCount.Unlimited, nameof(count));
 
-            this.ProjectionStreamID = projectionStreamId;
+            this.ProjectionStream = projectionStream;
             this.InitialSequence = initialSequence;
             this.Count = count;
         }
 
         public Guid RequestID { get; } = Guid.NewGuid();
-        public string ProjectionStreamID { get; }
+        public Stream ProjectionStream { get; }
         public int InitialSequence { get; }
         public int Count { get; }
     }
@@ -140,14 +140,14 @@ namespace Even.Messages
 
     public class ReadProjectionCheckpointRequest : IRequest
     {
-        public ReadProjectionCheckpointRequest(string projectionStreamId)
+        public ReadProjectionCheckpointRequest(Stream projectionStream)
         {
-            Argument.RequiresNotNull(projectionStreamId, nameof(projectionStreamId));
-            this.ProjectionStreamID = projectionStreamId;
+            Argument.RequiresNotNull(projectionStream, nameof(projectionStream));
+            this.ProjectionStream = projectionStream;
         }
 
         public Guid RequestID { get; } = Guid.NewGuid();
-        public string ProjectionStreamID { get; }
+        public Stream ProjectionStream { get; }
     }
 
     public class ReadProjectionCheckpointResponse

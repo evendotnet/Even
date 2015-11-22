@@ -23,7 +23,7 @@ namespace Even.Tests.Mocks
             var e = Substitute.For<IPersistedStreamEvent>();
 
             e.GlobalSequence.Returns(rawEvent.GlobalSequence);
-            e.StreamID.Returns(rawEvent.StreamID);
+            e.Stream.Returns(rawEvent.Stream);
             e.StreamSequence.Returns(streamSequence);
 
             return e;

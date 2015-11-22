@@ -16,12 +16,12 @@ namespace Even.Sample.Projections
         {
             OnEvent<ProductCreated>(e =>
             {
-                _list.Add(new ProductInfo { ID = e.StreamID, Name = e.DomainEvent.Name });
+                _list.Add(new ProductInfo { ID = e.Stream.Name, Name = e.DomainEvent.Name });
             });
 
             OnEvent<ProductDeleted>(e =>
             {
-                _list.RemoveAll(i => i.ID == e.StreamID);
+                _list.RemoveAll(i => i.ID == e.Stream.Name);
             });
         }
 

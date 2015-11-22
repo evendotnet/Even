@@ -21,29 +21,29 @@ namespace Even
     public interface IEventStoreWriter
     {
         Task WriteAsync(IReadOnlyCollection<IUnpersistedRawStreamEvent> events);
-        Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events);
+        Task WriteStreamAsync(Stream stream, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events);
     }
 
     public interface IEventStoreReader
     {
         Task<long> ReadHighestGlobalSequenceAsync();
         Task ReadAsync(long initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
-        Task ReadStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadStreamAsync(Stream stream, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
     
     public interface IProjectionStoreWriter
     {
-        Task ClearProjectionIndexAsync(string streamId);
-        Task WriteProjectionIndexAsync(string streamId, int expectedSequence, IReadOnlyCollection<long> globalSequences);
-        Task WriteProjectionCheckpointAsync(string streamId, long globalSequence);
+        Task ClearProjectionIndexAsync(Stream stream);
+        Task WriteProjectionIndexAsync(Stream stream, int expectedSequence, IReadOnlyCollection<long> globalSequences);
+        Task WriteProjectionCheckpointAsync(Stream stream, long globalSequence);
     }
 
     public interface IProjectionStoreReader
     {
-        Task<long> ReadProjectionCheckpointAsync(string streamId);
-        Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(string streamId);
-        Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(string streamId);
+        Task<long> ReadProjectionCheckpointAsync(Stream stream);
+        Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(Stream stream);
+        Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(Stream stream);
 
-        Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
+        Task ReadIndexedProjectionStreamAsync(Stream stream, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct);
     }
 }

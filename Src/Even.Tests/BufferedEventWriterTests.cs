@@ -23,12 +23,12 @@ namespace Even.Tests
             return CreatePersistenceRequest(Guid.NewGuid().ToString(), ExpectedSequence.Any, eventCount);
         }
 
-        protected PersistenceRequest CreatePersistenceRequest(string streamId, int expectedSequence, int eventCount)
+        protected PersistenceRequest CreatePersistenceRequest(string streamName, int expectedSequence, int eventCount)
         {
             var list = new List<UnpersistedEvent>();
 
             for (var i = 0; i < eventCount; i++)
-                list.Add(new UnpersistedEvent(streamId, new SampleEvent1()));
+                list.Add(new UnpersistedEvent(streamName, new SampleEvent1()));
 
             return new PersistenceRequest(list);
         }

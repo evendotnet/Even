@@ -42,11 +42,11 @@ namespace Even.Tests
         [InlineData("a", 1)]
         [InlineData("b", 3)]
         [InlineData("c", 5)]
-        public void Reads_single_event(string streamId, int sequenceToRead)
+        public void Reads_single_event(string streamName, int sequenceToRead)
         {
             var reader = CreateReader();
 
-            var req = new ReadIndexedProjectionStreamRequest(streamId, sequenceToRead, 1);
+            var req = new ReadIndexedProjectionStreamRequest(streamName, sequenceToRead, 1);
             reader.Tell(req);
 
             ExpectMsg<ReadIndexedProjectionStreamResponse>(m => m.RequestID == req.RequestID && m.Event.StreamSequence == sequenceToRead);
@@ -57,11 +57,11 @@ namespace Even.Tests
         [InlineData("a", TotalEventsA)]
         [InlineData("b", TotalEventsB)]
         [InlineData("c", TotalEventsC)]
-        public void Reads_all_events(string streamId, int eventCount)
+        public void Reads_all_events(string streamName, int eventCount)
         {
             var reader = CreateReader();
 
-            var req = new ReadIndexedProjectionStreamRequest(streamId, 1, EventCount.Unlimited);
+            var req = new ReadIndexedProjectionStreamRequest(streamName, 1, EventCount.Unlimited);
             reader.Tell(req);
 
             for (int i = 1; i <= eventCount; i++)

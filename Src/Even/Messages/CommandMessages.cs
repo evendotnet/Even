@@ -32,24 +32,24 @@ namespace Even.Messages
         internal AggregateCommand(AggregateCommand previous)
         {
             this.CommandID = previous.CommandID;
-            this.StreamID = previous.StreamID;
+            this.Stream = previous.Stream;
             this.Command = previous.Command;
             this.Timeout = previous.Timeout;
         }
 
-        public AggregateCommand(string streamId, object command, TimeSpan timeout)
+        public AggregateCommand(Stream stream, object command, TimeSpan timeout)
         {
-            Argument.RequiresNotNull(streamId, nameof(streamId));
+            Argument.RequiresNotNull(stream, nameof(stream));
             Argument.RequiresNotNull(command, nameof(command));
 
             this.CommandID = Guid.NewGuid();
-            this.StreamID = streamId;
+            this.Stream = stream;
             this.Command = command;
             this.Timeout = Timeout.In(timeout);
         }
 
         public Guid CommandID { get; }
-        public string StreamID { get; }
+        public Stream Stream { get; }
         public object Command { get; }
         public Timeout Timeout { get; }
     }

@@ -43,7 +43,7 @@ namespace Even.Persistence
                     {
                         GlobalSequence = e.GlobalSequence,
                         EventID = e.EventID,
-                        StreamID = e.StreamID,
+                        Stream = e.Stream,
                         EventType = e.EventType,
                         UtcTimestamp = e.UtcTimestamp,
                         Metadata = e.Metadata,
@@ -57,12 +57,12 @@ namespace Even.Persistence
             return Task.CompletedTask;
         }
 
-        public Task WriteStreamAsync(string streamId, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events)
+        public Task WriteStreamAsync(Stream stream, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events)
         {
             lock (_events)
             {
                 var streamCount = _events
-                    .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => e.Stream.Equals(stream))
                     .Count();
 
                 if (expectedSequence != ExpectedSequence.Any)
@@ -84,7 +84,7 @@ namespace Even.Persistence
                     {
                         GlobalSequence = e.GlobalSequence,
                         EventID = e.EventID,
-                        StreamID = streamId,
+                        Stream = stream,
                         EventType = e.EventType,
                         UtcTimestamp = e.UtcTimestamp,
                         Metadata = e.Metadata,
@@ -133,7 +133,7 @@ namespace Even.Persistence
             return Task.CompletedTask;
         }
 
-        public Task ReadStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        public Task ReadStreamAsync(Stream stream, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
             Argument.Requires<ArgumentOutOfRangeException>(initialSequence >= 0, nameof(initialSequence));
             Argument.Requires<ArgumentOutOfRangeException>(count >= 0 || count == EventCount.Unlimited, nameof(count));
@@ -141,7 +141,7 @@ namespace Even.Persistence
             lock (_events)
             {
                 var events = _events
-                    .Where(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase))
+                    .Where(e => stream.Equals(e.Stream))
                     .OrderBy(e => e.GlobalSequence)
                     .AsEnumerable();
 
@@ -167,31 +167,35 @@ namespace Even.Persistence
 
         #region Projections
 
-        public Task ClearProjectionIndexAsync(string streamId)
+        public Task ClearProjectionIndexAsync(Stream stream)
         {
+            var key = stream.ToHexString();
+
             lock (_projectionCheckpoints)
             {
-                if (_projectionCheckpoints.ContainsKey(streamId))
-                    _projectionCheckpoints.Remove(streamId);
+                if (_projectionCheckpoints.ContainsKey(key))
+                    _projectionCheckpoints.Remove(key);
             }
 
             lock (_projectionIndexes)
             {
-                if (_projectionIndexes.ContainsKey(streamId))
-                    _projectionIndexes.Remove(streamId);
+                if (_projectionIndexes.ContainsKey(key))
+                    _projectionIndexes.Remove(key);
             }
 
             return Task.CompletedTask;
         }
 
-        public Task WriteProjectionIndexAsync(string streamId, int expectedSequence, IReadOnlyCollection<long> globalSequences)
+        public Task WriteProjectionIndexAsync(Stream stream, int expectedSequence, IReadOnlyCollection<long> globalSequences)
         {
             lock (_projectionIndexes)
             {
                 List<long> projection;
 
-                if (!_projectionIndexes.TryGetValue(streamId, out projection))
-                    _projectionIndexes.Add(streamId, projection = new List<long>());
+                var key = stream.ToHexString();
+
+                if (!_projectionIndexes.TryGetValue(key, out projection))
+                    _projectionIndexes.Add(key, projection = new List<long>());
 
                 if (projection.Count != expectedSequence)
                     throw new UnexpectedStreamSequenceException();
@@ -208,62 +212,62 @@ namespace Even.Persistence
             return Task.CompletedTask;
         }
 
-        public Task WriteProjectionCheckpointAsync(string streamId, long globalSequence)
+        public Task WriteProjectionCheckpointAsync(Stream stream, long globalSequence)
         {
             lock (_projectionCheckpoints)
             {
-                _projectionCheckpoints[streamId] = globalSequence;
+                _projectionCheckpoints[stream.ToHexString()] = globalSequence;
             }
 
             return Task.CompletedTask;
         }
 
-        public Task<long> ReadProjectionCheckpointAsync(string streamId)
+        public Task<long> ReadProjectionCheckpointAsync(Stream stream)
         {
             lock (_projectionCheckpoints)
             {
                 long checkpoint;
 
-                if (_projectionCheckpoints.TryGetValue(streamId, out checkpoint))
+                if (_projectionCheckpoints.TryGetValue(stream.ToHexString(), out checkpoint))
                     return Task.FromResult(checkpoint);
             }
 
             return Task.FromResult(0L);
         }
 
-        public Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(string streamId)
+        public Task<long> ReadHighestIndexedProjectionGlobalSequenceAsync(Stream stream)
         {
             lock (_projectionIndexes)
             {
                 List<long> projection;
 
-                if (_projectionIndexes.TryGetValue(streamId, out projection))
+                if (_projectionIndexes.TryGetValue(stream.ToHexString(), out projection))
                     return Task.FromResult(projection.LastOrDefault());
             }
 
             return Task.FromResult(0L);
         }
 
-        public Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(string streamId)
+        public Task<int> ReadHighestIndexedProjectionStreamSequenceAsync(Stream stream)
         {
             lock (_projectionIndexes)
             {
                 List<long> projection;
 
-                if (_projectionIndexes.TryGetValue(streamId, out projection))
+                if (_projectionIndexes.TryGetValue(stream.ToHexString(), out projection))
                     return Task.FromResult(projection.Count);
             }
 
             return Task.FromResult(0);
         }
 
-        public Task ReadIndexedProjectionStreamAsync(string streamId, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
+        public Task ReadIndexedProjectionStreamAsync(Stream stream, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
         {
             lock (_projectionIndexes)
             {
                 List<long> projection;
 
-                if (_projectionIndexes.TryGetValue(streamId, out projection))
+                if (_projectionIndexes.TryGetValue(stream.ToHexString(), out projection))
                 {
                     IEnumerable<PersistedRawEvent> events;
 

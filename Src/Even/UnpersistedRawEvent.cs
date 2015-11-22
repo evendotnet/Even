@@ -18,20 +18,20 @@ namespace Even
 
     public interface IUnpersistedRawStreamEvent : IUnpersistedRawEvent
     {
-        string StreamID { get; }
+        Stream Stream { get; }
     }
 
     public class UnpersistedRawEvent : IUnpersistedRawStreamEvent
     {
-        public UnpersistedRawEvent(Guid eventId, string streamId, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
+        public UnpersistedRawEvent(Guid eventId, Stream stream, string eventType, DateTime utcTimestamp, byte[] metadata, byte[] payload, int payloadFormat)
         {
             Argument.Requires(eventId != Guid.Empty);
-            Argument.Requires(!String.IsNullOrEmpty(streamId), nameof(streamId));
+            Argument.RequiresNotNull(stream, nameof(stream));
             Argument.Requires(!String.IsNullOrEmpty(eventType));
             Argument.Requires(utcTimestamp != default(DateTime));
             Argument.Requires(payload != null);
 
-            StreamID = streamId;
+            Stream = stream;
             EventID = eventId;
             EventType = eventType;
             UtcTimestamp = utcTimestamp;
@@ -41,7 +41,7 @@ namespace Even
         }
 
         public long GlobalSequence { get; set; }
-        public string StreamID { get; }
+        public Stream Stream { get; }
         public Guid EventID { get; }
         public string EventType { get; }
         public DateTime UtcTimestamp { get; }
@@ -60,7 +60,7 @@ namespace Even
                 var metadata = serializer.SerializeMetadata(e.Metadata);
                 var payload = serializer.SerializeEvent(e.DomainEvent, format);
 
-                var re = new UnpersistedRawEvent(e.EventID, e.StreamID, e.EventType, e.UtcTimestamp, metadata, payload, format);
+                var re = new UnpersistedRawEvent(e.EventID, e.Stream, e.EventType, e.UtcTimestamp, metadata, payload, format);
 
                 return re;
             }).ToList();

@@ -60,7 +60,7 @@ namespace Even.Tests
             }
         }
 
-        private string _testStreamId;
+        private Stream _testStream;
 
         private IActorRef CreateAndInitializeTestProjection(GlobalOptions options = null)
         {
@@ -68,7 +68,7 @@ namespace Even.Tests
             {
                 conf.Receive<ProjectionSubscriptionRequest>((r, ctx) =>
                 {
-                    _testStreamId = r.Query.ProjectionStreamID;
+                    _testStream = r.Query.ProjectionStream;
                     ctx.Sender.Tell(new ProjectionReplayFinished(r.RequestID));
                 });
             });
@@ -97,7 +97,7 @@ namespace Even.Tests
         {
             var proj = CreateAndInitializeTestProjection();
 
-            var e = MockPersistedStreamEvent.Create(new TestEvent(), streamId: _testStreamId);
+            var e = MockPersistedStreamEvent.Create(new TestEvent(), stream: _testStream);
             proj.Tell(e);
 
             ExpectMsg<IPersistedStreamEvent<TestEvent>>(TimeSpan.FromSeconds(15));

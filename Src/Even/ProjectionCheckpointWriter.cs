@@ -50,14 +50,14 @@ namespace Even
             _flushRequested = false;
 
             var re = from e in _buffer
-                     group e by e.StreamID into g
-                     select new { StreamID = g.Key, GlobalSequence = g.Max(o => o.GlobalSequence) };
+                     group e by e.Stream into g
+                     select new { Stream = g.Key, GlobalSequence = g.Max(o => o.GlobalSequence) };
 
             foreach (var o in re)
             {
                 try
                 {
-                    await _writer.WriteProjectionCheckpointAsync(o.StreamID, o.GlobalSequence);
+                    await _writer.WriteProjectionCheckpointAsync(o.Stream, o.GlobalSequence);
                 }
                 catch (Exception ex)
                 {

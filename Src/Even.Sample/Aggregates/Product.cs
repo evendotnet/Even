@@ -70,13 +70,13 @@ namespace Even.Sample.Aggregates
             });
         }
 
-        protected override bool IsValidStreamID(string streamId)
+        protected override bool IsValidStream(string stream)
         {
             // by default, streams use "category-uuid" pattern
             // changing this allows aggregates to use any format
 
             var pattern = Category + @"-\d+";
-            return Regex.IsMatch(streamId, pattern);
+            return Regex.IsMatch(stream, pattern);
         }
     }
 }

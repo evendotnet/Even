@@ -142,9 +142,9 @@ namespace Even
         /// <summary>
         /// Requests persistence of an event to the store.
         /// </summary>
-        protected void Persist(string streamId, object domainEvent)
+        protected void Persist(string streamName, object domainEvent)
         {
-            _unpersistedEvents.AddLast(new UnpersistedEvent(streamId, domainEvent));
+            _unpersistedEvents.AddLast(new UnpersistedEvent(new Stream(streamName), domainEvent));
         }
 
         /// <summary>

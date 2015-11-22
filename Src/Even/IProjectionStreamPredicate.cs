@@ -29,19 +29,4 @@ namespace Even
             return GetType().Name + _type.FullName + _type.Assembly.GetName().FullName;
         }
     }
-
-    public class StreamPredicate : IProjectionStreamPredicate
-    {
-        public string StreamID { get; set; }
-
-        public bool EventMatches(IPersistedEvent @event)
-        {
-            return String.Equals(@event.StreamID, StreamID, StringComparison.OrdinalIgnoreCase);
-        }
-
-        public object GetDeterministicHashSource()
-        {
-            return GetType().Name + StreamID;
-        }
-    }
 }

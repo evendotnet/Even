@@ -132,7 +132,7 @@ namespace Even.Tests
             ag.Tell(new InitializeAggregate(reader, writer, new GlobalOptions()));
             ag.Tell(new AggregateCommand(TestStream, new PersistOne(), CommandTimeout));
 
-            reader.ExpectMsg<ReadStreamRequest>(r => r.StreamID == TestStream && r.InitialSequence == 1);
+            reader.ExpectMsg<ReadStreamRequest>(r => r.Stream.Equals(TestStream) && r.InitialSequence == 1);
         }
 
         [Fact]

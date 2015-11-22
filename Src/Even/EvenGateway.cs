@@ -32,8 +32,8 @@ namespace Even
         public Task SendAggregateCommand<T>(object command, TimeSpan? timeout = null)
             where T : Aggregate
         {
-            var streamId = ESCategoryAttribute.GetCategory(typeof(T));
-            return SendAggregateCommand<T>(streamId, command, timeout);
+            var stream = ESCategoryAttribute.GetCategory(typeof(T));
+            return SendAggregateCommand<T>(stream, command, timeout);
         }
 
         /// <summary>
@@ -46,23 +46,23 @@ namespace Even
             Contract.Requires(id != null);
 
             var category = ESCategoryAttribute.GetCategory(typeof(T));
-            var streamId = id != null ? category + "-" + id.ToString() : category;
+            var stream = id != null ? category + "-" + id.ToString() : category;
 
-            return SendAggregateCommand<T>(streamId, command, timeout);
+            return SendAggregateCommand<T>(stream, command, timeout);
         }
 
         /// <summary>
         /// Sends a command to an aggregate using the specified stream id.
         /// </summary>
-        public Task<CommandResult> SendAggregateCommand<T>(string streamId, object command, TimeSpan? timeout = null)
+        public Task<CommandResult> SendAggregateCommand<T>(string stream, object command, TimeSpan? timeout = null)
             where T : Aggregate
         {
-            Argument.RequiresNotNull(streamId, nameof(streamId));
+            Argument.RequiresNotNull(stream, nameof(stream));
             Argument.RequiresNotNull(command, nameof(command));
 
             var to = timeout ?? _options.DefaultCommandTimeout;
 
-            var aggregateCommand = new AggregateCommand(streamId, command, to);
+            var aggregateCommand = new AggregateCommand(stream, command, to);
             var envelope = new AggregateCommandEnvelope(typeof(T), aggregateCommand);
 
             // TODO: add some threshold to Ask higher than the timeout

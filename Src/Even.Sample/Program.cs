@@ -49,7 +49,7 @@ namespace Even.Sample
                 Console.WriteLine($"{"Seq",-6} {"Stream ID",-50} Event Name");
 
                 foreach (var e in memoryStore.GetEvents())
-                    Console.WriteLine($"{e.GlobalSequence,-6} {e.StreamID,-50} {e.EventType}");
+                    Console.WriteLine($"{e.GlobalSequence,-6} {e.Stream,-50} {e.EventType}");
 
             }).Wait();
 

@@ -26,7 +26,7 @@ namespace Even
         PersistenceRequest _persistenceRequest;
 
         protected string Category { get; private set; }
-        protected string StreamID { get; private set; }
+        protected Stream Stream { get; private set; }
         protected int StreamSequence { get; private set; }
         protected bool IsReplaying { get; private set; }
 
@@ -66,20 +66,20 @@ namespace Even
             Receive<AggregateCommand>(c =>
             {
                 // ensure the first command has a valid stream before starting the replay
-                if (!IsValidStreamID(c.StreamID))
+                if (!IsValidStream(c.Stream.Name))
                 {
                     RefuseInvalidStream(c);
                     return;
                 }
 
                 // once the first command is received, set the stream id
-                StreamID = c.StreamID;
+                Stream = c.Stream;
 
                 // and stash the request to process after the replay
                 Stash.Stash();
 
                 // then start the replay
-                var request = new ReadStreamRequest(c.StreamID, 1, EventCount.Unlimited);
+                var request = new ReadStreamRequest(c.Stream, 1, EventCount.Unlimited);
                 _reader.Tell(request);
                 _replayRequestId = request.RequestID;
 
@@ -150,7 +150,7 @@ namespace Even
             Receive<AggregateCommand>(async ac =>
             {
                 // ensure the stream is the same
-                if (!String.Equals(ac.StreamID, StreamID, StringComparison.OrdinalIgnoreCase))
+                if (!Stream.Equals(ac.Stream))
                 {
                     RefuseInvalidStream(ac);
                     return;
@@ -189,7 +189,7 @@ namespace Even
                 // if there are events to persist, request persistence
                 if (_unpersistedEvents.Count > 0)
                 {
-                    var request = new PersistenceRequest(StreamID, StreamSequence, _unpersistedEvents.ToList());
+                    var request = new PersistenceRequest(Stream, StreamSequence, _unpersistedEvents.ToList());
                     _persistenceRequest = request;
                     _writer.Tell(request);
 
@@ -321,7 +321,7 @@ namespace Even
         protected void Persist<T>(T domainEvent, Action<T> persistenceCallback = null)
         {
             Argument.RequiresNotNull(domainEvent, nameof(domainEvent));
-            _unpersistedEvents.AddLast(new UnpersistedEvent(StreamID, domainEvent));
+            _unpersistedEvents.AddLast(new UnpersistedEvent(Stream, domainEvent));
         }
 
         #endregion
@@ -342,13 +342,13 @@ namespace Even
 
         private void RefuseInvalidStream(AggregateCommand command)
         {
-            Sender.Tell(new CommandFailed(command.CommandID, $"The stream '{command.StreamID}' is not valid for this aggregate."));
+            Sender.Tell(new CommandFailed(command.CommandID, $"The stream '{command.Stream.Name}' is not valid for this aggregate."));
         }
 
-        protected virtual bool IsValidStreamID(string streamId)
+        protected virtual bool IsValidStream(string stream)
         {
             var pattern = "^" + Category + "-[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$";
-            return Regex.IsMatch(streamId, pattern);
+            return Regex.IsMatch(stream, pattern);
         }
 
         protected virtual void OnReady()

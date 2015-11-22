@@ -58,7 +58,7 @@ namespace Even
             Context.System.EventStream.Subscribe(Self, typeof(IPersistedEvent));
 
             // request checkpoint
-            var request = new ReadProjectionCheckpointRequest(_query.ProjectionStreamID);
+            var request = new ReadProjectionCheckpointRequest(_query.ProjectionStream);
             _lastRequestId = request.RequestID;
             _reader.Tell(request);
 
@@ -210,12 +210,12 @@ namespace Even
                 _currentSequence++;
 
                 // index the event
-                _writer.Tell(new ProjectionIndexPersistenceRequest(_query.ProjectionStreamID, _currentSequence, e.GlobalSequence));
+                _writer.Tell(new ProjectionIndexPersistenceRequest(_query.ProjectionStream, _currentSequence, e.GlobalSequence));
 
                 // tell the subscribers
                 if (tellSubscribers)
                 {
-                    var projectionEvent = ProjectionEventFactory.Create(_query.ProjectionStreamID, _currentSequence, e);
+                    var projectionEvent = ProjectionEventFactory.Create(_query.ProjectionStream, _currentSequence, e);
 
                     foreach (var s in _subscribers)
                         s.Tell(projectionEvent);
@@ -273,7 +273,7 @@ namespace Even
         IActorRef _reader;
         IActorRef _subscriber;
         Guid _subscriberRequestId;
-        string _projectionStreamId;
+        Stream _projectionStream;
         int _lastSequenceToRead;
         GlobalOptions _options;
 
@@ -292,7 +292,7 @@ namespace Even
                 _options = ini.Options;
 
                 _subscriberRequestId = ini.SubscriptionRequest.RequestID;
-                _projectionStreamId = ini.SubscriptionRequest.Query.ProjectionStreamID;
+                _projectionStream = ini.SubscriptionRequest.Query.ProjectionStream;
                 _currentSequence = ini.SubscriptionRequest.LastKnownSequence;
 
                 StartReadRequest();
@@ -305,7 +305,7 @@ namespace Even
             var maxEvents = _options.EventsPerReadRequest >= 0 ? _options.EventsPerReadRequest : 0;
             var count = Math.Min(_lastSequenceToRead - _currentSequence, maxEvents);
 
-            var readRequest = new ReadIndexedProjectionStreamRequest(_projectionStreamId, _currentSequence + 1, count);
+            var readRequest = new ReadIndexedProjectionStreamRequest(_projectionStream, _currentSequence + 1, count);
             _reader.Tell(readRequest);
 
             _lastRequestId = readRequest.RequestID;

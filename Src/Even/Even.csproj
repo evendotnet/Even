@@ -100,6 +100,7 @@
     <Compile Include="ReadWorkers.cs" />
     <Compile Include="RejectReason.cs" />
     <Compile Include="StreamEventReader.cs" />
+    <Compile Include="Stream.cs" />
     <Compile Include="SystemClock.cs" />
     <Compile Include="Timeout.cs" />
     <Compile Include="Utils\BatchStringBuilder.cs" />

@@ -9,14 +9,16 @@ namespace Even.Tests.Mocks
 {
     public static class MockPersistedStreamEvent
     {
-        public static IPersistedStreamEvent<T> Create<T>(T domainEvent, int globalSequence = 1, int streamSequence = 1, string streamId = "a")
+        public static IPersistedStreamEvent<T> Create<T>(T domainEvent, int globalSequence = 1, int streamSequence = 1, Stream stream = null)
         {
+            stream = stream ?? "a";
+
             var e = Substitute.For<IPersistedStreamEvent<T>, IPersistedStreamEvent>();
 
             e.DomainEvent.Returns(domainEvent);
             e.GlobalSequence.Returns(globalSequence);
             e.StreamSequence.Returns(streamSequence);
-            e.StreamID.Returns(streamId);
+            e.Stream.Returns(stream);
             ((IPersistedStreamEvent)e).DomainEvent.Returns(domainEvent);
 
             return e;

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace Even
 {
+    [Obsolete]
     public static class StreamHash
     {
         /// <summary>

@@ -26,30 +26,30 @@ namespace Even.Tests.Persistence
 
         #region Helpers
 
-        static IUnpersistedRawStreamEvent CreateEvent(string streamId, string eventType)
+        static IUnpersistedRawStreamEvent CreateEvent(string streamName, string eventType)
         {
-            return new UnpersistedRawEvent(Guid.NewGuid(), streamId, eventType, DateTime.UtcNow, null, new byte[0], 0);
+            return new UnpersistedRawEvent(Guid.NewGuid(), streamName, eventType, DateTime.UtcNow, null, new byte[0], 0);
         }
 
-        static IReadOnlyCollection<IUnpersistedRawStreamEvent> GenerateEvents(int count, string streamId = null)
+        static IReadOnlyCollection<IUnpersistedRawStreamEvent> GenerateEvents(int count, string streamName = null)
         {
             var list = new List<IUnpersistedRawStreamEvent>(count);
 
             for (var i = 0; i < count; i++)
-                list.Add(CreateEvent(streamId ?? "SomeStream", "SomeEvent"));
+                list.Add(CreateEvent(streamName ?? "SomeStream", "SomeEvent"));
 
             return list;
         }
 
-        Task WriteTestEvents(int count, string streamId = null)
+        Task WriteTestEvents(int count, string streamName = null)
         {
-            return Store.WriteAsync(GenerateEvents(count, streamId));
+            return Store.WriteAsync(GenerateEvents(count, streamName));
         }
 
-        async Task WriteAndProjectTestEvents(int count, string projectionStreamId, long[] sequencesToIndex)
+        async Task WriteAndProjectTestEvents(int count, string streamName, long[] sequencesToIndex)
         {
             await WriteTestEvents(count);
-            await Store.WriteProjectionIndexAsync(projectionStreamId, 0, sequencesToIndex);
+            await Store.WriteProjectionIndexAsync(streamName, 0, sequencesToIndex);
         }
 
         #endregion

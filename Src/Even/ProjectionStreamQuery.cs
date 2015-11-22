@@ -21,25 +21,26 @@ namespace Even
             : this(predicates.ToArray())
         { }
 
-        private string _id;
+        private Stream _stream;
         private IProjectionStreamPredicate[] _predicates;
 
         /// <summary>
-        /// A deterministic ID that will always be the same for the same query.
+        /// A deterministic stream that will always be the same for the same query.
         /// </summary>
-        public string ProjectionStreamID => _id ?? (_id = GenerateID());
+        public Stream ProjectionStream => _stream ?? (_stream = CreateStream());
 
         [Obsolete]
         public IReadOnlyCollection<IProjectionStreamPredicate> Predicates => _predicates;
 
-        private string GenerateID()
+        private Stream CreateStream()
         {
             var items = _predicates
                 .Select(q => JsonConvert.SerializeObject(q.GetDeterministicHashSource()))
                 .OrderBy(s => s, StringComparer.OrdinalIgnoreCase);
 
-            var str = String.Concat(items);
-            return StreamHash.AsHashString(str);
+            var bytes = Encoding.UTF8.GetBytes(String.Concat(items));
+
+            return Stream.FromBytes(bytes);
         }
 
         public bool EventMatches(IPersistedEvent e)
@@ -53,7 +54,7 @@ namespace Even
 
         public bool Equals(ProjectionStreamQuery other)
         {
-            return other != null && ProjectionStreamID == other.ProjectionStreamID;
+            return other != null && ProjectionStream == other.ProjectionStream;
         }
     }
 }

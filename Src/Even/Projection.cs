@@ -13,7 +13,7 @@ namespace Even
     {
         public IStash Stash { get; set; }
         protected int CurrentSequence { get; private set; }
-        protected string ProjectionStreamID { get; private set; }
+        protected Stream ProjectionStream { get; private set; }
 
         PersistedEventHandler _eventHandlers = new PersistedEventHandler();
         QueryHandler _queryHandlers = new QueryHandler();
@@ -44,14 +44,14 @@ namespace Even
                     _options = ini.Options;
 
                     var query = BuildQuery();
-                    ProjectionStreamID = query.ProjectionStreamID;
+                    ProjectionStream = query.ProjectionStream;
 
                     await OnInit();
 
                     var lastKnownState = await GetLastKnownState();
 
                     // if the projection is new or id is changed, the projection needs to be rebuilt
-                    if (lastKnownState != null && !ProjectionStreamID.Equals(lastKnownState.ProjectionStreamID, StringComparison.OrdinalIgnoreCase))
+                    if (lastKnownState != null && !ProjectionStream.Equals(lastKnownState.ProjectionStream))
                         await PrepareToRebuild();
 
                     var request = new ProjectionSubscriptionRequest(query, lastKnownState?.ProjectionSequence ?? 0);
@@ -137,7 +137,7 @@ namespace Even
                 CurrentSequence++;
                 await ProcessEventInternal(e);
 
-            }, e => e.StreamID == ProjectionStreamID);
+            }, e => e.Stream == ProjectionStream);
 
             Receive<IQuery>(async q =>
             {

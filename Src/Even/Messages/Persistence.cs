@@ -19,20 +19,20 @@ namespace Even.Messages
             this.Events = events;
         }
 
-        public PersistenceRequest(string streamId, int expectedStreamSequence, IReadOnlyList<UnpersistedEvent> events)
+        public PersistenceRequest(Stream stream, int expectedStreamSequence, IReadOnlyList<UnpersistedEvent> events)
             : this(events)
         {
-            Argument.Requires(!String.IsNullOrEmpty(streamId), nameof(streamId));
+            Argument.RequiresNotNull(stream, nameof(stream));
             Argument.Requires(expectedStreamSequence >= 0 || expectedStreamSequence == ExpectedSequence.Any, nameof(expectedStreamSequence));
-            Argument.Requires(events.All(e => String.Equals(e.StreamID, streamId, StringComparison.OrdinalIgnoreCase)), nameof(events), $"All events must belong to the stream '{streamId}'");
+            Argument.Requires(events.All(e => e.Stream.Equals(stream)), nameof(events), $"All events must belong to the stream '{stream}'");
 
-            this.StreamID = streamId;
+            this.Stream = stream;
             this.ExpectedStreamSequence = expectedStreamSequence;
             this.Events = events;
         }
 
         public Guid PersistenceID { get; } = Guid.NewGuid();
-        public string StreamID { get; }
+        public Stream Stream { get; }
         public int ExpectedStreamSequence { get; } = ExpectedSequence.Any;
         public IReadOnlyList<UnpersistedEvent> Events { get; }
     }
@@ -84,18 +84,18 @@ namespace Even.Messages
 
     public class ProjectionIndexPersistenceRequest
     {
-        public ProjectionIndexPersistenceRequest(string projectionStreamId, int projectionStreamSequence, long globalSequence)
+        public ProjectionIndexPersistenceRequest(Stream projectionStream, int projectionStreamSequence, long globalSequence)
         {
-            Argument.Requires(projectionStreamId != null, nameof(projectionStreamId));
+            Argument.Requires(projectionStream != null, nameof(projectionStream));
             Argument.Requires(projectionStreamSequence >= 0, nameof(projectionStreamSequence));
             Argument.Requires(globalSequence >= 0, nameof(globalSequence));
 
-            this.ProjectionStreamID = projectionStreamId;
+            this.ProjectionStream = projectionStream;
             this.ProjectionStreamSequence = projectionStreamSequence;
             this.GlobalSequence = globalSequence;
         }
 
-        public string ProjectionStreamID { get; }
+        public Stream ProjectionStream { get; }
         public int ProjectionStreamSequence { get; }
         public long GlobalSequence { get; }
     }
@@ -105,16 +105,16 @@ namespace Even.Messages
 
     public class ProjectionCheckpointPersistenceRequest
     {
-        public ProjectionCheckpointPersistenceRequest(string streamId, long globalSequence)
+        public ProjectionCheckpointPersistenceRequest(Stream stream, long globalSequence)
         {
-            Argument.Requires(streamId != null);
+            Argument.Requires(stream != null);
             Argument.Requires(globalSequence >= 0);
 
-            this.StreamID = streamId;
+            this.Stream = stream;
             this.GlobalSequence = globalSequence;
         }
 
-        public string StreamID { get; }
+        public Stream Stream { get; }
         public long GlobalSequence { get; }
     }
 }

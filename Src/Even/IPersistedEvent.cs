@@ -13,8 +13,7 @@ namespace Even
     {
         long GlobalSequence { get; }
         Guid EventID { get; }
-        string StreamID { get; }
-        string OriginalStreamID { get; }
+        Stream Stream { get; }
         string EventType { get; }
         DateTime UtcTimestamp { get; }
         IReadOnlyDictionary<string, object> Metadata { get; }

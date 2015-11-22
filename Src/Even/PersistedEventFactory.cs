@@ -81,8 +81,7 @@ namespace Even
             {
                 this.GlobalSequence = rawEvent.GlobalSequence;
                 this.EventID = rawEvent.EventID;
-                this.StreamID = rawEvent.StreamID;
-                this.OriginalStreamID = rawEvent.OriginalStreamID;
+                this.Stream = rawEvent.Stream;
                 this.EventType = rawEvent.EventType;
                 this.UtcTimestamp = rawEvent.UtcTimestamp;
                 this.Metadata = metadata;
@@ -91,8 +90,7 @@ namespace Even
 
             public long GlobalSequence { get; }
             public Guid EventID { get; }
-            public string StreamID { get; }
-            public string OriginalStreamID { get; }
+            public Stream Stream { get; }
             public string EventType { get; }
             public DateTime UtcTimestamp { get; }
             public IReadOnlyDictionary<string, object> Metadata { get; }
@@ -124,8 +122,7 @@ namespace Even
 
             public long GlobalSequence { get; }
             public Guid EventID => e.EventID;
-            public string StreamID => e.StreamID;
-            public string OriginalStreamID => e.StreamID;
+            public Stream Stream => e.Stream;
             public string EventType => e.EventType;
             public DateTime UtcTimestamp => e.UtcTimestamp;
             public IReadOnlyDictionary<string, object> Metadata => e.Metadata;

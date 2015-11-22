@@ -94,7 +94,7 @@ namespace Even
             {
                 var sequence = req.InitialSequence;
 
-                return reader.ReadStreamAsync(req.StreamID, req.InitialSequence, req.Count, e =>
+                return reader.ReadStreamAsync(req.Stream, req.InitialSequence, req.Count, e =>
                 {
                     var loadedEvent = factory.CreateStreamEvent(e, sequence++);
                     sender.Tell(new ReadStreamResponse(req.RequestID, loadedEvent), ActorRefs.NoSender);
@@ -124,11 +124,11 @@ namespace Even
         {
             ReceiveRequest<ReadIndexedProjectionStreamRequest>(async (req, sender, ct) =>
             {
-                var checkpoint = await reader.ReadProjectionCheckpointAsync(req.ProjectionStreamID);
+                var checkpoint = await reader.ReadProjectionCheckpointAsync(req.ProjectionStream);
                 var sequence = req.InitialSequence;
                 var globalSequence = 0L;
 
-                await reader.ReadIndexedProjectionStreamAsync(req.ProjectionStreamID, req.InitialSequence, req.Count, e =>
+                await reader.ReadIndexedProjectionStreamAsync(req.ProjectionStream, req.InitialSequence, req.Count, e =>
                 {
                     globalSequence = e.GlobalSequence;
                     var loadedEvent = factory.CreateStreamEvent(e, sequence++);
@@ -160,7 +160,7 @@ namespace Even
             {
                 try
                 {
-                    var checkpoint = await reader.ReadProjectionCheckpointAsync(r.ProjectionStreamID);
+                    var checkpoint = await reader.ReadProjectionCheckpointAsync(r.ProjectionStream);
                     Sender.Tell(new ReadProjectionCheckpointResponse(r.RequestID, checkpoint));
                 }
                 finally

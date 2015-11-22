@@ -8,7 +8,7 @@ namespace Even
 {
     public class ProjectionState
     {
-        public string ProjectionStreamID { get; set; }
+        public Stream ProjectionStream { get; set; }
         public int ProjectionSequence { get; set; }
     }
 }

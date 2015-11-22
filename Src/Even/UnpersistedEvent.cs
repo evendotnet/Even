@@ -9,16 +9,16 @@ namespace Even
 {
     public class UnpersistedEvent
     {
-        public UnpersistedEvent(string streamId, object domainEvent)
-            : this(streamId, domainEvent, null, null)
+        public UnpersistedEvent(Stream stream, object domainEvent)
+            : this(stream, domainEvent, null, null)
         { }
 
-        public UnpersistedEvent(string streamId, object domainEvent, string eventType, Dictionary<string, object> metadata)
+        public UnpersistedEvent(Stream stream, object domainEvent, string eventType, Dictionary<string, object> metadata)
         {
-            Argument.Requires<ArgumentException>(streamId != null, nameof(streamId));
+            Argument.Requires<ArgumentException>(stream != null, nameof(stream));
             Argument.Requires<ArgumentException>(domainEvent != null, nameof(domainEvent));
 
-            this.StreamID = streamId;
+            this.Stream = stream;
             this.DomainEvent = domainEvent;
             this.EventType = eventType ?? GetEventType(domainEvent);
 
@@ -33,7 +33,7 @@ namespace Even
 
         public Guid EventID { get; } = Guid.NewGuid();
         public DateTime UtcTimestamp { get; } = DateTime.UtcNow;
-        public string StreamID { get; }
+        public Stream Stream { get; }
         public string EventType { get; }
         public object DomainEvent { get; }
         public IReadOnlyDictionary<string, object> Metadata { get; }

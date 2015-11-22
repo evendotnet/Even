@@ -55,11 +55,11 @@ namespace Even
 
             // groups all requests by sender and stream and issues a write for each one at a time
             var re = from e in _buffer
-                     group e by new { e.Sender, e.Request.ProjectionStreamID } into g
+                     group e by new { e.Sender, e.Request.ProjectionStream } into g
                      select new WriteEntry
                      {
                          Sender = g.Key.Sender,
-                         StreamID = g.Key.ProjectionStreamID,
+                         Stream = g.Key.ProjectionStream,
                          Requests = g.Select(o => o.Request).ToList()
                      };
 
@@ -92,7 +92,7 @@ namespace Even
             var firstSequence = requests.First().ProjectionStreamSequence;
             var globalSequences = requests.Select(e => e.GlobalSequence).ToList();
 
-            await _writer.WriteProjectionIndexAsync(entry.StreamID, firstSequence - 1, globalSequences);
+            await _writer.WriteProjectionIndexAsync(entry.Stream, firstSequence - 1, globalSequences);
         }
 
         class FlushBufferCommand { }
@@ -106,7 +106,7 @@ namespace Even
         class WriteEntry
         {
             public IActorRef Sender;
-            public string StreamID;
+            public Stream Stream;
             public IReadOnlyList<ProjectionIndexPersistenceRequest> Requests;
         }
     }

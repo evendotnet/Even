@@ -319,8 +319,8 @@ namespace Even.Tests
             ps.Tell(MockPersistedEvent.Create(new TestEvent(), 4));
             ps.Tell(MockPersistedEvent.Create(new object(), 5));
 
-            writer.ExpectMsg<ProjectionIndexPersistenceRequest>(m => m.ProjectionStreamID == query.ProjectionStreamID && m.ProjectionStreamSequence == 1 && m.GlobalSequence == 2);
-            writer.ExpectMsg<ProjectionIndexPersistenceRequest>(m => m.ProjectionStreamID == query.ProjectionStreamID && m.ProjectionStreamSequence == 2 && m.GlobalSequence == 4);
+            writer.ExpectMsg<ProjectionIndexPersistenceRequest>(m => m.ProjectionStream.Equals(query.ProjectionStream) && m.ProjectionStreamSequence == 1 && m.GlobalSequence == 2);
+            writer.ExpectMsg<ProjectionIndexPersistenceRequest>(m => m.ProjectionStream.Equals(query.ProjectionStream) && m.ProjectionStreamSequence == 2 && m.GlobalSequence == 4);
             writer.ExpectNoMsg(TimeSpan.FromMilliseconds(500));
         }
     }
