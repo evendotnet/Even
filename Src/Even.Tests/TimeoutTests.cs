@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -14,11 +16,11 @@ namespace Even.Tests
         [InlineData(250)]
         [InlineData(500)]
         [InlineData(1000)]
-        public async Task Timeout_does_not_expires_before_time(int milliseconds)
+        public void Timeout_does_not_expires_before_time(int milliseconds)
         {
             var timeout = Timeout.In(TimeSpan.FromMilliseconds(milliseconds));
-            
-            await Task.Delay(milliseconds - 50);
+
+            Thread.Sleep(milliseconds - 10);
 
             Assert.False(timeout.IsExpired);
         }
@@ -28,11 +30,11 @@ namespace Even.Tests
         [InlineData(250)]
         [InlineData(500)]
         [InlineData(1000)]
-        public async Task Timeout_is_expired_after_expected_time(int milliseconds)
+        public void Timeout_is_expired_after_expected_time(int milliseconds)
         {
             var timeout = Timeout.In(TimeSpan.FromMilliseconds(milliseconds));
 
-            await Task.Delay(milliseconds + 1);
+            Thread.Sleep(milliseconds + 1);
 
             Assert.True(timeout.IsExpired);
         }
