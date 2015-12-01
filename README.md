@@ -46,7 +46,7 @@ public class UserRegistered { public string Name { get; set; } }
 
 public class User : Aggregate<UserState>
 {
-	public Product()
+	public User()
 	{
 		OnCommand<RegisterUser>(c => {
 			
