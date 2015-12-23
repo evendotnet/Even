@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Even.Internals;
 
 namespace Even.Tests.Mocks
 {
@@ -13,9 +14,9 @@ namespace Even.Tests.Mocks
         {
             var store = Substitute.For<IProjectionStoreWriter>();
 
-            store.WriteProjectionCheckpointAsync(null, 0).ReturnsForAnyArgs(Task.CompletedTask);
-            store.WriteProjectionIndexAsync(null, 0, null).ReturnsForAnyArgs(Task.CompletedTask);
-            store.ClearProjectionIndexAsync(null).ReturnsForAnyArgs(Task.CompletedTask);
+            store.WriteProjectionCheckpointAsync(null, 0).ReturnsForAnyArgs(Unit.GetCompletedTask());
+            store.WriteProjectionIndexAsync(null, 0, null).ReturnsForAnyArgs(Unit.GetCompletedTask());
+            store.ClearProjectionIndexAsync(null).ReturnsForAnyArgs(Unit.GetCompletedTask());
 
             return store;
         }

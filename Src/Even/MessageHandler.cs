@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Even.Internals;
 
 namespace Even
 {
@@ -73,7 +74,7 @@ namespace Even
             AddHandler<T>(msg =>
             {
                 handler(msg);
-                return Task.CompletedTask;
+                return Task.FromResult(Unit.Instance);
             });
         }
     }

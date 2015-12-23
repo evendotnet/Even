@@ -6,6 +6,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Threading.Tasks;
+using Even.Internals;
 
 namespace Even
 {
@@ -194,17 +195,17 @@ namespace Even
 
         protected virtual Task OnInit()
         {
-            return Task.CompletedTask;
+            return Task.FromResult(Unit.Instance);
         }
 
         protected virtual Task OnReceiveEvent(IPersistedStreamEvent e)
         {
-            return Task.CompletedTask;
+            return Task.FromResult(Unit.Instance);
         }
 
         protected virtual Task OnExpiredQuery(object query)
         {
-            return Task.CompletedTask;
+            return Task.FromResult(Unit.Instance);
         }
 
         /// <summary>
@@ -212,7 +213,7 @@ namespace Even
         /// </summary>
         protected virtual Task PrepareToRebuild()
         {
-            return Task.CompletedTask;
+            return Task.FromResult(Unit.Instance);
         }
 
         #region Event Subscriptions
@@ -259,7 +260,7 @@ namespace Even
             OnQuery(new Func<T, Task>(q =>
             {
                 handler(q);
-                return Task.CompletedTask;
+                return Task.FromResult(Unit.Instance);
             }));
         }
 

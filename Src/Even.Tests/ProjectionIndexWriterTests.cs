@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Xunit;
 using Even.Messages;
 using Akka.Actor;
+using Even.Internals;
 using Even.Tests.Mocks;
 
 namespace Even.Tests
@@ -29,7 +30,7 @@ namespace Even.Tests
         public async Task Writer_buffers_requests_before_writing()
         {
             var store = MockProjectionStore.SuccessfulWriter();
-            store.WriteProjectionIndexAsync(null, 0, null).ReturnsForAnyArgs(Task.CompletedTask);
+            store.WriteProjectionIndexAsync(null, 0, null).ReturnsForAnyArgs(Unit.GetCompletedTask());
 
             var writer = CreateWriter(store);
             writer.Tell(new ProjectionIndexPersistenceRequest("a", 1, 10));

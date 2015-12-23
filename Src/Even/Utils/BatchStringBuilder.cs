@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Even.Internals;
 
 namespace Even.Utils
 {
@@ -126,7 +127,7 @@ namespace Even.Utils
                 sb.Clear();
                 AppendedAny = false;
 
-                return new BatchStringBuilderOutput<T>(appended, str);
+                return new BatchStringBuilderOutput<T>(appended.AsReadOnlyCollection(), str);
             }
 
             public BatchStringBuilderOutput<T> OutputWithoutLastAppendedAndReset()

@@ -12,6 +12,7 @@ using NSubstitute;
 using Even.Tests.Mocks;
 using Even.Tests.Utils;
 using System.Threading;
+using Even.Internals;
 
 namespace Even.Tests
 {
@@ -50,13 +51,13 @@ namespace Even.Tests
             protected override Task PrepareToRebuild()
             {
                 _probe.Tell("rebuild");
-                return Task.CompletedTask;
+                return Unit.GetCompletedTask();
             }
 
             protected override Task OnExpiredQuery(object query)
             {
                 _probe.Tell("expired");
-                return Task.CompletedTask;
+                return Unit.GetCompletedTask();
             }
         }
 
