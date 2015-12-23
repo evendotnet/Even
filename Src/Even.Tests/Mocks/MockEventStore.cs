@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Even.Internals;
 
 namespace Even.Tests.Mocks
 {
@@ -24,7 +25,7 @@ namespace Even.Tests.Mocks
                 foreach (var e in events)
                     e.GlobalSequence = i++;
 
-            })).ReturnsForAnyArgs(Task.CompletedTask);
+            })).ReturnsForAnyArgs(Unit.GetCompletedTask());
 
             store.WriteAsync(Arg.Do<IReadOnlyCollection<IUnpersistedRawStreamEvent>>(events =>
             {
@@ -33,7 +34,7 @@ namespace Even.Tests.Mocks
                 foreach (var e in events)
                     e.GlobalSequence = i++;
 
-            })).ReturnsForAnyArgs(Task.CompletedTask);
+            })).ReturnsForAnyArgs(Unit.GetCompletedTask());
 
             return store;
         }
@@ -57,7 +58,7 @@ namespace Even.Tests.Mocks
                 if (throwOnCalls.Contains(++writeCount))
                     throw exception;
 
-                return Task.CompletedTask;
+                return Unit.GetCompletedTask();
             });
 
             var writeStreamCount = 0;
@@ -67,7 +68,7 @@ namespace Even.Tests.Mocks
                 if (throwOnCalls.Contains(++writeStreamCount))
                     throw exception;
 
-                return Task.CompletedTask;
+                return Unit.GetCompletedTask();
             });
 
             return store;

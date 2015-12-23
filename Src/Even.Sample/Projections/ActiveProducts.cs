@@ -28,7 +28,7 @@ namespace Even.Sample.Projections
         protected override Task OnReceiveEvent(IPersistedStreamEvent e)
         {
             Console.WriteLine($"Projection Received Event {e.StreamSequence}: {e.EventType}");
-            return Task.CompletedTask;
+            return Task.FromResult(1);
         }
 
         protected override void OnReady()

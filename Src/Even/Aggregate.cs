@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Even.Messages;
 using System.Text.RegularExpressions;
+using Even.Internals;
 
 namespace Even
 {
@@ -362,7 +363,7 @@ namespace Even
 
         protected virtual Task OnReceiveEvent(object e)
         {
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         protected virtual async Task Validate(object command)

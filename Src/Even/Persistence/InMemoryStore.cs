@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Even.Internals;
 
 namespace Even.Persistence
 {
@@ -54,7 +55,7 @@ namespace Even.Persistence
                 }
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         public Task WriteStreamAsync(Stream stream, int expectedSequence, IReadOnlyCollection<IUnpersistedRawEvent> events)
@@ -95,7 +96,7 @@ namespace Even.Persistence
                 }
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         public Task<long> ReadHighestGlobalSequenceAsync()
@@ -130,7 +131,7 @@ namespace Even.Persistence
                 }
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         public Task ReadStreamAsync(Stream stream, int initialSequence, int count, Action<IPersistedRawEvent> readCallback, CancellationToken ct)
@@ -160,7 +161,7 @@ namespace Even.Persistence
                 }
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         #endregion
@@ -183,7 +184,7 @@ namespace Even.Persistence
                     _projectionIndexes.Remove(key);
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         public Task WriteProjectionIndexAsync(Stream stream, int expectedSequence, IReadOnlyCollection<long> globalSequences)
@@ -209,7 +210,7 @@ namespace Even.Persistence
                 }
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         public Task WriteProjectionCheckpointAsync(Stream stream, long globalSequence)
@@ -219,7 +220,7 @@ namespace Even.Persistence
                 _projectionCheckpoints[stream.ToHexString()] = globalSequence;
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         public Task<long> ReadProjectionCheckpointAsync(Stream stream)
@@ -297,7 +298,7 @@ namespace Even.Persistence
                 }
             }
 
-            return Task.CompletedTask;
+            return Unit.GetCompletedTask();
         }
 
         #endregion
