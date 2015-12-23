@@ -74,7 +74,7 @@ namespace Even
             AddHandler<T>(msg =>
             {
                 handler(msg);
-                return Task.FromResult(Unit.Instance);
+                return Unit.GetCompletedTask();
             });
         }
     }

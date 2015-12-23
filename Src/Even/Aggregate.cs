@@ -363,7 +363,7 @@ namespace Even
 
         protected virtual Task OnReceiveEvent(object e)
         {
-            return Task.FromResult(Unit.Instance);
+            return Unit.GetCompletedTask();
         }
 
         protected virtual async Task Validate(object command)

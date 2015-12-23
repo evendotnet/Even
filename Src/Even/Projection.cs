@@ -195,17 +195,17 @@ namespace Even
 
         protected virtual Task OnInit()
         {
-            return Task.FromResult(Unit.Instance);
+            return Unit.GetCompletedTask();
         }
 
         protected virtual Task OnReceiveEvent(IPersistedStreamEvent e)
         {
-            return Task.FromResult(Unit.Instance);
+            return Unit.GetCompletedTask();
         }
 
         protected virtual Task OnExpiredQuery(object query)
         {
-            return Task.FromResult(Unit.Instance);
+            return Unit.GetCompletedTask();
         }
 
         /// <summary>
@@ -213,7 +213,7 @@ namespace Even
         /// </summary>
         protected virtual Task PrepareToRebuild()
         {
-            return Task.FromResult(Unit.Instance);
+            return Unit.GetCompletedTask();
         }
 
         #region Event Subscriptions
@@ -260,7 +260,7 @@ namespace Even
             OnQuery(new Func<T, Task>(q =>
             {
                 handler(q);
-                return Task.FromResult(Unit.Instance);
+                return Unit.GetCompletedTask();
             }));
         }
 

@@ -25,7 +25,7 @@ namespace Even.Tests.Mocks
                 foreach (var e in events)
                     e.GlobalSequence = i++;
 
-            })).ReturnsForAnyArgs(Task.FromResult);
+            })).ReturnsForAnyArgs(Unit.GetCompletedTask());
 
             store.WriteAsync(Arg.Do<IReadOnlyCollection<IUnpersistedRawStreamEvent>>(events =>
             {
@@ -34,7 +34,7 @@ namespace Even.Tests.Mocks
                 foreach (var e in events)
                     e.GlobalSequence = i++;
 
-            })).ReturnsForAnyArgs(Task.FromResult);
+            })).ReturnsForAnyArgs(Unit.GetCompletedTask());
 
             return store;
         }
