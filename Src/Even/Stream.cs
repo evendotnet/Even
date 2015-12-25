@@ -48,8 +48,25 @@ namespace Even
             _name = name;
         }
 
+        /// <summary>
+        /// Initializes a Stream from another stream and the original stream name. Used when reading projections only.
+        /// </summary>
+        public Stream(Stream stream, string originalName)
+        {
+            if (stream == null)
+                throw new ArgumentNullException("stream");
+
+            _hash = stream._hash;
+            _name = stream._name;
+
+            // only store the original name if its different from the stream name
+            if (!String.Equals(_name, originalName, StringComparison.InvariantCultureIgnoreCase))
+                _originalName = originalName;
+        }
+
         private byte[] _hash;
         private string _name;
+        private string _originalName;
 
         /// <summary>
         /// Returns the hash of the stream.
@@ -60,6 +77,12 @@ namespace Even
         /// Returns the name of the stream or an empty string if no name was set.
         /// </summary>
         public string Name => _name ?? String.Empty;
+
+        /// <summary>
+        /// Returns the name of the persisted stream name for the current event, or the <see cref="Name"/> if not available.
+        /// This property is only used when reading projections, as the stream being read is not the same as the persisted event stream.
+        /// </summary>
+        public string OriginalStreamName => _originalName ?? Name;
 
         /// <summary>
         /// Converts the hash to a hexadecimal encoded string.

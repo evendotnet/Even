@@ -1,39 +1,38 @@
-﻿//using DBHelpers;
-//using Even.Persistence;
-//using System;
-//using System.Collections.Generic;
-//using System.Data.SqlClient;
-//using System.Linq;
-//using System.Text;
-//using System.Threading.Tasks;
+﻿using DBHelpers;
+using Even.Persistence;
+using Even.Persistence.Sql;
+using System;
+using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-//namespace Even.Tests.Persistence
-//{
-//    #if SQL2012
-//    public
-//    #endif
-//    class SqlServer2012StoreTests : EventStoreTests
-//    {
-//        protected override IEventStore InitializeStore()
-//        {
-//            var dbName = "even_test";
-//            var cns = "Server=localhost\\sqlexpress; Trusted_Connection=True;";
-//            var db = new DBHelper(SqlClientFactory.Instance, cns);
+namespace Even.Tests.Persistence
+{
+#if SQL2012
+    public
+#endif
+    class SqlServer2012StoreTests : EventStoreTests
+    {
+        private string ConnectionString = "Server=localhost\\sqlexpress; Trusted_Connection=True; Database=even_test;";
 
-//            db.ExecuteNonQuery($"if db_id('{dbName}') is null create database {dbName};");
+        protected override IEventStore CreateStore()
+        {
+            return new SqlServer2012Store(ConnectionString, true);
+        }
 
-//            var store = new SqlServer2012Store(cns + "Database=" + dbName, null);
-//            store.InitializeStore();
+        protected override void ResetStore()
+        {
+            var db = new DBHelper(SqlClientFactory.Instance, ConnectionString);
 
-//            var truncateSql = $@"
-//use {dbName};
-//DELETE FROM [{store.EventsTable}];
-//DELETE FROM [{store.ProjectionIndexTable}];
-//DELETE FROM [{store.ProjectionCheckpointTable}];";
+            var store = (BaseSqlStore)Store;
 
-//            db.ExecuteNonQuery(truncateSql);
+            var a = store.EventsTable;
+            var b = store.ProjectionIndexTable;
+            var c = store.ProjectionCheckpointTable;
 
-//            return store;
-//        }
-//    }
-//}
+            db.ExecuteNonQuery($"TRUNCATE TABLE [{a}]; TRUNCATE TABLE [{b}]; TRUNCATE TABLE [{c}];");
+        }
+    }
+}

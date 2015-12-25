@@ -133,6 +133,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Even.Persistence.Sql\Even.Persistence.Sql.csproj">
+      <Project>{0c89f145-3156-47cf-9b10-56591c37fd2c}</Project>
+      <Name>Even.Persistence.Sql</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Even\Even.csproj">
       <Project>{ab3b9d37-1a32-4152-8775-919f9018a0fe}</Project>
       <Name>Even</Name>

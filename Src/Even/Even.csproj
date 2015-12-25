@@ -92,7 +92,6 @@
     <Compile Include="Aggregate.cs" />
     <Compile Include="AggregateSupervisor.cs" />
     <Compile Include="AkkaAsyncHelper.cs" />
-    <Compile Include="Persistence\BaseSqlStore.cs" />
     <Compile Include="Query.cs" />
     <Compile Include="ProjectionSupervisor.cs" />
     <Compile Include="QueryExtensions.cs" />
@@ -104,8 +103,6 @@
     <Compile Include="Timeout.cs" />
     <Compile Include="Utils\BatchStringBuilder.cs" />
     <Compile Include="Persistence\InMemoryStore.cs" />
-    <Compile Include="Persistence\MySqlStore.cs" />
-    <Compile Include="Persistence\SqlServer2012Store.cs" />
     <Compile Include="Projection.cs" />
     <Compile Include="ISerializer.cs" />
     <Compile Include="EvenMaster.cs" />

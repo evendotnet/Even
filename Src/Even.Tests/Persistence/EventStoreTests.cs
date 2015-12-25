@@ -13,16 +13,23 @@ namespace Even.Tests.Persistence
     {
         public EventStoreTests()
         {
-            Store = InitializeStore();
+            Store = CreateStore();
+            Store.InitializeAsync().Wait();
+            ResetStore();
         }
 
         protected IEventStore Store { get; }
         public object ConcurentBag { get; private set; }
 
         /// <summary>
-        /// Must return an empty event store each time it is called.
+        /// Creates the store object.
         /// </summary>
-        protected abstract IEventStore InitializeStore();
+        protected abstract IEventStore CreateStore();
+
+        /// <summary>
+        /// Resets the store to an initial state.
+        /// </summary>
+        protected abstract void ResetStore();
 
         #region Helpers
 
@@ -248,7 +255,7 @@ namespace Even.Tests.Persistence
         }
 
         [Fact]
-        public async Task WriteAsync_Throws_DuplicatedEventException()
+        public async Task WriteAsync_Throws_DuplicatedEntryException()
         {
             var e = CreateEvent("test", "SomeEvent");
 

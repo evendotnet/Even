@@ -57,6 +57,8 @@ namespace Even
         {
             Receive<EvenStartInfo>(async startInfo =>
             {
+                await startInfo.Store.InitializeAsync();
+
                 InitializeServices(startInfo);
                 var t1 = InitializeProjections(startInfo.Projections);
                 var t2 = InitializeEventProcessors(startInfo.EventProcessors);

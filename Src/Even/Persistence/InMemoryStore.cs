@@ -23,6 +23,11 @@ namespace Even.Persistence
             }
         }
 
+        public Task InitializeAsync()
+        {
+            return Unit.GetCompletedTask();
+        }
+
         #region Events
 
         public Task WriteAsync(IReadOnlyCollection<IUnpersistedRawStreamEvent> events)

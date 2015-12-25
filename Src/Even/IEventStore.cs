@@ -5,15 +5,12 @@ using System.Threading.Tasks;
 
 namespace Even
 {
-    // stores should implement at least IEventStore, and optionally IProjectionStore
-    // stores should implement all interfaces in the same type
-
     public interface IEventStore : IEventStoreWriter, IEventStoreReader, IProjectionStoreWriter, IProjectionStoreReader
-    { }
-
-    public interface IEventStoreInitializer
     {
-        Task InitializeStore();
+        /// <summary>
+        /// Initializes the store driver. This method is called by the Master service every time Even starts.
+        /// </summary>
+        Task InitializeAsync();
     }
 
     // the following interfaces exist only for internal use

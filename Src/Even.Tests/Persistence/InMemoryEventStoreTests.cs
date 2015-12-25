@@ -10,9 +10,12 @@ namespace Even.Tests.Persistence
 {
     public class InMemoryEventStoreTests : EventStoreTests
     {
-        protected override IEventStore InitializeStore()
+        protected override IEventStore CreateStore()
         {
             return new InMemoryStore();
         }
+
+        protected override void ResetStore()
+        { }
     }
 }
