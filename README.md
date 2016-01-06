@@ -1,5 +1,7 @@
 # Even
 
+[![Join the chat at https://gitter.im/evendotnet/Even](https://badges.gitter.im/evendotnet/Even.svg)](https://gitter.im/evendotnet/Even?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Even is experimental event sourcing framework for .NET built on top of [Akka.NET](http://getakka.net). It aims to provide a solid foundation to build real world event sourcing applications on .NET.
 
 > This project is currently an experiment. Feel free to open issues to discuss design, ask questions or contribute.
