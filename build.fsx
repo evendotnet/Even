@@ -14,6 +14,8 @@ open System.IO
 #else
 #load "packages/SourceLink.Fake/tools/Fake.fsx"
 open SourceLink
+open Fake.Testing
+
 #endif
 
 // --------------------------------------------------------------------------------------
@@ -42,7 +44,7 @@ let description = "An event sourcing framework on top of Akka.NET"
 let authors = [ "nvivo" ]
 
 // Tags for your project (for NuGet package)
-let tags = "Akka EventSourcing Persistence"
+let tags = "even event sourcing akka.net"
 
 // File system information
 let solutionFile  = "Even.sln"
@@ -140,11 +142,12 @@ Target "Build" (fun _ ->
 
 Target "RunTests" (fun _ ->
     !! testAssemblies
-    |> NUnit (fun p ->
+    |> xUnit2 (fun p ->
         { p with
-            DisableShadowCopy = true
+            ShadowCopy = false
             TimeOut = TimeSpan.FromMinutes 20.
-            OutputFile = "TestResults.xml" })
+            XmlOutputPath = Some("TestResults.xml")            
+            NUnitXmlOutputPath = Some("TestResults.xml") })
 )
 
 #if MONO
