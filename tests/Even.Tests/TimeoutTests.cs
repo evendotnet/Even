@@ -16,6 +16,7 @@ namespace Even.Tests
         [InlineData(250)]
         [InlineData(500)]
         [InlineData(1000)]
+        [Trait("Category","Timeout")]
         public void Timeout_does_not_expires_before_time(int milliseconds)
         {
             var timeout = Timeout.In(TimeSpan.FromMilliseconds(milliseconds));
@@ -30,6 +31,7 @@ namespace Even.Tests
         [InlineData(250)]
         [InlineData(500)]
         [InlineData(1000)]
+        [Trait("Category", "Timeout")]
         public void Timeout_is_expired_after_expected_time(int milliseconds)
         {
             var timeout = Timeout.In(TimeSpan.FromMilliseconds(milliseconds));

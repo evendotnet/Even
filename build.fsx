@@ -150,6 +150,7 @@ Target "RunTests" (fun _ ->
         { p with
             ShadowCopy = false
             TimeOut = TimeSpan.FromMinutes 20.
+            ExcludeTraits = [("Category","Timeout"); ("Investigate","True")]
             HtmlOutputPath = Some(rootDir @@ "temp" @@ "TestResults" @@ "TestResults.html")
             XmlOutputPath = Some( rootDir @@ "temp" @@ "TestResults" @@ "TestResults.xml")            
             NUnitXmlOutputPath = Some(rootDir @@ "temp" @@ "TestResults" @@"TestResults.nunit.xml") })
