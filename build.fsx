@@ -70,6 +70,8 @@ let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/EvenDotNet"
 // Read additional information from the release notes document
 let release = LoadReleaseNotes "RELEASE_NOTES.md"
 
+let rootDir = __SOURCE_DIRECTORY__
+
 // Helper active pattern for project types
 let (|Fsproj|Csproj|Vbproj|Shproj|) (projFileName:string) =
     match projFileName with
@@ -141,13 +143,16 @@ Target "Build" (fun _ ->
 // Run the unit tests using test runner
 
 Target "RunTests" (fun _ ->
+    CreateDir (rootDir @@ "temp" @@ "TestResults")
+
     !! testAssemblies
     |> xUnit2 (fun p ->
         { p with
             ShadowCopy = false
             TimeOut = TimeSpan.FromMinutes 20.
-            XmlOutputPath = Some("TestResults.xml")            
-            NUnitXmlOutputPath = Some("TestResults.xml") })
+            HtmlOutputPath = Some(rootDir @@ "temp" @@ "TestResults" @@ "TestResults.html")
+            XmlOutputPath = Some( rootDir @@ "temp" @@ "TestResults" @@ "TestResults.xml")            
+            NUnitXmlOutputPath = Some(rootDir @@ "temp" @@ "TestResults" @@"TestResults.nunit.xml") })
 )
 
 #if MONO
