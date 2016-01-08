@@ -3,13 +3,30 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even", "Even\Even.csproj", "{AB3B9D37-1A32-4152-8775-919F9018A0FE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even", "src\Even\Even.csproj", "{AB3B9D37-1A32-4152-8775-919F9018A0FE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Sample", "Even.Sample\Even.Sample.csproj", "{B1ED1024-1B1A-408D-8D3D-75AA007ED3D0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Sample", "src\Even.Sample\Even.Sample.csproj", "{B1ED1024-1B1A-408D-8D3D-75AA007ED3D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Tests", "Even.Tests\Even.Tests.csproj", "{998D145B-1238-47D1-BCD5-7EECA1E8A301}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Tests", "tests\Even.Tests\Even.Tests.csproj", "{998D145B-1238-47D1-BCD5-7EECA1E8A301}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Persistence.Sql", "Even.Persistence.Sql\Even.Persistence.Sql.csproj", "{0C89F145-3156-47CF-9B10-56591C37FD2C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Even.Persistence.Sql", "src\Even.Persistence.Sql\Even.Persistence.Sql.csproj", "{0C89F145-3156-47CF-9B10-56591C37FD2C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".paket", ".paket", "{AAC9CF63-8EA1-41FA-9F02-19B29B7A0403}"
+	ProjectSection(SolutionItems) = preProject
+		paket.dependencies = paket.dependencies
+		paket.lock = paket.lock
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "project", "project", "{3667C138-632E-4407-A1B0-BE520C1344B5}"
+	ProjectSection(SolutionItems) = preProject
+		appveyor.yml = appveyor.yml
+		build.cmd = build.cmd
+		build.fsx = build.fsx
+		build.sh = build.sh
+		License.txt = License.txt
+		README.md = README.md
+		RELEASE_NOTES.md = RELEASE_NOTES.md
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

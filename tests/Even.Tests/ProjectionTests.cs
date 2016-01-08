@@ -93,7 +93,8 @@ namespace Even.Tests
             sup.ExpectMsg<ProjectionSubscriptionRequest>();
         }
 
-        [Fact]
+        [Trait("Category","Projection")]
+        [Trait("Investigate", "True")]
         public void Receives_events_after_replay()
         {
             var proj = CreateAndInitializeTestProjection();
