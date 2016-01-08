@@ -5,5 +5,8 @@ build_script:
 test: off
 version: 0.0.2.{build}
 artifacts:
-  - path: bin
+  - path: temp\TestResults\*.*
+    name: testResults
+
+  - path: bin\**\*.nupkg
     name: bin
