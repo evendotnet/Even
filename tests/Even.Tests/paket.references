@@ -1,0 +1,13 @@
+Akka
+Akka.TestKit
+Akka.TestKit.Xunit2
+DBHelpers
+MySql.Data
+Newtonsoft.Json
+NSubstitute
+xunit
+xunit.abstractions
+xunit.assert
+xunit.core
+xunit.extensibility.core
+xunit.extensibility.execution

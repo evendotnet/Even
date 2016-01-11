@@ -243,6 +243,7 @@ namespace Even.Tests
         }
 
         [Fact]
+        [Trait("Investigate","True")]
         public void Publishes_events_from_eventstream_to_subscribers()
         {
             var reader = CreateWorkingReader();
@@ -264,7 +265,7 @@ namespace Even.Tests
             Sys.EventStream.Publish(e);
 
             // expects the domain event to be the same
-            ExpectMsg<IPersistedStreamEvent>(m => m.DomainEvent == e.DomainEvent);
+            ExpectMsg<IPersistedStreamEvent>(m => m.DomainEvent == e.DomainEvent, TimeSpan.FromSeconds(15));
         }
 
         [Fact]

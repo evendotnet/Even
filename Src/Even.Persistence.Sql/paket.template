@@ -1,0 +1,23 @@
+﻿type project
+owners
+    nvivo
+authors 
+    nvivo
+projectUrl
+    http://github.com/EvenDotNet/Even
+iconUrl
+    https://raw.githubusercontent.com/EvenDotNet/Even/master/docs/files/img/logo.png
+licenseUrl
+    http://github.com/EvenDotNet/Even/blob/master/LICENSE.txt
+requireLicenseAcceptance
+    false
+copyright
+    Copyright 2015
+tags
+    even event sourcing akka.net
+summary
+    SQL based persistent extensions for Even.
+description
+    Even is experimental event sourcing framework built on top of Akka.NET.
+
+
