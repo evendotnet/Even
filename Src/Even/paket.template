@@ -19,5 +19,5 @@ summary
     An event sourcing framework on top of Akka.NET
 description
     Even is experimental event sourcing framework built on top of Akka.NET.
-
-
+dependencies
+  Akka LOCKEDVERSION

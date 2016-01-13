@@ -3,17 +3,10 @@ source https://nuget.org/api/v2
 nuget Akka 1.0.5
 nuget Akka.TestKit 1.0.5
 nuget Akka.TestKit.Xunit2 1.0.5
-nuget DBHelpers 1.1.0.0
+nuget DBHelpers ~> 1.1
 nuget FSharp.Formatting
 nuget MySql.Data 6.9.8
-nuget Newtonsoft.Json 7.0.1
 nuget NSubstitute 1.9.2.0
-nuget xunit 2.1.0
-nuget xunit.abstractions 2.0.0
-nuget xunit.assert 2.1.0
-nuget xunit.core 2.1.0
-nuget xunit.extensibility.core 2.1.0
-nuget xunit.extensibility.execution 2.1.0
 nuget xunit.runner.console 2.1
 nuget FAKE
 nuget SourceLink.Fake
