@@ -68,7 +68,14 @@ let gitRaw = environVarOrDefault "gitRaw" "https://raw.github.com/EvenDotNet"
 // --------------------------------------------------------------------------------------
 
 // Read additional information from the release notes document
-let release = LoadReleaseNotes "RELEASE_NOTES.md"
+let release = 
+  let rel = LoadReleaseNotes "RELEASE_NOTES.md"
+  
+  match buildServer with
+  | AppVeyor -> 
+    let nugetVersion = rel.NugetVersion + "-build-ci-"+AppVeyor.AppVeyorEnvironment.BuildNumber        
+    {rel with NugetVersion = nugetVersion}
+  | _ -> rel
 
 let rootDir = __SOURCE_DIRECTORY__
 
