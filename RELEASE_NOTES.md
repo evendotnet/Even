@@ -1,4 +1,4 @@
-### 0.0.2-alpha - Unreleased
+### 0.0.2-alpha01 - January 14 2016
 * Got SQL Persistence working
 * Downgraded project/nuget packages to .NET 4.5.1
 * Enable CI

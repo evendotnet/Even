@@ -1,8 +1,8 @@
 ﻿type project
 owners
-    nvivo
+    nvivo, DamReev
 authors 
-    nvivo
+    nvivo, DamReev
 projectUrl
     http://github.com/EvenDotNet/Even
 iconUrl
@@ -19,5 +19,6 @@ summary
     SQL based persistent extensions for Even.
 description
     Even is experimental event sourcing framework built on top of Akka.NET.
-
+dependencies
+  Akka >= LOCKEDVERSION
 
