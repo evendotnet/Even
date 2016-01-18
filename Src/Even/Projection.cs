@@ -138,7 +138,7 @@ namespace Even
                 CurrentSequence++;
                 await ProcessEventInternal(e);
 
-            }, e => e.Stream == ProjectionStream);
+            }, e => ProjectionStream.Equals(e.Stream));
 
             Receive<IQuery>(async q =>
             {

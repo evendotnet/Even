@@ -14,7 +14,8 @@ namespace Even
             var eventType = persistedEvent.DomainEvent.GetType();
 
             var t = typeof(ProjectionEvent<>).MakeGenericType(eventType);
-            return (IPersistedStreamEvent)Activator.CreateInstance(t, stream, streamSequence, persistedEvent);
+            var newStream = new Stream(stream, persistedEvent.Stream.OriginalStreamName);
+            return (IPersistedStreamEvent)Activator.CreateInstance(t, newStream, streamSequence, persistedEvent);
         }
 
         class ProjectionEvent<T> : IPersistedStreamEvent<T>

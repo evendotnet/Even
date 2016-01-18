@@ -10,18 +10,27 @@ using System.Threading.Tasks;
 
 namespace Even.Sample.Projections
 {
-    public class ActiveProducts : Projection
+    public class ActiveProducts : PersistentProjection
     {
+        private const string CN = "Server=localhost; Integrated Security=true; Database=Projections";
+
+        protected override IProjectionStore Store { get; } = new Persistence.Sql.SqlServerProjectionStore(CN, "ActiveProducts", "ProductID");
+
         public ActiveProducts()
         {
-            OnEvent<ProductCreated>(e =>
+            OnEvent<ProductCreated>(async e =>
             {
-                _list.Add(new ProductInfo { ID = e.Stream.Name, Name = e.DomainEvent.Name });
+                await ProjectAsync(e.Stream.OriginalStreamName, new { e.DomainEvent.Name });
             });
 
-            OnEvent<ProductDeleted>(e =>
+            OnEvent<ProductRenamed>(async e =>
             {
-                _list.RemoveAll(i => i.ID == e.Stream.Name);
+                await ProjectAsync(e.Stream.OriginalStreamName, new { Name = e.DomainEvent.NewName });
+            });
+
+            OnEvent<ProductDeleted>(async e =>
+            {
+                await DeleteAsync(e.Stream.OriginalStreamName);
             });
         }
 
@@ -41,6 +50,8 @@ namespace Even.Sample.Projections
         }
 
         List<ProductInfo> _list = new List<ProductInfo>();
+
+
 
         #region Event Processors
 

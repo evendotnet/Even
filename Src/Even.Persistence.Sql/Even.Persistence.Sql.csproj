@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseSqlStore.cs" />
+    <Compile Include="SqlServerProjection.cs" />
     <Compile Include="MySqlStore.cs" />
     <Compile Include="Properties\AssemblyInfo.custom.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
