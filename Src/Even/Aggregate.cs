@@ -101,7 +101,7 @@ namespace Even
                     return;
 
                 Contract.Assert(msg.Event.StreamSequence == StreamSequence + 1);
-                await ApplyEventInternal(msg.Event);
+                await ApplyEventInternal(msg.Event.DomainEvent);
             });
 
             Receive<ReadStreamFinished>(msg =>
