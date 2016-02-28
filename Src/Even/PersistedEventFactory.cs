@@ -32,7 +32,7 @@ namespace Even
             var domainEvent = DeserializeDomainEvent(rawEvent, metadata);
 
             var t = typeof(ReadEvent<>).MakeGenericType(domainEvent.GetType());
-            return (IPersistedStreamEvent)Activator.CreateInstance(t, rawEvent, metadata, domainEvent);
+            return (IPersistedEvent)Activator.CreateInstance(t, rawEvent, metadata, domainEvent);
         }
 
         public IPersistedStreamEvent CreateStreamEvent(IPersistedRawEvent rawEvent, int streamSequence)
