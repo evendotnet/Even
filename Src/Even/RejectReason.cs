@@ -38,7 +38,7 @@ namespace Even
                 _reasons.Add(key, list);
             }
 
-            list.Add(key);
+            list.Add(reason);
         }
 
         public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
