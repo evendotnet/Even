@@ -215,7 +215,8 @@ namespace Even
                 // tell the subscribers
                 if (tellSubscribers)
                 {
-                    var projectionEvent = ProjectionEventFactory.Create(_query.ProjectionStream, _currentSequence, e);
+                    var stream = new Stream(_query.ProjectionStream, e.Stream.OriginalStreamName);
+                    var projectionEvent = ProjectionEventFactory.Create(stream, _currentSequence, e);
 
                     foreach (var s in _subscribers)
                         s.Tell(projectionEvent);
