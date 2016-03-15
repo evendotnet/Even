@@ -66,7 +66,7 @@ function Build-TestProjects
 function Test-Projects
 {
     param([string] $DirectoryName)
-    & dnx -p ("""" + $DirectoryName + """") test; if($LASTEXITCODE -ne 0) { exit 2 }
+    & dnx -p ("""" + $DirectoryName + """") ci-test; if($LASTEXITCODE -ne 0) { exit 2 }
 }
 
 function Remove-PathVariable
@@ -119,9 +119,9 @@ Get-ChildItem -Path .\test -Filter *.xproj -Recurse | ForEach-Object { Build-Tes
 Get-ChildItem -Path .\test -Filter *.xproj -Recurse | ForEach-Object { Test-Projects $_.DirectoryName }
 
 # Switch to Core CLR
-dnvm use $dnxVersion -r CoreCLR
+#dnvm use $dnxVersion -r CoreCLR
 
 # Test again
-Get-ChildItem -Path .\test -Filter *.xproj -Recurse | ForEach-Object { Test-Projects $_.DirectoryName }
+#Get-ChildItem -Path .\test -Filter *.xproj -Recurse | ForEach-Object { Test-Projects $_.DirectoryName }
 
 Pop-Location

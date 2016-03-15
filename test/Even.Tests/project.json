@@ -9,9 +9,10 @@
         "MySql.Data": "6.9.8"
     },
 
-  "commands": {
-    "test": "xunit.runner.dnx"
-  },
+    "commands": {
+        "test": "xunit.runner.dnx",
+        "ci-test": "xunit.runner.dnx -notrait Category=Timeout -notrait Investigate=True"
+    },
 
   "frameworks": {
     "dnx451": { }
