@@ -145,8 +145,8 @@ Get-ChildItem -Path . -Filter *.xproj -Recurse | ForEach-Object { Restore-Packag
 $env:DNX_BUILD_VERSION = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
 Write-Host "##### Build number: " $env:DNX_BUILD_VERSION
 
-#Update project version numbers
-Update-ProjectVersions -DirectoryName "$ScriptDir" -ProductVersion $ProductVersion
+#Update project version numbers - still buggy
+#Update-ProjectVersions -DirectoryName "$ScriptDir" -ProductVersion $ProductVersion
 
 # Build/package
 Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Build-Projects $_.DirectoryName }
