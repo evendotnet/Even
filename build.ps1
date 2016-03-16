@@ -1,5 +1,11 @@
-param([switch]$SkipInstall)
+param(
+    [string]$ProductVersion=$null,
+    [switch]$SkipInstall
+)
 
+###############################################################################
+# Functions
+###############################################################################
 function Get-ScriptDirectory {
 	if (Test-Path variable:\hostinvocation) {
 		$FullPath = $hostinvocation.MyCommand.Path
@@ -47,6 +53,34 @@ function Restore-Packages
 {
     param([string] $DirectoryName)
     & dnu restore ("""" + $DirectoryName + """")
+}
+
+function Update-ProjectVersions
+{
+    param(
+        [string]$DirectoryName,
+        [string]$ProductVersion
+    )    
+	if (-not [String]::IsNullOrEmpty($ProductVersion)) 
+	{
+
+		$projectFiles = Get-ChildItem -Path $DirectoryName -Filter project.json -Recurse
+		foreach($projectFile in $projectFiles)
+		{
+			$projectFilePath = $projectFile.FullName
+			$projectJson = Get-Content -Path $projectFilePath -Raw | ConvertFrom-Json
+
+			if($projectJson -ne $null){
+				$versionProperty = $projectJson | Get-Member -Name version
+				if($versionProperty -ne $null){
+					if($projectJson.version -ne $ProductVersion){
+						$projectJson.version = $ProductVersion
+						ConvertTo-Json $projectJson |Set-Content -Path $projectFilePath
+					}					
+				}				
+			} 
+		}		
+	} 
 }
 
 function Build-Projects
@@ -110,6 +144,9 @@ Get-ChildItem -Path . -Filter *.xproj -Recurse | ForEach-Object { Restore-Packag
 # Set build number
 $env:DNX_BUILD_VERSION = @{ $true = $env:APPVEYOR_BUILD_NUMBER; $false = 1 }[$env:APPVEYOR_BUILD_NUMBER -ne $NULL];
 Write-Host "##### Build number: " $env:DNX_BUILD_VERSION
+
+#Update project version numbers
+Update-ProjectVersions -DirectoryName "$ScriptDir" -ProductVersion $ProductVersion
 
 # Build/package
 Get-ChildItem -Path .\src -Filter *.xproj -Recurse | ForEach-Object { Build-Projects $_.DirectoryName }

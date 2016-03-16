@@ -18,6 +18,8 @@
     "dependencies": {
         "Akka": "1.0.6",
         "DBHelpers": "1.1.0.0",
-        "Even": "0.3.0-alpha1-*"
+        "Even": {
+            "target": "project"
+        }
     }
 }
