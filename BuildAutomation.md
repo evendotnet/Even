@@ -1,1 +1,0 @@
-- [ ] Remember to rename `tests` folder to `test`
