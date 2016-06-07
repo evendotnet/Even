@@ -243,7 +243,7 @@ namespace Even.Tests
         }
 
         [Fact]
-        [Trait("Investigate","True")]
+        [Trait("Category","Unstable")]
         public void Publishes_events_from_eventstream_to_subscribers()
         {
             var reader = CreateWorkingReader();

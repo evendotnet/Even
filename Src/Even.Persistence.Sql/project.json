@@ -1,25 +1,13 @@
 {
-    "version": "0.3.0-alpha1-*",
-    "summary": "SQL based persistent extensions for Even.",
-    "description": "Even is an experimental event sourcing framework built on top of Akka.NET.",
-    "authors": [ "nvivo", "DamReev" ],
-    "tags": [ "Even","Event","Event Sourcing", "Akka", "Akka.NET" ],
-    "projectUrl": "http://github.com/EvenDotNet/Even",
-    "licenseUrl": "http://github.com/EvenDotNet/Even/blob/master/LICENSE.txt",
-    "iconUrl": "https://raw.githubusercontent.com/EvenDotNet/Even/master/docs/files/img/logo.png",
-
-    "frameworks": {
-        "net451": {
-            "frameworkAssemblies": {
-                "System.Data": ""
-            }
-        }
-    },
-    "dependencies": {
-        "Akka": "1.0.6",
-        "DBHelpers": "1.1.0.0",
-        "Even": {
-            "target": "project"
-        }
+  "dependencies": {
+    "Akka": "1.0.8",
+    "DBHelpers": "1.1.0.0"
+  },
+  "frameworks": {
+    "net451": {
     }
+  },
+  "runtimes": {
+    "win": ""
+  }
 }

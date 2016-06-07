@@ -5,13 +5,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.PlatformAbstractions;
 
 namespace Even.Tests
 {
     public class EvenTestKit : TestKit
     {
-        static readonly string Config = File.ReadAllText(GetTestConfigHoconPath());
+        static readonly string Config = File.ReadAllText("TestConfig.hocon");
 
         public EvenTestKit()
             : base(Config)
@@ -42,16 +41,6 @@ namespace Even.Tests
                 return received;
 
             throw new Exception($"Message of type '{typeof(T).FullName}' received, but didn't match the predicate");
-        }
-
-        private static string GetTestConfigHoconPath()
-        {
-            var appEnv = CallContextServiceLocator.Locator.ServiceProvider.GetService(typeof (IApplicationEnvironment)) as IApplicationEnvironment;
-            var path =
-                appEnv == null
-                    ? "TestConfig.hocon"
-                    : Path.Combine(appEnv.ApplicationBasePath, "TestConfig.hocon");
-            return path;
         }
     }
 }

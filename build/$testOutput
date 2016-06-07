@@ -1,0 +1,311 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<assemblies>
+  <assembly name="C:\code\GitHub\DamianReeves\Even\test\Even.Tests\bin\Release\Even.Tests.DLL" environment="32-bit .NET 4.0.30319.42000 [collection-per-class, parallel (8 threads)]" test-framework="xUnit.net 2.1.0.3179" run-date="2016-06-07" run-time="11:41:20" config-file="C:\code\GitHub\DamianReeves\Even\test\Even.Tests\bin\Release\Even.Tests.dll.config" total="221" passed="221" failed="0" skipped="0" time="4.740" errors="0">
+    <errors />
+    <collection total="4" passed="4" failed="0" skipped="0" name="Test collection for Even.Tests.BufferedEventWriterTests" time="0.757">
+      <test name="Even.Tests.BufferedEventWriterTests.Exception_for_some_items_still_writes_the_others" type="Even.Tests.BufferedEventWriterTests" method="Exception_for_some_items_still_writes_the_others" time="0.0646586" result="Pass" />
+      <test name="Even.Tests.BufferedEventWriterTests.Writer_tells_persistedevents_to_dispatcher_in_order" type="Even.Tests.BufferedEventWriterTests" method="Writer_tells_persistedevents_to_dispatcher_in_order" time="0.092553" result="Pass" />
+      <test name="Even.Tests.BufferedEventWriterTests.Writer_does_not_publish_to_event_stream" type="Even.Tests.BufferedEventWriterTests" method="Writer_does_not_publish_to_event_stream" time="0.515657" result="Pass" />
+      <test name="Even.Tests.BufferedEventWriterTests.DuplicatedEventException_causes_duplicatedevent_message" type="Even.Tests.BufferedEventWriterTests" method="DuplicatedEventException_causes_duplicatedevent_message" time="0.0842867" result="Pass" />
+    </collection>
+    <collection total="7" passed="7" failed="0" skipped="0" name="Test collection for Even.Tests.SerialEventStreamWriterTests" time="0.865">
+      <test name="Even.Tests.SerialEventStreamWriterTests.UnexpectedStreamSequenceException_causes_unexpectedstreamsequence_message" type="Even.Tests.SerialEventStreamWriterTests" method="UnexpectedStreamSequenceException_causes_unexpectedstreamsequence_message" time="0.0258096" result="Pass" />
+      <test name="Even.Tests.SerialEventStreamWriterTests.Writer_does_not_publish_to_event_stream" type="Even.Tests.SerialEventStreamWriterTests" method="Writer_does_not_publish_to_event_stream" time="0.5483832" result="Pass" />
+      <test name="Even.Tests.SerialEventStreamWriterTests.UnexpectedExceptions_during_write_causes_reply_with_persistencefailure(exceptionType: typeof(System.ArgumentException))" type="Even.Tests.SerialEventStreamWriterTests" method="UnexpectedExceptions_during_write_causes_reply_with_persistencefailure" time="0.0283755" result="Pass" />
+      <test name="Even.Tests.SerialEventStreamWriterTests.UnexpectedExceptions_during_write_causes_reply_with_persistencefailure(exceptionType: typeof(System.TimeoutException))" type="Even.Tests.SerialEventStreamWriterTests" method="UnexpectedExceptions_during_write_causes_reply_with_persistencefailure" time="0.0263654" result="Pass" />
+      <test name="Even.Tests.SerialEventStreamWriterTests.UnexpectedExceptions_during_write_causes_reply_with_persistencefailure(exceptionType: typeof(System.Exception))" type="Even.Tests.SerialEventStreamWriterTests" method="UnexpectedExceptions_during_write_causes_reply_with_persistencefailure" time="0.0316354" result="Pass" />
+      <test name="Even.Tests.SerialEventStreamWriterTests.Writer_tells_persistedevents_to_dispatcher_in_order" type="Even.Tests.SerialEventStreamWriterTests" method="Writer_tells_persistedevents_to_dispatcher_in_order" time="0.1322776" result="Pass" />
+      <test name="Even.Tests.SerialEventStreamWriterTests.DuplicatedEventException_causes_duplicatedevent_message" type="Even.Tests.SerialEventStreamWriterTests" method="DuplicatedEventException_causes_duplicatedevent_message" time="0.0721475" result="Pass" />
+    </collection>
+    <collection total="14" passed="14" failed="0" skipped="0" name="Test collection for Even.Tests.Utils.EnumerableExtensionsTests" time="0.013">
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_false_for_empty_enumerables" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_false_for_empty_enumerables" time="0.0120499" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [0])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.0004921" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [1000])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.0000082" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [0, 1])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.0000038" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [0, 1, 2, 3, 4, ...])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.000003" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [1000, 1001, 1002, 1003])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.000003" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [-2147483648, -2147483647, -2147483646])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.000003" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [2147483645, 2147483646, 2147483647])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.0000034" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [-10, -9, -8, -7])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.0000022" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_true(values: [-2, -1, 0, 1, 2])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_true" time="0.000003" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_false(values: [1, 2, 3, 5, 6, ...])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_false" time="0.0001479" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_false(values: [1000, 1001, 1002, 1030])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_false" time="0.0000074" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_false(values: [-2147483648, 2147483647])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_false" time="0.0000042" result="Pass" />
+      <test name="Even.Tests.Utils.EnumerableExtensionsTests.IsSequential_returns_false(values: [1, 0, -1])" type="Even.Tests.Utils.EnumerableExtensionsTests" method="IsSequential_returns_false" time="0.0000054" result="Pass" />
+    </collection>
+    <collection total="4" passed="4" failed="0" skipped="0" name="Test collection for Even.Tests.StreamTests" time="0.010">
+      <test name="Even.Tests.StreamTests.Same_hashes_generate_equal_streams" type="Even.Tests.StreamTests" method="Same_hashes_generate_equal_streams" time="0.0075351" result="Pass" />
+      <test name="Even.Tests.StreamTests.Names_must_be_case_insensitive" type="Even.Tests.StreamTests" method="Names_must_be_case_insensitive" time="0.0009473" result="Pass" />
+      <test name="Even.Tests.StreamTests.Different_names_generate_different_hashes" type="Even.Tests.StreamTests" method="Different_names_generate_different_hashes" time="0.0009852" result="Pass" />
+      <test name="Even.Tests.StreamTests.Same_name_generates_equal_streams" type="Even.Tests.StreamTests" method="Same_name_generates_equal_streams" time="0.0002853" result="Pass" />
+    </collection>
+    <collection total="5" passed="5" failed="0" skipped="0" name="Test collection for Even.Tests.EventStoreReaderTests" time="0.100">
+      <test name="Even.Tests.EventStoreReaderTests.ReadRequests_are_forwarded_to_worker" type="Even.Tests.EventStoreReaderTests" method="ReadRequests_are_forwarded_to_worker" time="0.0168312" result="Pass" />
+      <test name="Even.Tests.EventStoreReaderTests.ReadHighestGlobalSequenceRequests_are_fowarded_to_worker" type="Even.Tests.EventStoreReaderTests" method="ReadHighestGlobalSequenceRequests_are_fowarded_to_worker" time="0.0190332" result="Pass" />
+      <test name="Even.Tests.EventStoreReaderTests.ReadStreamRequests_are_forwarded_to_worker" type="Even.Tests.EventStoreReaderTests" method="ReadStreamRequests_are_forwarded_to_worker" time="0.0237628" result="Pass" />
+      <test name="Even.Tests.EventStoreReaderTests.ReadProjectionIndexCheckpointRequests_are_forwarded_to_worker" type="Even.Tests.EventStoreReaderTests" method="ReadProjectionIndexCheckpointRequests_are_forwarded_to_worker" time="0.0283574" result="Pass" />
+      <test name="Even.Tests.EventStoreReaderTests.ReadIndexedProjectionStreamRequests_are_forwarded_to_worker" type="Even.Tests.EventStoreReaderTests" method="ReadIndexedProjectionStreamRequests_are_forwarded_to_worker" time="0.012327" result="Pass" />
+    </collection>
+    <collection total="5" passed="5" failed="0" skipped="0" name="Test collection for Even.Tests.ProjectionIndexWriterTests" time="2.709">
+      <test name="Even.Tests.ProjectionIndexWriterTests.Writer_does_not_reply_on_unexpected_exceptions" type="Even.Tests.ProjectionIndexWriterTests" method="Writer_does_not_reply_on_unexpected_exceptions" time="2.2882006" result="Pass" />
+      <test name="Even.Tests.ProjectionIndexWriterTests.Writer_replies_inconsistency_message_on_unexpected_sequence" type="Even.Tests.ProjectionIndexWriterTests" method="Writer_replies_inconsistency_message_on_unexpected_sequence" time="0.1392787" result="Pass" />
+      <test name="Even.Tests.ProjectionIndexWriterTests.Writer_buffers_requests_before_writing" type="Even.Tests.ProjectionIndexWriterTests" method="Writer_buffers_requests_before_writing" time="0.229293" result="Pass" />
+      <test name="Even.Tests.ProjectionIndexWriterTests.Writer_replies_inconsistency_message_on_missing_sequence" type="Even.Tests.ProjectionIndexWriterTests" method="Writer_replies_inconsistency_message_on_missing_sequence" time="0.0193924" result="Pass" />
+      <test name="Even.Tests.ProjectionIndexWriterTests.Writer_replies_inconsistency_message_on_duplicated_request" type="Even.Tests.ProjectionIndexWriterTests" method="Writer_replies_inconsistency_message_on_duplicated_request" time="0.0329741" result="Pass" />
+    </collection>
+    <collection total="2" passed="2" failed="0" skipped="0" name="Test collection for Even.Tests.ProjectionCheckpointWriterTests" time="1.535">
+      <test name="Even.Tests.ProjectionCheckpointWriterTests.Writer_does_not_reply_failure_messages_on_store_exception" type="Even.Tests.ProjectionCheckpointWriterTests" method="Writer_does_not_reply_failure_messages_on_store_exception" time="1.2959714" result="Pass" />
+      <test name="Even.Tests.ProjectionCheckpointWriterTests.Writer_buffers_and_writes_only_highest_value" type="Even.Tests.ProjectionCheckpointWriterTests" method="Writer_buffers_and_writes_only_highest_value" time="0.2394991" result="Pass" />
+    </collection>
+    <collection total="4" passed="4" failed="0" skipped="0" name="Test collection for Even.Tests.EventDispatcherTests" time="0.859">
+      <test name="Even.Tests.EventDispatcherTests.Dispatcher_publishes_events_to_eventstream" type="Even.Tests.EventDispatcherTests" method="Dispatcher_publishes_events_to_eventstream" time="0.2592194" result="Pass" />
+      <test name="Even.Tests.EventDispatcherTests.Normal_initialization_message_replies_as_initialized_and_request_global_sequence_to_reader" type="Even.Tests.EventDispatcherTests" method="Normal_initialization_message_replies_as_initialized_and_request_global_sequence_to_reader" time="0.0386653" result="Pass" />
+      <test name="Even.Tests.EventDispatcherTests.Dispatcher_requests_correct_missing_events_to_reader" type="Even.Tests.EventDispatcherTests" method="Dispatcher_requests_correct_missing_events_to_reader" time="0.4484883" result="Pass" />
+      <test name="Even.Tests.EventDispatcherTests.Gaps_in_sequence_causes_dispatcher_to_get_missing_events_from_reader" type="Even.Tests.EventDispatcherTests" method="Gaps_in_sequence_causes_dispatcher_to_get_missing_events_from_reader" time="0.1126648" result="Pass" />
+    </collection>
+    <collection total="9" passed="9" failed="0" skipped="0" name="Test collection for Even.Tests.ReadWorkerTests" time="0.099">
+      <test name="Even.Tests.ReadWorkerTests.Reads_with_initialsequence_and_counts" type="Even.Tests.ReadWorkerTests" method="Reads_with_initialsequence_and_counts" time="0.0191286" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Reads_with_sequence_above_highest_sends_ReadFinished" type="Even.Tests.ReadWorkerTests" method="Reads_with_sequence_above_highest_sends_ReadFinished" time="0.0072567" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Reads_single_event(sequenceToRead: 1)" type="Even.Tests.ReadWorkerTests" method="Reads_single_event" time="0.0075476" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Reads_single_event(sequenceToRead: 4)" type="Even.Tests.ReadWorkerTests" method="Reads_single_event" time="0.0068798" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Reads_single_event(sequenceToRead: 10)" type="Even.Tests.ReadWorkerTests" method="Reads_single_event" time="0.0105347" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Reads_all_events" type="Even.Tests.ReadWorkerTests" method="Reads_all_events" time="0.0171363" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Reads_with_count_zero_sends_ReadFinished" type="Even.Tests.ReadWorkerTests" method="Reads_with_count_zero_sends_ReadFinished" time="0.0088642" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Receives_ReadAborted_on_store_exception" type="Even.Tests.ReadWorkerTests" method="Receives_ReadAborted_on_store_exception" time="0.0127837" result="Pass" />
+      <test name="Even.Tests.ReadWorkerTests.Receives_ReadCancelled_on_cancel_request" type="Even.Tests.ReadWorkerTests" method="Receives_ReadCancelled_on_cancel_request" time="0.0085534" result="Pass" />
+    </collection>
+    <collection total="5" passed="5" failed="0" skipped="0" name="Test collection for Even.Tests.EventStoreWriterTests" time="1.653">
+      <test name="Even.Tests.EventStoreWriterTests.Requests_with_any_version_are_forwarded_to_buffered_writer_only" type="Even.Tests.EventStoreWriterTests" method="Requests_with_any_version_are_forwarded_to_buffered_writer_only" time="0.3278529" result="Pass" />
+      <test name="Even.Tests.EventStoreWriterTests.Request_for_checkpoint_writes_are_forwarded_to_checkpoint_writer_only" type="Even.Tests.EventStoreWriterTests" method="Request_for_checkpoint_writes_are_forwarded_to_checkpoint_writer_only" time="0.3390971" result="Pass" />
+      <test name="Even.Tests.EventStoreWriterTests.Requests_with_expected_version_are_forwarded_to_serial_writer_only" type="Even.Tests.EventStoreWriterTests" method="Requests_with_expected_version_are_forwarded_to_serial_writer_only" time="0.3396104" result="Pass" />
+      <test name="Even.Tests.EventStoreWriterTests.Requests_for_multiple_streams_are_forwarded_to_buffered_writer_only" type="Even.Tests.EventStoreWriterTests" method="Requests_for_multiple_streams_are_forwarded_to_buffered_writer_only" time="0.3298682" result="Pass" />
+      <test name="Even.Tests.EventStoreWriterTests.Requests_for_index_writes_are_forwarded_to_index_writer_only" type="Even.Tests.EventStoreWriterTests" method="Requests_for_index_writes_are_forwarded_to_index_writer_only" time="0.3164901" result="Pass" />
+    </collection>
+    <collection total="11" passed="11" failed="0" skipped="0" name="Test collection for Even.Tests.ReadStreamWorkerTests" time="0.769">
+      <test name="Even.Tests.ReadStreamWorkerTests.Receives_ReadAborted_on_store_exception" type="Even.Tests.ReadStreamWorkerTests" method="Receives_ReadAborted_on_store_exception" time="0.5080532" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_all_events(streamName: &quot;a&quot;, eventCount: 5)" type="Even.Tests.ReadStreamWorkerTests" method="Reads_all_events" time="0.0437051" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_all_events(streamName: &quot;b&quot;, eventCount: 10)" type="Even.Tests.ReadStreamWorkerTests" method="Reads_all_events" time="0.0368588" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_all_events(streamName: &quot;c&quot;, eventCount: 15)" type="Even.Tests.ReadStreamWorkerTests" method="Reads_all_events" time="0.0159832" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_single_event(streamName: &quot;a&quot;, sequenceToRead: 1)" type="Even.Tests.ReadStreamWorkerTests" method="Reads_single_event" time="0.0222536" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_single_event(streamName: &quot;b&quot;, sequenceToRead: 3)" type="Even.Tests.ReadStreamWorkerTests" method="Reads_single_event" time="0.0113065" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_single_event(streamName: &quot;c&quot;, sequenceToRead: 5)" type="Even.Tests.ReadStreamWorkerTests" method="Reads_single_event" time="0.0136984" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_with_sequence_above_highest_sends_ReadFinished" type="Even.Tests.ReadStreamWorkerTests" method="Reads_with_sequence_above_highest_sends_ReadFinished" time="0.0257396" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_with_initialsequence_and_counts" type="Even.Tests.ReadStreamWorkerTests" method="Reads_with_initialsequence_and_counts" time="0.0286744" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Reads_with_count_zero_sends_ReadFinished" type="Even.Tests.ReadStreamWorkerTests" method="Reads_with_count_zero_sends_ReadFinished" time="0.021719" result="Pass" />
+      <test name="Even.Tests.ReadStreamWorkerTests.Receives_ReadCancelled_on_cancel_request" type="Even.Tests.ReadStreamWorkerTests" method="Receives_ReadCancelled_on_cancel_request" time="0.0414997" result="Pass" />
+    </collection>
+    <collection total="12" passed="12" failed="0" skipped="0" name="Test collection for Even.Tests.AggregateTests" time="1.689">
+      <test name="Even.Tests.AggregateTests.Persists_two_events" type="Even.Tests.AggregateTests" method="Persists_two_events" time="0.2072146" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Next_command_is_processed_after_failure" type="Even.Tests.AggregateTests" method="Next_command_is_processed_after_failure" time="0.0328106" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Does_not_read_events_before_command" type="Even.Tests.AggregateTests" method="Does_not_read_events_before_command" time="0.5187317" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Does_not_read_events_if_command_is_invalid" type="Even.Tests.AggregateTests" method="Does_not_read_events_if_command_is_invalid" time="0.5187578" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Rejects_command_on_reject_call" type="Even.Tests.AggregateTests" method="Rejects_command_on_reject_call" time="0.0207373" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Multiple_commands_are_processed_in_order" type="Even.Tests.AggregateTests" method="Multiple_commands_are_processed_in_order" time="0.0194622" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Multiple_commands_persist_events_correctly" type="Even.Tests.AggregateTests" method="Multiple_commands_persist_events_correctly" time="0.0212994" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Fails_command_on_unexpected_error" type="Even.Tests.AggregateTests" method="Fails_command_on_unexpected_error" time="0.0313117" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Retries_commands_on_unexpected_sequence_before_failing" type="Even.Tests.AggregateTests" method="Retries_commands_on_unexpected_sequence_before_failing" time="0.1569231" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Events_are_processed_after_persistence" type="Even.Tests.AggregateTests" method="Events_are_processed_after_persistence" time="0.0119456" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Persists_one_event" type="Even.Tests.AggregateTests" method="Persists_one_event" time="0.0823714" result="Pass" />
+      <test name="Even.Tests.AggregateTests.Requests_replay_on_first_valid_command" type="Even.Tests.AggregateTests" method="Requests_replay_on_first_valid_command" time="0.0675526" result="Pass" />
+    </collection>
+    <collection total="1" passed="1" failed="0" skipped="0" name="Test collection for Even.Tests.EvenGatewayTests" time="0.017">
+      <test name="Even.Tests.EvenGatewayTests.Query_is_published_to_event_stream" type="Even.Tests.EvenGatewayTests" method="Query_is_published_to_event_stream" time="0.0173305" result="Pass" />
+    </collection>
+    <collection total="4" passed="4" failed="0" skipped="0" name="Test collection for Even.Tests.ProjectionTests" time="1.285">
+      <test name="Even.Tests.ProjectionTests.Rebuilds_on_RebuildProjection_message" type="Even.Tests.ProjectionTests" method="Rebuilds_on_RebuildProjection_message" time="1.1113076" result="Pass" />
+      <test name="Even.Tests.ProjectionTests.Does_not_handle_expired_queries" type="Even.Tests.ProjectionTests" method="Does_not_handle_expired_queries" time="0.1457728" result="Pass" />
+      <test name="Even.Tests.ProjectionTests.Projection_requests_subscription_on_start" type="Even.Tests.ProjectionTests" method="Projection_requests_subscription_on_start" time="0.0183992" result="Pass" />
+      <test name="Even.Tests.ProjectionTests.Handles_queries" type="Even.Tests.ProjectionTests" method="Handles_queries" time="0.009148" result="Pass" />
+    </collection>
+    <collection total="2" passed="2" failed="0" skipped="0" name="Test collection for Even.Tests.BasicIntegrationTests" time="2.269">
+      <test name="Even.Tests.BasicIntegrationTests.Projection_responds_to_queries" type="Even.Tests.BasicIntegrationTests" method="Projection_responds_to_queries" time="2.1093259" result="Pass" />
+      <test name="Even.Tests.BasicIntegrationTests.Event_is_accepted_and_published" type="Even.Tests.BasicIntegrationTests" method="Event_is_accepted_and_published" time="0.1596972" result="Pass" />
+    </collection>
+    <collection total="11" passed="11" failed="0" skipped="0" name="Test collection for Even.Tests.ReadIndexedProjectionStreamWorkerTests" time="0.264">
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_with_initialsequence_and_counts" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_with_initialsequence_and_counts" time="0.0464404" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_with_count_zero_sends_ReadFinished" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_with_count_zero_sends_ReadFinished" time="0.0145234" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Receives_ReadAborted_on_store_exception" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Receives_ReadAborted_on_store_exception" time="0.0238172" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_single_event(streamName: &quot;a&quot;, sequenceToRead: 1)" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_single_event" time="0.0237588" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_single_event(streamName: &quot;b&quot;, sequenceToRead: 3)" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_single_event" time="0.0153894" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_single_event(streamName: &quot;c&quot;, sequenceToRead: 5)" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_single_event" time="0.0268794" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_all_events(streamName: &quot;a&quot;, eventCount: 4)" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_all_events" time="0.0125737" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_all_events(streamName: &quot;b&quot;, eventCount: 6)" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_all_events" time="0.016464" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_all_events(streamName: &quot;c&quot;, eventCount: 10)" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_all_events" time="0.0200761" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Receives_ReadCancelled_on_cancel_request" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Receives_ReadCancelled_on_cancel_request" time="0.0319555" result="Pass" />
+      <test name="Even.Tests.ReadIndexedProjectionStreamWorkerTests.Reads_with_sequence_above_highest_sends_ReadFinished" type="Even.Tests.ReadIndexedProjectionStreamWorkerTests" method="Reads_with_sequence_above_highest_sends_ReadFinished" time="0.0322659" result="Pass" />
+    </collection>
+    <collection total="4" passed="4" failed="0" skipped="0" name="Test collection for Even.Tests.ProjectionReplayWorkerTests" time="1.782">
+      <test name="Even.Tests.ProjectionReplayWorkerTests.Worker_terminates_on_ReadFinished" type="Even.Tests.ProjectionReplayWorkerTests" method="Worker_terminates_on_ReadFinished" time="0.2509519" result="Pass" />
+      <test name="Even.Tests.ProjectionReplayWorkerTests.Worker_requests_until_all_events_are_read" type="Even.Tests.ProjectionReplayWorkerTests" method="Worker_requests_until_all_events_are_read" time="1.3891128" result="Pass" />
+      <test name="Even.Tests.ProjectionReplayWorkerTests.Sends_read_events_to_subscriber" type="Even.Tests.ProjectionReplayWorkerTests" method="Sends_read_events_to_subscriber" time="0.101514" result="Pass" />
+      <test name="Even.Tests.ProjectionReplayWorkerTests.Requests_events_to_reader" type="Even.Tests.ProjectionReplayWorkerTests" method="Requests_events_to_reader" time="0.0405752" result="Pass" />
+    </collection>
+    <collection total="38" passed="38" failed="0" skipped="0" name="Test collection for Even.Tests.Utils.BatchStringBuilderTests" time="0.143">
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Multiple_items_output_in_desired_length" type="Even.Tests.Utils.BatchStringBuilderTests" method="Multiple_items_output_in_desired_length" time="0.0935676" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 1, expected: [&quot;11&quot;, &quot;22&quot;, &quot;33&quot;, &quot;44&quot;, &quot;55&quot;, ...])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0055822" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 2, expected: [&quot;1122&quot;, &quot;3344&quot;, &quot;5566&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0000319" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 3, expected: [&quot;112233&quot;, &quot;445566&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0000105" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 4, expected: [&quot;11223344&quot;, &quot;5566&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0000117" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 5, expected: [&quot;1122334455&quot;, &quot;66&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0000101" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 6, expected: [&quot;112233445566&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0000121" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Batch_size_outputs_expected_strings(items: [11, 22, 33, 44, 55, ...], batchSize: 7, expected: [&quot;112233445566&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Batch_size_outputs_expected_strings" time="0.0000169" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 1, expected: [&quot;11&quot;, &quot;22&quot;, &quot;33&quot;, &quot;44&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0017139" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 2, expected: [&quot;11&quot;, &quot;22&quot;, &quot;33&quot;, &quot;44&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000426" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 3, expected: [&quot;11&quot;, &quot;22&quot;, &quot;33&quot;, &quot;44&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000208" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 4, expected: [&quot;1122&quot;, &quot;3344&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000109" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 5, expected: [&quot;1122&quot;, &quot;3344&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000149" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 6, expected: [&quot;112233&quot;, &quot;44&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000133" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 7, expected: [&quot;112233&quot;, &quot;44&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000105" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 8, expected: [&quot;11223344&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000086" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 9, expected: [&quot;11223344&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.0000074" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Desired_length_outputs_expected_strings(items: [11, 22, 33, 44], desiredLEngth: 10, expected: [&quot;11223344&quot;])" type="Even.Tests.Utils.BatchStringBuilderTests" method="Desired_length_outputs_expected_strings" time="0.000007" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Multiple_items_output_with_max_batch_size" type="Even.Tests.Utils.BatchStringBuilderTests" method="Multiple_items_output_with_max_batch_size" time="0.0013689" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Prefix_is_appended_to_each_string(batchSize: 1)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Prefix_is_appended_to_each_string" time="0.0363623" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Prefix_is_appended_to_each_string(batchSize: 2)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Prefix_is_appended_to_each_string" time="0.0000244" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Prefix_is_appended_to_each_string(batchSize: 3)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Prefix_is_appended_to_each_string" time="0.0000062" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Prefix_is_appended_to_each_string(batchSize: 4)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Prefix_is_appended_to_each_string" time="0.0000066" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Prefix_is_appended_to_each_string(batchSize: 5)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Prefix_is_appended_to_each_string" time="0.0000054" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Prefix_is_appended_to_each_string(batchSize: 6)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Prefix_is_appended_to_each_string" time="0.000005" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Single_input_yields_output" type="Even.Tests.Utils.BatchStringBuilderTests" method="Single_input_yields_output" time="0.0003678" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Single_item_is_appended_no_matter_the_length(item: &quot;&quot;)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Single_item_is_appended_no_matter_the_length" time="0.0011901" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Single_item_is_appended_no_matter_the_length(item: &quot;a&quot;)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Single_item_is_appended_no_matter_the_length" time="0.0000184" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Single_item_is_appended_no_matter_the_length(item: &quot;abc&quot;)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Single_item_is_appended_no_matter_the_length" time="0.000005" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Single_item_is_appended_no_matter_the_length(item: &quot;abcabcabcabcabc&quot;)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Single_item_is_appended_no_matter_the_length" time="0.0000038" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Empty_input_array_yields_no_output" type="Even.Tests.Utils.BatchStringBuilderTests" method="Empty_input_array_yields_no_output" time="0.0003935" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Suffix_is_appended_to_each_string(batchSize: 1)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Suffix_is_appended_to_each_string" time="0.0009982" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Suffix_is_appended_to_each_string(batchSize: 2)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Suffix_is_appended_to_each_string" time="0.0000129" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Suffix_is_appended_to_each_string(batchSize: 3)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Suffix_is_appended_to_each_string" time="0.0000074" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Suffix_is_appended_to_each_string(batchSize: 4)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Suffix_is_appended_to_each_string" time="0.000007" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Suffix_is_appended_to_each_string(batchSize: 5)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Suffix_is_appended_to_each_string" time="0.0000066" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Suffix_is_appended_to_each_string(batchSize: 6)" type="Even.Tests.Utils.BatchStringBuilderTests" method="Suffix_is_appended_to_each_string" time="0.0000078" result="Pass" />
+      <test name="Even.Tests.Utils.BatchStringBuilderTests.Multiple_inputs_yielrs_multiple_outputs" type="Even.Tests.Utils.BatchStringBuilderTests" method="Multiple_inputs_yielrs_multiple_outputs" time="0.0012217" result="Pass" />
+    </collection>
+    <collection total="8" passed="8" failed="0" skipped="0" name="Test collection for Even.Tests.TimeoutTests" time="3.763">
+      <test name="Even.Tests.TimeoutTests.Timeout_does_not_expires_before_time(milliseconds: 100)" type="Even.Tests.TimeoutTests" method="Timeout_does_not_expires_before_time" time="0.1723642" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_does_not_expires_before_time(milliseconds: 250)" type="Even.Tests.TimeoutTests" method="Timeout_does_not_expires_before_time" time="0.2409708" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_does_not_expires_before_time(milliseconds: 500)" type="Even.Tests.TimeoutTests" method="Timeout_does_not_expires_before_time" time="0.4921226" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_does_not_expires_before_time(milliseconds: 1000)" type="Even.Tests.TimeoutTests" method="Timeout_does_not_expires_before_time" time="0.9979396" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_is_expired_after_expected_time(milliseconds: 100)" type="Even.Tests.TimeoutTests" method="Timeout_is_expired_after_expected_time" time="0.1044491" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_is_expired_after_expected_time(milliseconds: 250)" type="Even.Tests.TimeoutTests" method="Timeout_is_expired_after_expected_time" time="0.2516751" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_is_expired_after_expected_time(milliseconds: 500)" type="Even.Tests.TimeoutTests" method="Timeout_is_expired_after_expected_time" time="0.501351" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+      <test name="Even.Tests.TimeoutTests.Timeout_is_expired_after_expected_time(milliseconds: 1000)" type="Even.Tests.TimeoutTests" method="Timeout_is_expired_after_expected_time" time="1.0020069" result="Pass">
+        <traits>
+          <trait name="Category" value="Timeout" />
+        </traits>
+      </test>
+    </collection>
+    <collection total="6" passed="6" failed="0" skipped="0" name="Test collection for Even.Tests.QueryTests" time="2.205">
+      <test name="Even.Tests.QueryTests.Query_using_actorpath_gets_response" type="Even.Tests.QueryTests" method="Query_using_actorpath_gets_response" time="0.9418555" result="Pass" />
+      <test name="Even.Tests.QueryTests.Query_using_eventstream_gets_response" type="Even.Tests.QueryTests" method="Query_using_eventstream_gets_response" time="0.0617358" result="Pass" />
+      <test name="Even.Tests.QueryTests.Query_using_actorpath_and_wrong_response_throws_exception" type="Even.Tests.QueryTests" method="Query_using_actorpath_and_wrong_response_throws_exception" time="0.1209606" result="Pass" />
+      <test name="Even.Tests.QueryTests.Query_using_eventstream_throws_exception_on_timeout" type="Even.Tests.QueryTests" method="Query_using_eventstream_throws_exception_on_timeout" time="0.0483361" result="Pass" />
+      <test name="Even.Tests.QueryTests.Query_using_eventstream_and_wrong_response_throws_exception" type="Even.Tests.QueryTests" method="Query_using_eventstream_and_wrong_response_throws_exception" time="1.0134785" result="Pass" />
+      <test name="Even.Tests.QueryTests.Query_using_actorpath_throws_exception_on_timeout" type="Even.Tests.QueryTests" method="Query_using_actorpath_throws_exception_on_timeout" time="0.0188449" result="Pass" />
+    </collection>
+    <collection total="1" passed="1" failed="0" skipped="0" name="Test collection for Even.Tests.EvenSetupTests" time="0.916">
+      <test name="Even.Tests.EvenSetupTests.Start_with_default_config_works" type="Even.Tests.EvenSetupTests" method="Start_with_default_config_works" time="0.9161278" result="Pass" />
+    </collection>
+    <collection total="13" passed="13" failed="0" skipped="0" name="Test collection for Even.Tests.ProjectionStreamTests" time="3.541">
+      <test name="Even.Tests.ProjectionStreamTests.Throws_on_checkpoint_abort" type="Even.Tests.ProjectionStreamTests" method="Throws_on_checkpoint_abort" time="0.942782" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Sends_ProjectionUnsubscribed_to_subscribers_on_restart" type="Even.Tests.ProjectionStreamTests" method="Sends_ProjectionUnsubscribed_to_subscribers_on_restart" time="0.1638038" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Sends_ProjectionReplayFinished_to_uptodate_subscriber" type="Even.Tests.ProjectionStreamTests" method="Sends_ProjectionReplayFinished_to_uptodate_subscriber" time="0.0490443" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Requests_events_after_checkpoint" type="Even.Tests.ProjectionStreamTests" method="Requests_events_after_checkpoint" time="0.0583092" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Throws_on_read_timeout" type="Even.Tests.ProjectionStreamTests" method="Throws_on_read_timeout" time="0.390595" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Throws_on_read_abort" type="Even.Tests.ProjectionStreamTests" method="Throws_on_read_abort" time="0.0193909" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.SubscriptionRequest_with_past_sequence_starts_projection_replay_worker" type="Even.Tests.ProjectionStreamTests" method="SubscriptionRequest_with_past_sequence_starts_projection_replay_worker" time="0.0429939" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Subscribers_that_received_RebuildProjection_need_to_resubscribe_to_receive_messages" type="Even.Tests.ProjectionStreamTests" method="Subscribers_that_received_RebuildProjection_need_to_resubscribe_to_receive_messages" time="1.0111791" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Requests_matched_events_be_written_to_index" type="Even.Tests.ProjectionStreamTests" method="Requests_matched_events_be_written_to_index" time="0.5235087" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Throws_on_checkpoint_timeout" type="Even.Tests.ProjectionStreamTests" method="Throws_on_checkpoint_timeout" time="0.3066606" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Publishes_events_from_eventstream_to_subscribers" type="Even.Tests.ProjectionStreamTests" method="Publishes_events_from_eventstream_to_subscribers" time="0.0085066" result="Pass">
+        <traits>
+          <trait name="Investigate" value="True" />
+        </traits>
+      </test>
+      <test name="Even.Tests.ProjectionStreamTests.Sends_RebuildProjection_to_subscriber_with_unknown_sequence" type="Even.Tests.ProjectionStreamTests" method="Sends_RebuildProjection_to_subscriber_with_unknown_sequence" time="0.0150545" result="Pass" />
+      <test name="Even.Tests.ProjectionStreamTests.Requests_checkpoint_on_start" type="Even.Tests.ProjectionStreamTests" method="Requests_checkpoint_on_start" time="0.0087666" result="Pass" />
+    </collection>
+    <collection total="2" passed="2" failed="0" skipped="0" name="Test collection for Even.Tests.MessageHandlerTests" time="0.092">
+      <test name="Even.Tests.MessageHandlerTests.Handles_mapped_messages" type="Even.Tests.MessageHandlerTests" method="Handles_mapped_messages" time="0.0892335" result="Pass" />
+      <test name="Even.Tests.MessageHandlerTests.Handles_messages" type="Even.Tests.MessageHandlerTests" method="Handles_messages" time="0.0030115" result="Pass" />
+    </collection>
+    <collection total="49" passed="49" failed="0" skipped="0" name="Test collection for Even.Tests.Persistence.InMemoryEventStoreTests" time="1.724">
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Stops_Reading_After_Cancelled" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Stops_Reading_After_Cancelled" time="0.0323464" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteStreamAsync_Throws_On_WrongSequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteStreamAsync_Throws_On_WrongSequence" time="0.0118297" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Empty_Store_Should_Read_No_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Empty_Store_Should_Read_No_Events" time="0.0055324" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadProjectionCheckpointAsync_Reads_WrittenValue" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadProjectionCheckpointAsync_Reads_WrittenValue" time="0.0070471" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Stops_Reading_If_Cancellation_Is_Requested" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Stops_Reading_If_Cancellation_Is_Requested" time="0.0272592" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteProjectionIndexAsync_Throws_On_Incorrect_Sequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteProjectionIndexAsync_Throws_On_Incorrect_Sequence" time="0.0047085" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteAsync_can_write_concurrently" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteAsync_can_write_concurrently" time="1.5517711" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Reads_No_Events_After_ClearIndexAsync" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Reads_No_Events_After_ClearIndexAsync" time="0.0039956" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadHighestIndexedProjectionStreamSequenceAsync_Returns_CorrectGlobalSequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadHighestIndexedProjectionStreamSequenceAsync_Returns_CorrectGlobalSequence" time="0.0040015" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ClearProjectionIndexAsync_Resets_Checkpoint_To_Zero" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ClearProjectionIndexAsync_Resets_Checkpoint_To_Zero" time="0.0028248" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadHighestIndexedProjectionGlobalSequenceAsync_Returns_CorrectGlobalSequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadHighestIndexedProjectionGlobalSequenceAsync_Returns_CorrectGlobalSequence" time="0.0056331" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteAsync_Throws_DuplicatedEntryException" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteAsync_Throws_DuplicatedEntryException" time="0.0033846" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadProjectionCheckpointAsync_With_Empty_Store_Returns_Zero" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadProjectionCheckpointAsync_With_Empty_Store_Returns_Zero" time="0.001494" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Unlimited_Count_Should_Read_All_Stream_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Unlimited_Count_Should_Read_All_Stream_Events" time="0.0021972" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Unlimited_Count_Should_Read_All_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Unlimited_Count_Should_Read_All_Events" time="0.0024766" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteProjectionIndexAsync_Throws_On_Duplicated_Global_Sequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteProjectionIndexAsync_Throws_On_Duplicated_Global_Sequence" time="0.0053718" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteProjectionIndexAsync_Throws_On_Expected_Sequence_None_With_Existing_Stream" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteProjectionIndexAsync_Throws_On_Expected_Sequence_None_With_Existing_Stream" time="0.0034536" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_ZeroCount_Should_Read_No_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_ZeroCount_Should_Read_No_Events" time="0.002413" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteProjectionIndexAsync_Always_Requires_Specific_Version" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteProjectionIndexAsync_Always_Requires_Specific_Version" time="0.0018091" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 0, count: 3, expectedSequences: [1, 2, 3])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0034647" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 1, count: 3, expectedSequences: [1, 2, 3])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0000709" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 2, count: 3, expectedSequences: [2, 3, 4])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0002435" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 3, count: 3, expectedSequences: [3, 4, 5])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0000855" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 4, count: 3, expectedSequences: [4, 5])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0000386" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 5, count: 3, expectedSequences: [5])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0000303" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly(start: 6, count: 3, expectedSequences: [])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Considers_Start_And_Count_Correctly" time="0.0000323" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteStreamAsync_Writes_New_Stream_With_Any_Expected_Sequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteStreamAsync_Writes_New_Stream_With_Any_Expected_Sequence" time="0.0022488" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteAsync_Writes_Different_Streams" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteAsync_Writes_Different_Streams" time="0.0038547" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Empty_Store_Should_Read_No_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Empty_Store_Should_Read_No_Events" time="0.0004432" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_ZeroCount_Should_Read_No_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_ZeroCount_Should_Read_No_Events" time="0.002158" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 0, count: 3, expectedSequences: [6, 7, 8])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0037248" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 1, count: 3, expectedSequences: [6, 7, 8])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0001037" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 2, count: 3, expectedSequences: [7, 8, 9])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0001937" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 3, count: 3, expectedSequences: [8, 9, 10])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0003975" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 4, count: 3, expectedSequences: [9, 10])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0001014" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 5, count: 3, expectedSequences: [10])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0001195" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadStreamAsync_Considers_Start_And_Count_Correctly(start: 6, count: 3, expectedSequences: [])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadStreamAsync_Considers_Start_And_Count_Correctly" time="0.0009868" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteStreamAsync_Appends_To_Stream_With_Any_Expected_Sequence" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteStreamAsync_Appends_To_Stream_With_Any_Expected_Sequence" time="0.0051661" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Reads_Indexed_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Reads_Indexed_Events" time="0.0074597" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 0, count: 3, expectedSequences: [1, 2, 3])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.0037888" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 1, count: 3, expectedSequences: [1, 2, 3])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.0004128" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 2, count: 3, expectedSequences: [2, 3, 4])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.000052" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 3, count: 3, expectedSequences: [3, 4, 5])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.0000236" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 4, count: 3, expectedSequences: [4, 5])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.0000149" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 5, count: 3, expectedSequences: [5])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.0000125" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Considers_Start_And_Count_Correctly(start: 6, count: 3, expectedSequences: [])" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Considers_Start_And_Count_Correctly" time="0.0000113" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadAsync_Stops_Reading_After_Cancelled" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadAsync_Stops_Reading_After_Cancelled" time="0.003542" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.ReadIndexedProjectionStreamAsync_Zero_Count_Should_Read_No_Events" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="ReadIndexedProjectionStreamAsync_Zero_Count_Should_Read_No_Events" time="0.0024099" result="Pass" />
+      <test name="Even.Tests.Persistence.InMemoryEventStoreTests.WriteStreamAsync_Throws_On_ExpetedSequence_None" type="Even.Tests.Persistence.InMemoryEventStoreTests" method="WriteStreamAsync_Throws_On_ExpetedSequence_None" time="0.0035603" result="Pass" />
+    </collection>
+  </assembly>
+</assemblies>

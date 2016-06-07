@@ -16,7 +16,7 @@
 [Dd]ebug/
 [Rr]elease/
 x64/
-build/
+#build/
 [Bb]in/
 [Oo]bj/
 
@@ -192,3 +192,13 @@ docs/tools/FSharp.Formatting.svclog
 # DNX
 project.lock.json
 artifacts/
+
+# Visual Studio Code
+.vscode/
+
+# Build output
+.build/
+build/tools/packages/
+
+#More Nuget
+*.nuget.props

@@ -1,0 +1,139 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{00546FFA-62B1-4F0A-A5BE-AC476FF3691B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Even</RootNamespace>
+    <AssemblyName>Even</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\CommonAssemblyInfo.cs">
+      <Link>Properties\CommonAssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="Aggregate.cs" />
+    <Compile Include="AggregateSupervisor.cs" />
+    <Compile Include="AkkaAsyncHelper.cs" />
+    <Compile Include="Argument.cs" />
+    <Compile Include="BufferedEventWriter.cs" />
+    <Compile Include="CommandProcessor.cs" />
+    <Compile Include="CommandProcessorSupervisor.cs" />
+    <Compile Include="CommandResult.cs" />
+    <Compile Include="Constants.cs" />
+    <Compile Include="DefaultSerializer.cs" />
+    <Compile Include="ESCategoryAttribute.cs" />
+    <Compile Include="ESEventAttribute.cs" />
+    <Compile Include="EvenException.cs" />
+    <Compile Include="EvenGateway.cs" />
+    <Compile Include="EvenMaster.cs" />
+    <Compile Include="EvenServices.cs" />
+    <Compile Include="EvenSetup.cs" />
+    <Compile Include="EvenStorageFormatAttribute.cs" />
+    <Compile Include="EventCount.cs" />
+    <Compile Include="EventDispatcher.cs" />
+    <Compile Include="EventProcessor.cs" />
+    <Compile Include="EventProcessorSupervisor.cs" />
+    <Compile Include="EventReader.cs" />
+    <Compile Include="EventRegistry.cs" />
+    <Compile Include="EventStoreReader.cs" />
+    <Compile Include="EventStoreWriter.cs" />
+    <Compile Include="ExpectedSequence.cs" />
+    <Compile Include="ExtensionMethods.cs" />
+    <Compile Include="ICommandValidator.cs" />
+    <Compile Include="IEventStore.cs" />
+    <Compile Include="IndexedProjectionStreamReader.cs" />
+    <Compile Include="IndexSequenceEntry.cs" />
+    <Compile Include="Internals\CollectionExtensions.cs" />
+    <Compile Include="Internals\Unit.cs" />
+    <Compile Include="IPersistedEvent.cs" />
+    <Compile Include="IPersistedStreamEvent.cs" />
+    <Compile Include="IProjectionStreamPredicate.cs" />
+    <Compile Include="ISerializer.cs" />
+    <Compile Include="MessageHandler.cs" />
+    <Compile Include="Messages\CommandMessages.cs" />
+    <Compile Include="Messages\CommandProcessorMessages.cs" />
+    <Compile Include="Messages\EventProcessorMessages.cs" />
+    <Compile Include="Messages\EventReadMessages.cs" />
+    <Compile Include="Messages\GenericMessages.cs" />
+    <Compile Include="Messages\InformationMessages.cs" />
+    <Compile Include="Messages\Initialization.cs" />
+    <Compile Include="Messages\IRequest.cs" />
+    <Compile Include="Messages\Persistence.cs" />
+    <Compile Include="Messages\ProjectionMessages.cs" />
+    <Compile Include="Options.cs" />
+    <Compile Include="PersistedEventFactory.cs" />
+    <Compile Include="PersistedRawEvent.cs" />
+    <Compile Include="Persistence\InMemoryStore.cs" />
+    <Compile Include="Projection.cs" />
+    <Compile Include="ProjectionCheckpointWriter.cs" />
+    <Compile Include="ProjectionEvent.cs" />
+    <Compile Include="ProjectionIndexWriter.cs" />
+    <Compile Include="ProjectionState.cs" />
+    <Compile Include="ProjectionStream.cs" />
+    <Compile Include="ProjectionStreamQuery.cs" />
+    <Compile Include="ProjectionStreamSupervisor.cs" />
+    <Compile Include="ProjectionSupervisor.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PropsFactory.cs" />
+    <Compile Include="Query.cs" />
+    <Compile Include="QueryExtensions.cs" />
+    <Compile Include="ReadWorkers.cs" />
+    <Compile Include="RejectReason.cs" />
+    <Compile Include="SerialEventStreamWriter.cs" />
+    <Compile Include="Stream.cs" />
+    <Compile Include="StreamEventReader.cs" />
+    <Compile Include="StreamHash.cs" />
+    <Compile Include="SystemClock.cs" />
+    <Compile Include="Timeout.cs" />
+    <Compile Include="UnpersistedEvent.cs" />
+    <Compile Include="UnpersistedRawEvent.cs" />
+    <Compile Include="Utils\BatchStringBuilder.cs" />
+    <Compile Include="Utils\EnumerableExtensions.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="app.config" />
+    <None Include="Even.nuspec" />
+    <None Include="project.json" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
