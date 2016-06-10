@@ -60,7 +60,7 @@ function New-VersionInfo {
     $versionInfo = ConvertFrom-Json $VersionInfoJsonText
 
     $prereleaseLabel = $versionInfo.PreReleaseLabel
-	$prereleaseNumber = ($VersionInfo).PreReleaseNumber.ToString("0000")
+	$prereleaseNumber = "{0:0000}" -f (($VersionInfo).PreReleaseNumber)
     $buildMeta = ($VersionInfo).BuildMetadataPadded
     $versionSuffix = "{0}{1}-{2}" -f $prereleaseLabel, $prereleaseNumber, $buildMeta
     $versionInfo | Add-Member -type NoteProperty -name VersionSuffix -value $versionSuffix
