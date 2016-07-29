@@ -12,7 +12,7 @@
     <projectUrl>https://github.com/evendotnet/Even/</projectUrl>
 
     <dependencies>
-      <dependency id="Akka" version="1.0.8" />
+      <dependency id="Akka" version="1.1.1" />
       <dependency id="DBHelpers" version="1.1.0" />
     </dependencies>
             

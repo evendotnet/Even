@@ -1,11 +1,10 @@
-{
+﻿{
   "dependencies": {
-    "Akka": "1.0.8",
+    "Akka": "1.1.1",
     "DBHelpers": "1.1.0.0"
   },
   "frameworks": {
-    "net451": {
-    }
+    "net451": {}
   },
   "runtimes": {
     "win": ""
