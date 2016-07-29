@@ -1,7 +1,7 @@
 init:
   - git config --global core.autocrlf input
 build_script:
-  - ps: .\build.ps1 -Target CI
+  - ps: .\build.ps1 -Target BuildAndPackage
 test: off  
 artifacts:
   - path: '.build\**\testResults\*Test*.xml'
