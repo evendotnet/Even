@@ -1,11 +1,11 @@
 init:
   - git config --global core.autocrlf input
 build_script:
-  - cmd: build.bat Package
+  - ps: .\build.ps1 -Target BuildAndPackage
 test: off  
 artifacts:
-  - path: '.build\**\testResults\*testResults.xml'
+  - path: '.build\**\testResults\*Test*.xml'
     name: testResults
 
-  - path: '.build\artifacts\**\*.nupkg'
+  - path: '.build\**\*.nupkg'
     name: packages
