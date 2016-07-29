@@ -30,7 +30,7 @@ var nugetApiKey = Argument("nugetApiKey","");
 // CUSTOMIZE PER Project 
 //////////////////////////////////////////////////////////////////////
 var traitsToExclude = new Dictionary<string, IList<string>>{
-    {"Category", new []{"Integration","Debug"}}
+    {"Category", new []{"Integration","Debug","Unstable"}}
 };
 //////////////////////////////////////////////////////////////////////
 // PREPARATION
