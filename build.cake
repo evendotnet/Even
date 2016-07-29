@@ -57,7 +57,8 @@ GitVersion version;
 
 Setup(context=>{
     version = GitVersion(new GitVersionSettings {
-            UpdateAssemblyInfo = false
+            UpdateAssemblyInfo = false,
+            OutputType = GitVersionOutput.BuildServer
     });
 
     foreach(var project in allProjects){
@@ -90,7 +91,7 @@ Task("Print-Info").Does(()=>{
 Task("Update-Versions").Does(()=>{
     version = GitVersion(new GitVersionSettings {
             UpdateAssemblyInfo = true,
-            UpdateAssemblyInfoFilePath = File(".\\CommonAssemblyInfo.cs")
+            UpdateAssemblyInfoFilePath = File(".\\CommonAssemblyInfo.cs")            
     });
 });
 
