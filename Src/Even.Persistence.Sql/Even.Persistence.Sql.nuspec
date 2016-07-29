@@ -19,6 +19,6 @@
   </metadata>
 
   <files>
-      <file src="bin\**\Even.Persistence.Sql.*" target="lib\net451" />
+      <file src="bin\$configuration$\Even.Persistence.Sql.*" target="lib\net451" />
     </files>
 </package>

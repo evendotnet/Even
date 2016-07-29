@@ -202,3 +202,10 @@ build/tools/packages/
 
 #More Nuget
 *.nuget.props
+
+.build/
+
+# tools
+tools/*
+!tools/packages.config
+/.nuget
