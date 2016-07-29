@@ -1,9 +1,9 @@
-{
+﻿{
   "dependencies": {
-    "Akka": "1.0.8"
+    "Akka": "1.1.1"
   },
   "frameworks": {
-    "net451": { }
+    "net451": {}
   },
   "runtimes": {
     "win": ""

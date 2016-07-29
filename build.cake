@@ -79,7 +79,9 @@ Setup(context=>{
 });
 
 Task("Print-Info").Does(()=>{
-
+    version = GitVersion(new GitVersionSettings {
+            UpdateAssemblyInfo = false
+    });
     Information("###############################################");
     Information("# VersionInfo:");
     Information("# NuGetVersion: {0}", version.NuGetVersion);
