@@ -1,0 +1,11 @@
+﻿{
+  "dependencies": {
+    "System.Data.SQLite": "1.0.102"
+  },
+  "frameworks": {
+    "net451": {}
+  },
+  "runtimes": {
+    "win": ""
+  }
+}
