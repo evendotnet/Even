@@ -1,6 +1,6 @@
 ﻿{
   "dependencies": {
-    "System.Data.SQLite": "1.0.102"
+    "System.Data.SQLite.Core": "1.0.102"
   },
   "frameworks": {
     "net451": {}
