@@ -29,7 +29,7 @@ you build with Akka, but it is also easy to work without any knowledge of Akka.N
 The architecture was heavily based on the need for projections, that is, the query side of event sourcing. Also, it does not use
 Akka Persistence, as I found that while it works well for aggregates, it misses a lot of features required to do useful ES.
 
-Even supports 3 basic constructs:
+Even supports 4 basic constructs:
 
 * Aggregates
 * Command Processors
