@@ -3,6 +3,7 @@
     "Akka.TestKit.Xunit2": "1.1.1",
     "MySql.Data": "7.0.2-DMR",
     "NSubstitute": "1.10.0",
+    "System.Data.SQLite.Core": "1.0.102",
     "xunit": "2.1.0",
     "xunit.runner.visualstudio": "2.1.0"
   },

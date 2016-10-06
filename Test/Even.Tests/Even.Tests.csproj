@@ -17,7 +17,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;SQLITE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
@@ -63,6 +63,7 @@
     <Compile Include="Persistence\EventStoreTests.cs" />
     <Compile Include="Persistence\InMemoryEventStoreTests.cs" />
     <Compile Include="Persistence\MySqlEventStoreTests.cs" />
+    <Compile Include="Persistence\SQLiteEventStoreTests.cs" />
     <Compile Include="Persistence\SqlServer2012StoreTests.cs" />
     <Compile Include="ProjectionCheckpointWriterTests.cs" />
     <Compile Include="ProjectionIndexWriterTests.cs" />
@@ -82,13 +83,19 @@
     <Compile Include="Utils\ProbeRelay.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="app.config" />
+    <None Include="app.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="project.json" />
     <None Include="TestConfig.hocon">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\Src\Even.Persistence.SQLite\Even.Persistence.SQLite.csproj">
+      <Project>{20a9c4e3-f4c5-49f8-b53c-a964db828c71}</Project>
+      <Name>Even.Persistence.SQLite</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Src\Even.Persistence.Sql\Even.Persistence.Sql.csproj">
       <Project>{179b5e10-8e0a-47b3-b5ad-46466caa393c}</Project>
       <Name>Even.Persistence.Sql</Name>
